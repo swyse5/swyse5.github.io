@@ -5,8 +5,7 @@
  */
 
 .intro-text {
-  background-color: black;
-  opacity: .5;
+  background: rgba(0,0,0, .5);
 }
 
 body {
