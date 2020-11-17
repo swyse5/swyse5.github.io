@@ -4,7 +4,8 @@
   "description": "App to hold info about ESPN Fantasy Football League",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +16,9 @@
   "bugs": {
     "url": "https://github.com/swyse5/swyse5.github.io/issues"
   },
-  "homepage": "https://github.com/swyse5/swyse5.github.io#readme"
+  "homepage": "https://github.com/swyse5/swyse5.github.io#readme",
+  "dependencies": {
+    "espn-fantasy-football-api": "^0.16.1",
+    "express": "^4.17.1"
+  }
 }
