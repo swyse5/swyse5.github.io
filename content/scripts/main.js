@@ -51,7 +51,7 @@ requirejs([
       mvp.find('.name').text(highestPlayer.player.fullName);
       mvp.find('.owner').text(highestPlayer.player.proTeam);
       mvp.find('.wins').text(highestPlayer.position);
-      mvp.find('.score').text(Number(highestPlayer.totalPoints));
+      mvp.find('.score').text(Number(highestPlayer.totalPoints.toFixed(2)));
     }
 
     // stats
@@ -68,11 +68,11 @@ requirejs([
       var team = teams[i];
       teamScore = team.totalPointsScored;
       if (teamScore < lowestTeamScore) {
-        lowestTeamScore = Number(teamScore);
+        lowestTeamScore = Number(teamScore.toFixed(2));
         lowestTeam = {name: team.name, owner: team.abbreviation, wins: team.wins, losses: team.losses, score: lowestTeamScore};
       }
       if (teamScore > highestTeamScore) {
-        highestTeamScore = Number(teamScore);
+        highestTeamScore = Number(teamScore.toFixed(2));
         highestTeam = {name: team.name, owner: team.abbreviation, wins: team.wins, losses: team.losses, score: highestTeamScore};
       }
     }
