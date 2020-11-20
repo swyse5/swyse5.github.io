@@ -1,6 +1,5 @@
 var date = new Date();
 var day = date.getDay();
-console.log(day);
 function getData(){
 requirejs.config({
   paths: {
@@ -51,7 +50,7 @@ requirejs([
     if (highestPlayer.totalPoints != 0) {
       mvp.find('.name').text(highestPlayer.player.fullName);
       mvp.find('.owner').text(highestPlayer.player.proTeam);
-      mvp.find('.wins').text(highestPlayer.player.defaultPosition);
+      mvp.find('.wins').text(highestPlayer.position);
       mvp.find('.score').text(Number(highestPlayer.totalPoints.toFixed(1)));
     }
 
