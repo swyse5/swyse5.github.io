@@ -112,8 +112,8 @@ requirejs([
       var away;
       var leader;
 
-      box.homeTeamId === 9 ? home = teams[box.homeTeamId - 2] : home = teams[box.homeTeamId - 1];
-      box.awayTeamId === 9 ? away = teams[box.awayTeamId - 2] : away = teams[box.awayTeamId - 1];
+      box.homeTeamId === 1 ? home = teams[box.homeTeamId - 1] : home = teams[box.homeTeamId - 2];
+      box.awayTeamId === 1 ? away = teams[box.awayTeamId - 1] : away = teams[box.awayTeamId - 2];
       box.homeScore > box.awayScore ? leader = 'leader--home' : '';
       box.awayScore > box.homeScore ? leader = 'leader--away' : '';
 
