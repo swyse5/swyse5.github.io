@@ -1,0 +1,106 @@
+// Regions //
+.region--banner {
+  padding: 0;
+  .column {
+    padding: 0;
+  }
+  .el {
+    margin-bottom: 0;
+  }
+  .banner__text,
+  .el--text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .banner__text {
+    margin-bottom: 4%;
+  }
+}
+.header--banner {
+  margin: 0;
+  font-size: 20vw;
+  font-weight: $fw-9;
+  text-align: center;
+  line-height: 1;
+  padding-top: 10px;
+  position: relative;
+  @include shimmer(20px, 30px, .3vw);
+
+  &:after,
+  &:before {
+    content: '';
+    margin-top: 3vh;
+    color: $c-grey2;
+    font-size: 2vw;
+    font-weight: $fw-4;
+    font-family: $f-2;
+    display: block;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    background: -webkit-linear-gradient($c-grey1, $c-grey3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 0;
+    @media only screen and (max-width: $w-tab) {
+      margin-top: 2vw;
+    }
+  }
+  &:before {
+    content: '';
+    margin-top: 0;
+    text-transform: none;
+    font-size: 1.5vw;
+    background: -webkit-linear-gradient($c-grey1, $c-grey2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 0;
+  }
+}
+
+// footer
+.footer {
+  .module {
+    padding: 0 $space6;
+  }
+}
+.copyright {
+  font-weight: $fw-3;
+}
+
+// backgrounds
+.bg-gradient {
+  background-image: linear-gradient(to bottom right, #af6b2c, #140f1e);
+}
+.bg-grey {
+  background-color: $c-grey1;
+}
+.bg-green {
+  color: $c-white;
+  background: $c-green url('../images/field.jpg') no-repeat;
+  background-size: 100%;
+  position: relative;
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: .95;
+    background-color: $c-green;
+  }
+  p,
+  .header {
+    color: $c-white;
+  }
+}
+.bg-dark {
+  color: $c-white;
+  background-color: $c-black;
+}

@@ -1,0 +1,25 @@
+.module--poopstack {
+  .team {
+    font-weight: $fw-6;
+    text-transform: uppercase;
+  }
+  .manager {
+    font-style: italic;
+    color: $c-grey3;
+  }
+  .el {
+    padding: 0 $space4;
+  }
+  .icon--poopstack {
+    width: 10vw;
+    max-width: 200px;
+  }
+  @media only screen and (max-width: $w-tab) {
+    display: block;
+    text-align: center;
+
+    .icon--poopstack {
+      margin-bottom: $space2;
+    }
+  }
+}

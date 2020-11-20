@@ -1,0 +1,61 @@
+// Config //
+
+// width //
+$w-max:      1280px;
+$w-tab:      1024px;
+$w-tab-p:    768px;
+$w-mobile:   480px;
+$w-mobile-p: 320px;
+
+// colors //
+$c-white:     #ffffff;
+$c-black:     #161719;
+$c-grey1:     #eeeeee;
+$c-grey2:     #cccccc;
+$c-grey3:     #777777;
+$c-grey4:     #444444;
+$c-green:     #283b18;
+$c-orange:    #ae6a2c;
+$c-red:       #3b1818;
+$c-plaque:    #524932;
+$transparent: rgba(255,255,255,.001);
+
+// fonts //
+$f-1: 'Roboto Slab', sans-serif;
+$f-2: 'Roboto', sans-serif;
+
+$fs-00:12px;
+$fs-0: 14px;
+$fs-1: 16px;
+$fs-2: 18px;
+$fs-3: 24px;
+$fs-4: 36px;
+$fs-5: 48px;
+$fs-6: 60px;
+
+$fw-1: 100;
+$fw-2: 200;
+$fw-3: 300;
+$fw-4: 400;
+$fw-5: 500;
+$fw-6: 600;
+$fw-7: 700;
+$fw-8: 800;
+$fw-9: 900;
+
+// spacing //
+$space05: 5px;
+$space1:  10px;
+$space2:  20px;
+$space3:  30px;
+$space4:  40px;
+$space5:  50px;
+$space6:  60px;
+$space7:  70px;
+$space8:  80px;
+$space9:  90px;
+$space10: 100px;
+
+// general //
+$trans:  .2s ease-in-out;
+$radius: 2px;

@@ -1,0 +1,42 @@
+// Highscore styles //
+.module--hs {
+  position: relative;
+  p {
+    margin: $space1 0;
+  }
+  .score {
+    font-size: $fs-3;
+    font-weight: $fw-6;
+  }
+  .manager {
+    font-style: italic;
+    font-weight: $fw-4;
+    &:before {
+      content: '';
+      margin: 0 $space1;
+    }
+  }
+  .year {
+    font-size: $fs-0;
+    font-weight: $fw-3;
+    color: $c-grey2;
+    &:before {
+      content: '-';
+      margin: 0 $space1;
+    }
+  }
+  .list__item {
+    padding-right: $space2;
+  }
+
+  @media only screen and (max-width: 525px) {
+    text-align: center;
+
+    .list__item {
+      padding-right: 0;
+      &:first-of-type p:last-of-type {
+        margin-bottom: 0;
+      }
+    }
+  }
+}

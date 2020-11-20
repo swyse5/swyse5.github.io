@@ -1,0 +1,64 @@
+// Common styles //
+
+// images
+.img {
+  width: 100%;
+  vertical-align: top;
+}
+
+// flex
+.flex {
+  display: flex;
+}
+.flex-ac {
+  align-items: center;
+  justify-content: center;
+}
+.auto {
+  flex: auto;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+// margins
+.no-m {
+  margin-bottom: 0;
+}
+
+// statement
+.statement {
+  font-weight: $fw-3;
+  font-size: $fs-2;
+  letter-spacing: 5px;
+  color: $c-grey3;
+  text-transform: uppercase;
+}
+
+// ads
+.el--ad {
+  margin: auto;
+  max-width: 728px;
+  display: block;
+  border: solid 1px #e2e8ee;
+
+  .img {
+    width: 100%;
+  }
+
+  .mobile {
+    display: none;
+  }
+
+  @media only screen and (max-width: $w-tab) {
+    max-width: 300px;
+
+    .desktop {
+      display: none;
+    }
+
+    .mobile {
+      display: block;
+    }
+  }
+}

@@ -1,0 +1,50 @@
+// Structure //
+html, body {
+  padding: 0;
+  margin: 0;
+}
+.region,
+.column,
+.block,
+.el {
+  position: relative;
+}
+.region {
+  padding: $space6 0;
+
+  &.no-pad {
+    padding: 0;
+  }
+
+  .leaderboard & {
+    padding: $space4 0 0;
+  }
+}
+.leaderboard + .section {
+  .region {
+    @media only screen and (max-width: $w-tab) {
+      padding-top: $space4;
+    }
+  }
+}
+.block {
+  display: flex;
+
+  &--center {
+    margin: 0 auto;
+    max-width: $w-max;
+  }
+}
+.column {
+  flex: 1;
+  padding: 0 $space1;
+}
+.el {
+  margin-bottom: $space2;
+}
+
+@media only screen and (max-width: $w-tab) {
+  .block {
+    display: block;
+  }
+}

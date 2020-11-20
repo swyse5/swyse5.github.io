@@ -1,0 +1,81 @@
+.el--stats {
+  justify-content: space-between;
+
+  .team {
+    border-radius: $radius;
+    padding: $space2;
+  }
+}
+
+.team {
+  min-height: 97px;
+  box-sizing: border-box;
+  
+  .stat--high & {
+    background-color: $c-green;
+  }
+
+  .stat--low & {
+    background-color: $c-red;
+  }
+
+  .stat--mvp & {
+    background-color: $c-orange;
+  }
+}
+
+.stat {
+  flex: 1 0;
+  width: 100%;
+  max-width: calc(33.3% - 10px);
+  box-sizing: border-box;
+
+  @media only screen and (max-width: $w-tab) {
+    max-width: calc(50% - 5px);
+    margin-bottom: $space4;
+    flex: 100%
+  }
+
+  @media only screen and (max-width: $w-tab-p) {
+    max-width: 100%;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &.stat--mvp {
+      order: -1;
+    }
+  }
+
+  .data--team {
+    flex: 1 0 70%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .data--score {
+    flex: 1 0 30%;
+  }
+
+  .name {
+    font-size: $fs-3;
+    font-weight: $fw-4;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .owner,
+  .wins {
+    font-size: $fs-0;
+    font-weight: $fw-1;
+  }
+
+  .score {
+    box-sizing: border-box;
+    font-weight: $fw-6;
+    font-size: $fs-3;
+  }
+}

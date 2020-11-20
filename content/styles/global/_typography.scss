@@ -1,0 +1,90 @@
+html, body {
+  color: $c-grey4;
+  font-size: $fs-1;
+  font-family: $f-2;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5 {
+  margin-top: 0;
+  font-family: $f-1;
+  line-height: 1;
+}
+
+h1 {
+  color: $c-grey4;
+  font-size: $fs-6;
+}
+
+h2 {
+  color: $c-grey4;
+  font-size: $fs-5;
+  @media only screen and (max-width: $w-tab) {
+    font-size: $fs-3;
+  }
+}
+
+h3 {
+  color: $c-grey4;
+  font-size: $fs-3;
+}
+
+h4 {
+  color: $c-grey4;
+  font-size: $fs-2;
+}
+
+h5 {
+  color: $c-grey4;
+  font-size: $fs-2;
+}
+
+a {
+  color: inherit;
+  display: inline-block;
+  text-underline-position: under;
+  transition: color $trans;
+
+  &:hover {
+    color: $c-grey4;
+    cursor: pointer;
+  }
+}
+
+p {
+  color: $c-grey4;
+  + h4 {
+    margin-top: $space4;
+  }
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  line-height: 2;
+  padding-inline-start: $space2;
+}
+
+// alignment //
+.ta-c {
+  text-align: center;
+}
+
+.ta-r {
+  text-align: right;
+}
+
+// general //
+.fw-b {
+  font-weight: bold;
+}
+
+// font size //
+.fs-0 {
+  font-size: $fs-0;
+}
+
+// white text //
+.tw {
+  color: $c-white;
+}

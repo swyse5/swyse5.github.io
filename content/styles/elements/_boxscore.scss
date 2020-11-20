@@ -1,0 +1,106 @@
+.el--boxscores {
+  justify-content: space-between;
+}
+.boxscore {
+  min-height: 154px;
+  width: 100%;
+  max-width: calc(33.333333% - 10px);
+  box-sizing: border-box;
+  margin-bottom: $space2;
+  border-radius: 2px;
+  border: solid 1px $c-grey2;
+  padding: $space2;
+  border-radius: 5px;
+
+  @media only screen and (max-width: $w-tab) {
+    max-width: calc(50% - 5px);
+    margin-bottom: $space1;
+  }
+
+  @media only screen and (max-width: $w-tab-p) {
+    max-width: 100%;
+  }
+
+  &.leader--home {
+    .home .score {
+      color: lighten($c-green, 20%);
+    }
+    .away .score {
+      color: lighten($c-red, 20%);
+    }
+  }
+
+  &.leader--away {
+    .home .score {
+      color: lighten($c-red, 20%);
+    }
+    .away .score {
+      color: lighten($c-green, 20%);
+    }
+  }
+
+  .team {
+    flex: 1 0;
+    min-height: 51px;
+    display: flex;
+    position: relative;
+
+    &.home {
+      margin-bottom: $space1;
+    }
+  }
+
+  .info {
+    flex: 70%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .logo {
+    height: 35px;
+    width: 35px;
+    border-radius: 100%;
+    display: inline-block;
+    overflow: hidden;
+    position: absolute;
+    left: 0;
+    top: 8px;
+
+    .img {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .seed {
+    font-size: $fs-0;
+    color: $c-orange;
+    font-weight: $fw-4;
+  }
+
+  .name {
+    font-size: $fs-2;
+    margin-bottom: 3px;
+    font-weight: $fw-5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 45px;
+    position: relative;
+  }
+
+  .score {
+    flex: 30%;
+    font-size: $fs-3;
+    font-weight: $fw-8;
+    text-align: right;
+    color: $c-grey3;
+  }
+
+  .record {
+    font-size: $fs-0;
+    color: $c-grey3;
+    padding-left: 45px;
+  }
+}

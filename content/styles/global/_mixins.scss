@@ -1,0 +1,50 @@
+// Mixins //
+
+@mixin shimmer($y, $blur, $stroke){
+  .shadow & {
+    background: none;
+    text-shadow: 0 $y $blur rgba(0,0,0,.75);
+    &:before {
+      text-shadow: 0 4px 5px rgba(0, 0, 0, 0.75);
+    }
+  }
+  .metallic & {
+    background: -webkit-linear-gradient(#aa771c, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c, #bf953f);
+    background-size: 100%;
+    background-position: center;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: $stroke #966f2b;
+    &:before {
+      opacity: 0;
+    }
+    @media only screen and (max-width: $w-tab) {
+      background: none;
+      color: #fcf6ba;
+      -webkit-text-fill-color: #d5ad5b;
+    }
+  }
+  .shimmer & {
+    background: $transparent -webkit-gradient(linear, 100% 0, 0 0, from($transparent), color-stop(0.5, rgba(255,255,255,.25)), to($transparent));
+    background-position: -10% top;
+    background-repeat: no-repeat;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-animation-name: shimmer;
+    -webkit-animation-duration: 3s;
+    -webkit-animation-iteration-count: infinite;
+    -webkit-background-size: 20% 100%;
+    animation-delay: -2s;
+  }
+}
+
+// animation
+@-webkit-keyframes shimmer {
+  0% {
+    background-position: -100% top;
+  }
+
+  100% {
+    background-position: 200% top;
+  }
+}

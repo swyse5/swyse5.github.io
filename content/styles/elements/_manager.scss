@@ -1,0 +1,80 @@
+// Manager //
+.el--manager {
+  text-align: center;
+  padding: 0 $space2;
+  margin-bottom: $space6;
+
+  .portrait {
+    overflow: hidden;
+    border-radius: 100%;
+    height: 200px;
+    width: 200px;
+    margin: 0 auto $space1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 20px 0 rgba(0,0,0,.5);
+  }
+
+  .name {
+    font-size: $fs-3;
+    color: $c-white;
+    margin-bottom: $space05;
+    margin-top: $space2;
+  }
+
+  .description {
+    margin-bottom: $space1;
+    font-size: $fs-00;
+    color: #794210;
+    text-transform: uppercase;
+    font-weight: $fw-5;
+    display: inline-block;
+    border-radius: $radius;
+    padding: 2px $space1 1px;
+    margin-top: $space1;
+
+    &.dark {
+      color: #4c2b0d;
+    }
+
+    background-image: linear-gradient(to bottom right, rgba(255,255,255,.7), rgba(255,255,255,.3));
+  }
+
+  .team {
+    min-height: 0;
+    font-style: italic;
+    color: $c-grey1;
+    font-size: $fs-1;
+    font-weight: $fw-3;
+  }
+}
+
+@media only screen and (max-width: $w-tab) {
+  .el--manager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: $space2;
+    padding-top: $space2;
+    border-top: solid 1px rgba(255,255,255,.2);
+
+    &:first-of-type {
+      margin-top: $space4;
+    }
+
+    .portrait {
+      height: 100px;
+      width: 100px;
+      margin: 0 $space2;
+    }
+
+    .name {
+      margin-top: 0;
+    }
+
+    .info {
+      text-align: left;
+    }
+  }
+}

@@ -1,0 +1,74 @@
+// Plaque Element //
+.el--plaque {
+  border-radius: $radius;
+  background: url('../images/silver.jpg');
+  background-size: 100%;
+  background-position: center;
+  position: relative;
+  box-shadow: inset 0 0 20px 0 rgba(0,0,0,.5);
+  padding: $space2;
+  text-align: center;
+  color: #444756;
+
+  .club--champion & {
+    color: $c-plaque;
+    background: url('../images/gold.jpg');
+
+    .name {
+      font-size: $fs-3;
+      font-weight: $fw-6;
+    }
+  }
+
+  .club--past & {
+    width: 100%;
+    max-width: calc(33% - 50px);
+
+    @media only screen and (max-width: $w-tab) {
+      max-width: 100%;
+    }
+  }
+
+  .year {
+    font-weight: $fw-7;
+    font-size: $fs-2;
+  }
+
+  .name {
+    font-size: 22px;
+    font-family: $f-1;
+  }
+}
+.corner {
+  height: 20px;
+  width: 20px;
+  border-radius: 100%;
+  background-color: $c-grey1;
+  position: absolute;
+  top: -$space1;
+  left: -$space1;
+
+  &--tr {
+    left: auto;
+    right: -$space1;
+  }
+
+  &--bl {
+    top: auto;
+    bottom: -$space1;
+  }
+
+  &--br {
+    left: auto;
+    top: auto;
+    right: -$space1;
+    bottom: -$space1;
+  }
+}
+
+.club--past {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
