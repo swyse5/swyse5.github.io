@@ -51,7 +51,7 @@ requirejs([
       mvp.find('.name').text(highestPlayer.player.fullName);
       mvp.find('.owner').text(highestPlayer.player.proTeam);
       mvp.find('.wins').text(highestPlayer.position);
-      mvp.find('.score').text(Number(highestPlayer.totalPoints.toFixed(1)));
+      mvp.find('.score').text(Number(highestPlayer.totalPoints));
     }
 
     // stats
@@ -68,24 +68,24 @@ requirejs([
       var team = teams[i];
       teamScore = team.totalPointsScored;
       if (teamScore < lowestTeamScore) {
-        lowestTeamScore = Number(teamScore.toFixed(1));
-        lowestTeam = {name: team.name, owner: team.abbreviation, percent: team.winningPercentage, score: lowestTeamScore};
+        lowestTeamScore = Number(teamScore);
+        lowestTeam = {name: team.name, owner: team.abbreviation, wins: team.wins, losses: team.losses, score: lowestTeamScore};
       }
       if (teamScore > highestTeamScore) {
-        highestTeamScore = Number(teamScore.toFixed(1));
-        highestTeam = {name: team.name, owner: team.abbreviation, percent: team.winningPercentage, score: highestTeamScore};
+        highestTeamScore = Number(teamScore);
+        highestTeam = {name: team.name, owner: team.abbreviation, wins: team.wins, losses: team.losses, score: highestTeamScore};
       }
     }
 
     statHigh.find('.name').text(highestTeam.name);
     statHigh.find('.score').text(highestTeam.score);
     statHigh.find('.owner').text(highestTeam.owner);
-    statHigh.find('.percent').text(highestTeam.percent);
+    statHigh.find('.record').text(highestTeam.wins+'-'+highestTeam.losses);
 
     statLow.find('.name').text(lowestTeam.name);
     statLow.find('.score').text(lowestTeam.score);
     statLow.find('.owner').text(lowestTeam.owner);
-    statLow.find('.percent').text(lowestTeam.percent);
+    statLow.find('.record').text(lowestTeam.wins+'-'+lowestTeam.losses);
 
     // manager team
     for (var i = 0; i < managerTeam.length; i++) {
