@@ -243,12 +243,12 @@ ul {
   text-shadow: 0 4px 5px rgba(0, 0, 0, 0.75);
 }
 .metallic .header--banner {
-  background: -webkit-linear-gradient(#aa771c, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c, #bf953f);
+  background: #0076b6;
   background-size: 100%;
   background-position: center;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 0.3vw #966f2b;
+  -webkit-text-stroke: 0.3vw #b0b7bc;
 }
 .metallic .header--banner:before {
   opacity: 0;
@@ -256,8 +256,8 @@ ul {
 @media only screen and (max-width: 1024px) {
   .metallic .header--banner {
     background: none;
-    color: #fcf6ba;
-    -webkit-text-fill-color: #d5ad5b;
+    color: #0076b6;
+    -webkit-text-fill-color: #0076b6;
   }
 }
 .shimmer .header--banner {
@@ -321,7 +321,7 @@ ul {
 
 .bg-green {
   color: #ffffff;
-  background: #283b18 url("../images/field.jpg") no-repeat;
+  background: #000000 url("../images/field.jpg") no-repeat;
   background-size: 100%;
   position: relative;
 }
@@ -737,13 +737,13 @@ ul {
   box-sizing: border-box;
 }
 .stat--high .team {
-  background-color: #283b18;
+  background-color: #0076b6;
 }
 .stat--low .team {
-  background-color: #3b1818;
+  background-color: #0076b6;
 }
 .stat--mvp .team {
-  background-color: #ae6a2c;
+  background-color: #b0b7bc;
 }
 
 .stat {
