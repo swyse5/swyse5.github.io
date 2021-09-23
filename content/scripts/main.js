@@ -115,7 +115,13 @@ requirejs([
       box.awayTeamId === 1 ? away = teams[box.awayTeamId - 1] : away = teams[box.awayTeamId - 2];
       box.homeScore > box.awayScore ? leader = 'leader--home' : '';
       box.awayScore > box.homeScore ? leader = 'leader--away' : '';
-
+      var fallbackLogo = "https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/ESPN_E_icon.svg/1031px-ESPN_E_icon.svg.png";
+      if (home.logoURL == null || home.logoURL == ""){
+        home.logoURL = fallbackLogo;
+      }
+      if (away.logoURL == null || away.logoURL == ""){
+        away.logoURL = fallbackLogo;
+      }
       var homeArr = {name: home.name, score: box.homeScore, logo: home.logoURL, wins: home.wins, losses: home.losses, hw: home.homeWins, hl: home.homeLosses, seed: home.playoffSeed};
       var awayArr = {name: away.name, score: box.awayScore, logo: away.logoURL, wins: away.wins, losses: away.losses, aw: away.awayWins, al: away.awayLosses, seed: away.playoffSeed};
 
