@@ -13,11 +13,43 @@
     <link rel="stylesheet" type="text/css" href="content/styles/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;500;700;900&family=Roboto:wght@300,400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>    
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="fantasy golf majors best ball">
     <meta name="keywords" content="Golf, Fantasy">
     <meta name="author" content="Stuart Wyse">
+    <style>
+      .sheet-container {
+        position: relative;
+        padding-bottom: 85vh; /* Slightly reduced height */
+        height: 0;
+        overflow: hidden;
+        margin: 1rem 0; /* Positive margin for spacing */
+      }
+      .sheet-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+      /* Adjust container width */
+      .tab-content {
+        max-width: 90vw; /* Slightly reduced width */
+        margin: 0 auto;
+        padding: 1rem; /* Add padding */
+      }
+      /* Ensure proper tab pane spacing */
+      .tab-pane {
+        padding: 1rem;
+      }
+      /* Add space below the header */
+      .tab-pane h3 {
+        margin-bottom: 1.5rem;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
@@ -30,30 +62,121 @@
           </div>
         </div>
       </section>
-      <form>
-          <div class="form-group">
-            <label for="exampleFormControlInput1">Enter Your Name</label>
-            <input type="text" class="form-control" id="exampleFormControlInput1" placeholder="Happy Gilmore">
+
+      <!-- Nav tabs -->
+      <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="pick-submission-tab" data-toggle="tab" href="#pick-submission" role="tab" aria-controls="pick-submission" aria-selected="true">Pick Submission</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="season-standings-tab" data-toggle="tab" href="#season-standings" role="tab" aria-controls="season-standings" aria-selected="false">Season Standings</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="masters-tab" data-toggle="tab" href="#masters" role="tab" aria-controls="masters" aria-selected="false">Masters</a>
+        </li>
+      </ul>
+
+      <!-- Tab panes -->
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="pick-submission" role="tabpanel" aria-labelledby="pick-submission-tab">
+          <!-- Add an alert div for messages -->
+          <div id="formMessage" class="alert" style="display: none;" role="alert"></div>
+          
+          <form class="mt-4" action="https://formspree.io/f/xvgadzdo" method="POST">
+            <div class="form-group">
+              <label for="golfer1">Select your first golfer (rank 1-100)</label>
+              <select class="form-control" id="golfer1" name="golfer1" required>
+                <option value="">Choose a golfer...</option>
+                <option>Scottie Scheffler</option>
+                <option>Rory McIlroy</option>
+                <option>Jon Rahm</option>
+                <option>Viktor Hovland</option>
+                <option>Brooks Koepka</option>
+                <option>Xander Schauffele</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="golfer2">Select your second golfer (rank 11-100)</label>
+              <select class="form-control" id="golfer2" name="golfer2" required>
+                <option value="">Choose a golfer...</option>
+                <option>Scottie Scheffler</option>
+                <option>Rory McIlroy</option>
+                <option>Jon Rahm</option>
+                <option>Viktor Hovland</option>
+                <option>Brooks Koepka</option>
+                <option>Xander Schauffele</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="golfer3">Select your third golfer (rank 21-100)</label>
+              <select class="form-control" id="golfer3" name="golfer3" required>
+                <option value="">Choose a golfer...</option>
+                <option>Scottie Scheffler</option>
+                <option>Rory McIlroy</option>
+                <option>Jon Rahm</option>
+                <option>Viktor Hovland</option>
+                <option>Brooks Koepka</option>
+                <option>Xander Schauffele</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="golfer4">Select your fourth golfer (rank 31-100)</label>
+              <select class="form-control" id="golfer4" name="golfer4" required>
+                <option value="">Choose a golfer...</option>
+                <option>Scottie Scheffler</option>
+                <option>Rory McIlroy</option>
+                <option>Jon Rahm</option>
+                <option>Viktor Hovland</option>
+                <option>Brooks Koepka</option>
+                <option>Xander Schauffele</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="customGolfer">If you want to use any golfer(s) ranked outside the top 100, enter their name here</label>
+              <input type="text" class="form-control" id="customGolfer" name="customGolfer" placeholder="Enter golfer(s) name">
+            </div>
+
+            <div class="form-group">
+              <label for="userEmail">Enter your email address to receive your picks</label>
+              <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required>
+              <input type="hidden" name="_cc" value="">
+              <small class="form-text text-muted">You'll receive a confirmation email with your picks.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-block">Submit Picks</button>
+          </form>
+        </div>
+
+        <div class="tab-pane fade" id="season-standings" role="tabpanel" aria-labelledby="season-standings-tab">
+          <div class="mt-4">
+            <h3>Season Standings</h3>
+            <div class="embed-responsive embed-responsive-16by9">
+              <iframe class="embed-responsive-item" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_DDi9qNl-euVUeEe-gfGyeCoxiW9ZfwT4NYAN1xs53Fe2SnHgYZY6WuZ8nWfJvA/pubhtml?gid=463701169&amp;single=true&amp;widget=true&amp;headers=false"></iframe>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="exampleFormControlSelect1">Select your first golfer</label>
-            <select class="form-control" id="exampleFormControlSelect1">
-              <option>Scottie</option>
-              <option>Rory</option>
-              <option>Xander</option>
-              <option>Bryson</option>
-              <option>Tiger</option>
-            </select>
+        </div>
+
+        <div class="tab-pane fade" id="masters" role="tabpanel" aria-labelledby="masters-tab">
+          <div class="mt-4">
+            <h3>Masters Tournament</h3>
+            <div class="sheet-container">
+              <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_DDi9qNl-euVUeEe-gfGyeCoxiW9ZfwT4NYAN1xs53Fe2SnHgYZY6WuZ8nWfJvA/pubhtml"></iframe>
+            </div>
           </div>
-          <button type="submit" class="btn btn-primary">Submit</button>
-        </form>        
+        </div>
+      </div>
+
       <section class="section footer">
         <div class="region bg-dark">
           <div class="block">
             <div class="column">
               <div class="module">
                 <div class="el el--text">
-                  <p class="copyright">Copyright &copy; 2024 the commissioner. All rights reserved.</p>
+                  <p class="copyright">Copyright &copy; 2025 the commissioner. All rights reserved.</p>
                 </div>
               </div>
             </div>
@@ -61,8 +184,13 @@
         </div>
       </section>
     </div>
-    <script type="text/javascript" src= "http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+    <!-- Add jQuery before Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
     <script src="content/scripts/scripts.js"></script>
+    <script src="content/scripts/form-handler.js"></script>
     <script data-main="content/scripts/main.js" src="content/scripts/require.min.js"></script>
   </body>
 </html>
