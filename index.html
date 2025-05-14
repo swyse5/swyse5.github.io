@@ -49,6 +49,11 @@
       .tab-pane h3 {
         margin-bottom: 1.5rem;
       }
+      /* Make banner header smaller */
+      .header--banner {
+        font-size: 2rem;
+        margin: 0.5rem 0;
+      }
     </style>
   </head>
   <body>
@@ -57,7 +62,7 @@
         <div class="block">
           <div class="column">
             <div class="banner_text">
-              <h2 class="header header--banner">Majors Best Ball</h2>
+              <h3 class="header header--banner">Majors Best Ball</h3>
             </div>
           </div>
         </div>
@@ -66,10 +71,10 @@
       <!-- Nav tabs -->
       <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item">
-          <a class="nav-link active" id="pick-submission-tab" data-toggle="tab" href="#pick-submission" role="tab" aria-controls="pick-submission" aria-selected="true">Pick Submission</a>
+          <a class="nav-link" id="pick-submission-tab" data-toggle="tab" href="#pick-submission" role="tab" aria-controls="pick-submission" aria-selected="true">Pick Submission</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" id="season-standings-tab" data-toggle="tab" href="#season-standings" role="tab" aria-controls="season-standings" aria-selected="false">Season Standings</a>
+          <a class="nav-link" id="pga-championship-tab" data-toggle="tab" href="#pga-championship" role="tab" aria-controls="pga-championship" aria-selected="false">PGA Championship</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" id="masters-tab" data-toggle="tab" href="#masters" role="tab" aria-controls="masters" aria-selected="false">Masters</a>
@@ -79,83 +84,63 @@
       <!-- Tab panes -->
       <div class="tab-content" id="myTabContent">
         <div class="tab-pane fade show active" id="pick-submission" role="tabpanel" aria-labelledby="pick-submission-tab">
-          <!-- Add an alert div for messages -->
           <div id="formMessage" class="alert" style="display: none;" role="alert"></div>
           
           <form class="mt-4" action="https://formspree.io/f/xvgadzdo" method="POST">
+            <div class="alert alert-info" role="alert">
+              Pick submission is currently closed. Check back soon!
+            </div>
+            <p class="mb-4">Golfer rankings are based on <a href="https://tugr.org/rankings" target="_blank">TUGR (The Universal Golf Rankings)</a></p>
+            <p class="mb-4 text-muted">Rankings last updated: May 11, 2025 for the PGA Championship</p>
             <div class="form-group">
-              <label for="golfer1">Select your first golfer (rank 1-100)</label>
-              <select class="form-control" id="golfer1" name="golfer1" required>
+              <label for="golfer1">Select your first golfer (rank 1-10)</label>
+              <select class="form-control" id="golfer1" name="golfer1" required disabled>
                 <option value="">Choose a golfer...</option>
-                <option>Scottie Scheffler</option>
-                <option>Rory McIlroy</option>
-                <option>Jon Rahm</option>
-                <option>Viktor Hovland</option>
-                <option>Brooks Koepka</option>
-                <option>Xander Schauffele</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer2">Select your second golfer (rank 11-100)</label>
-              <select class="form-control" id="golfer2" name="golfer2" required>
+              <label for="golfer2">Select your second golfer (rank 11-20)</label>
+              <select class="form-control" id="golfer2" name="golfer2" required disabled>
                 <option value="">Choose a golfer...</option>
-                <option>Scottie Scheffler</option>
-                <option>Rory McIlroy</option>
-                <option>Jon Rahm</option>
-                <option>Viktor Hovland</option>
-                <option>Brooks Koepka</option>
-                <option>Xander Schauffele</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer3">Select your third golfer (rank 21-100)</label>
-              <select class="form-control" id="golfer3" name="golfer3" required>
+              <label for="golfer3">Select your third golfer (rank 21-30)</label>
+              <select class="form-control" id="golfer3" name="golfer3" required disabled>
                 <option value="">Choose a golfer...</option>
-                <option>Scottie Scheffler</option>
-                <option>Rory McIlroy</option>
-                <option>Jon Rahm</option>
-                <option>Viktor Hovland</option>
-                <option>Brooks Koepka</option>
-                <option>Xander Schauffele</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer4">Select your fourth golfer (rank 31-100)</label>
-              <select class="form-control" id="golfer4" name="golfer4" required>
+              <label for="golfer4">Select your fourth golfer (rank 31-40)</label>
+              <select class="form-control" id="golfer4" name="golfer4" required disabled>
                 <option value="">Choose a golfer...</option>
-                <option>Scottie Scheffler</option>
-                <option>Rory McIlroy</option>
-                <option>Jon Rahm</option>
-                <option>Viktor Hovland</option>
-                <option>Brooks Koepka</option>
-                <option>Xander Schauffele</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="customGolfer">If you want to use any golfer(s) ranked outside the top 100, enter their name here</label>
-              <input type="text" class="form-control" id="customGolfer" name="customGolfer" placeholder="Enter golfer(s) name">
+              <label for="customGolfer">If you want to use any golfer(s) ranked outside the top 100, enter their name(s) here</label>
+              <input type="text" class="form-control" id="customGolfer" name="customGolfer" placeholder="Enter golfer(s) name" disabled>
             </div>
 
             <div class="form-group">
               <label for="userEmail">Enter your email address to receive your picks</label>
-              <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required>
+              <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required disabled>
               <input type="hidden" name="_cc" value="">
               <small class="form-text text-muted">You'll receive a confirmation email with your picks.</small>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-lg btn-block">Submit Picks</button>
+            <button type="submit" class="btn btn-primary btn-lg btn-block" disabled>Submit Picks</button>
           </form>
         </div>
 
-        <div class="tab-pane fade" id="season-standings" role="tabpanel" aria-labelledby="season-standings-tab">
+        <div class="tab-pane fade" id="pga-championship" role="tabpanel" aria-labelledby="pga-championship-tab">
           <div class="mt-4">
-            <h3>Season Standings</h3>
-            <div class="embed-responsive embed-responsive-16by9">
-              <iframe class="embed-responsive-item" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_DDi9qNl-euVUeEe-gfGyeCoxiW9ZfwT4NYAN1xs53Fe2SnHgYZY6WuZ8nWfJvA/pubhtml?gid=463701169&amp;single=true&amp;widget=true&amp;headers=false"></iframe>
+            <h3>PGA Championship</h3>
+            <div class="sheet-container">
+              <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTELAWpEzL-p2Ha3FHtcv5M9nZpk7YtTxGnxCArAIX91D5yvX-KUOOqPzVKn71hjQ/pubhtml"></iframe>
             </div>
           </div>
         </div>
@@ -191,6 +176,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
     <script src="content/scripts/scripts.js"></script>
     <script src="content/scripts/form-handler.js"></script>
+    <script src="content/scripts/golfer-rankings.js"></script>
     <script data-main="content/scripts/main.js" src="content/scripts/require.min.js"></script>
   </body>
 </html>
