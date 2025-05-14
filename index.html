@@ -8,364 +8,175 @@
 
       gtag('config', 'UA-179736230-1');
     </script>
-    <title>the brotherhood</title>
+    <title>Majors Best Ball</title>
     <link rel="icon" type="image/png" href="content/images/favicon.png">
     <link rel="stylesheet" type="text/css" href="content/styles/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;500;700;900&family=Roboto:wght@300,400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>    
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="the brotherhood.">
-    <meta name="keywords" content="Football, Fantasy">
+    <meta name="description" content="fantasy golf majors best ball">
+    <meta name="keywords" content="Golf, Fantasy">
     <meta name="author" content="Stuart Wyse">
+    <style>
+      .sheet-container {
+        position: relative;
+        padding-bottom: 85vh; /* Slightly reduced height */
+        height: 0;
+        overflow: hidden;
+        margin: 1rem 0; /* Positive margin for spacing */
+      }
+      .sheet-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+      /* Adjust container width */
+      .tab-content {
+        max-width: 90vw; /* Slightly reduced width */
+        margin: 0 auto;
+        padding: 1rem; /* Add padding */
+      }
+      /* Ensure proper tab pane spacing */
+      .tab-pane {
+        padding: 1rem;
+      }
+      /* Add space below the header */
+      .tab-pane h3 {
+        margin-bottom: 1.5rem;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
       <section class="section banner">
-        <div class="region region--banner">
-          <div class="block">
-            <div class="column">
-              <div class="el el--image">
-                <img class="img" src="content/images/banner.jpg"/>
-              </div>
-              <div class="banner__text">
-                <div class="el el--text shadow">
-                  <h1 class="header header--banner">the brotherhood</h1>
-                </div>
-                <div class="el el--text metallic">
-                  <h1 class="header header--banner">the brotherhood</h1>
-                </div>
-                <div class="el el--text shimmer">
-                  <h1 class="header header--banner">the brotherhood</h1>
-                </div>
-              </div>
+        <div class="block">
+          <div class="column">
+            <div class="banner_text">
+              <h2 class="header header--banner">Majors Best Ball</h2>
             </div>
           </div>
         </div>
       </section>
-      <section class="section leaderboard">
-        <div class="region">
-          <div class="block block--center">
-          </div>
-        </div>
-      </section>
-      <section class="section scores">
-        <div class="region">
-          <div class="block block--center">
-            <div class="column">
-              <div class="el el--text">
-                <h2 class="header ta-c"><span id="season"></span> Season: Week <span id="week"></span></h2>
-              </div>
-              <div class="el el--boxscores flex flex-wrap">
-                <div class="boxscore">
-                  <div class="team home">
-                    <div class="logo">
-                      <img class="img" src="">
-                    </div>
-                    <div class="info">
-                      <div class="name"></div>
-                      <div class="record"></div>
-                    </div>
-                    <div class="score"></div>
-                  </div>
-                  <div class="team away">
-                    <div class="logo">
-                      <img class="img" src="">
-                    </div>
-                    <div class="info">
-                      <div class="name"></div>
-                      <div class="record"></div>
-                    </div>
-                    <div class="score"></div>
-                  </div>
-                </div>
-                <div class="boxscore">
-                  <div class="team home">
-                    <div class="logo">
-                      <img class="img" src="">
-                    </div>
-                    <div class="info">
-                      <div class="name"></div>
-                      <div class="record"><span class="seed"></span></div>
-                    </div>
-                    <div class="score"></div>
-                  </div>
-                  <div class="team away">
-                    <div class="logo">
-                      <img class="img" src="">
-                    </div>
-                    <div class="info">
-                      <div class="name"></div>
-                      <div class="record"><span class="seed"></span></div>
-                    </div>
-                    <div class="score"></div>
-                  </div>
-                </div>
-                <div class="boxscore">
-                  <div class="team home">
-                    <div class="logo">
-                      <img class="img" src="">
-                    </div>
-                    <div class="info">
-                      <div class="name"></div>
-                      <div class="record"><span class="seed"></span></div>
-                    </div>
-                    <div class="score"></div>
-                  </div>
-                  <div class="team away">
-                    <div class="logo">
-                      <img class="img" src="">
-                    </div>
-                    <div class="info">
-                      <div class="name"></div>
-                      <div class="record"><span class="seed"></span></div>
-                    </div>
-                    <div class="score"></div>
-                  </div>
-                </div>
-                <div class="boxscore">
-                  <div class="team home">
-                    <div class="logo">
-                      <img class="img" src="">
-                    </div>
-                    <div class="info">
-                      <div class="name"></div>
-                      <div class="record"><span class="seed"></span></div>
-                    </div>
-                    <div class="score"></div>
-                  </div>
-                  <div class="team away">
-                    <div class="logo">
-                      <img class="img" src="">
-                    </div>
-                    <div class="info">
-                      <div class="name"></div>
-                      <div class="record"><span class="seed"></span></div>
-                    </div>
-                    <div class="score"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="el el--stats flex flex-wrap">
-                <div class="stat stat--high">
-                  <h3 class="header ta-c">Most Points Scored</h3>
-                  <div class="team flex tw">
-                    <div class="data data--team">
-                      <div class="name"></div>
-                      <div class="owner"></div>
-                    </div>
-                    <div class="data data--score ta-r">
-                      <div class="score"></div>
-                      <div class="wins">Record: <span class="record"></span></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="stat stat--mvp">
-                  <h3 class="header ta-c">Current Week MVP</h3>
-                  <div class="team flex tw">
-                    <div class="data data--team">
-                      <div class="name">--</div>
-                      <div class="owner">--</div>
-                    </div>
-                    <div class="data data--score ta-r">
-                      <div class="score">0</div>
-                      <div class="wins">--</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="stat stat--low">
-                  <h3 class="header ta-c">Least Points Scored</h3>
-                  <div class="team flex tw">
-                    <div class="data data--team">
-                      <div class="name"></div>
-                      <div class="owner"></div>
-                    </div>
-                    <div class="data data--score ta-r">
-                      <div class="score"></div>
-                      <div class="wins">Record: <span class="record"></span></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      <!-- <section class="section club">
-        <div class="region bg-grey">
-          <div class="block block--center">
-            <div class="column">
-              <div class="el el--text">
-                <h2 class="header ta-c trophy">Past Champs</h2>
-              </div>
-            </div>
-          </div>
-          <div class="block block--center">
-            <div class="column club--champion">
 
+      <!-- Nav tabs -->
+      <ul class="nav nav-tabs" id="myTab" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" id="pick-submission-tab" data-toggle="tab" href="#pick-submission" role="tab" aria-controls="pick-submission" aria-selected="true">Pick Submission</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="season-standings-tab" data-toggle="tab" href="#season-standings" role="tab" aria-controls="season-standings" aria-selected="false">Season Standings</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="masters-tab" data-toggle="tab" href="#masters" role="tab" aria-controls="masters" aria-selected="false">Masters</a>
+        </li>
+      </ul>
+
+      <!-- Tab panes -->
+      <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="pick-submission" role="tabpanel" aria-labelledby="pick-submission-tab">
+          <!-- Add an alert div for messages -->
+          <div id="formMessage" class="alert" style="display: none;" role="alert"></div>
+          
+          <form class="mt-4" action="https://formspree.io/f/xvgadzdo" method="POST">
+            <div class="form-group">
+              <label for="golfer1">Select your first golfer (rank 1-100)</label>
+              <select class="form-control" id="golfer1" name="golfer1" required>
+                <option value="">Choose a golfer...</option>
+                <option>Scottie Scheffler</option>
+                <option>Rory McIlroy</option>
+                <option>Jon Rahm</option>
+                <option>Viktor Hovland</option>
+                <option>Brooks Koepka</option>
+                <option>Xander Schauffele</option>
+              </select>
             </div>
-          </div>
-          <div class="block block--center">
-            <div class="column club--past">
+
+            <div class="form-group">
+              <label for="golfer2">Select your second golfer (rank 11-100)</label>
+              <select class="form-control" id="golfer2" name="golfer2" required>
+                <option value="">Choose a golfer...</option>
+                <option>Scottie Scheffler</option>
+                <option>Rory McIlroy</option>
+                <option>Jon Rahm</option>
+                <option>Viktor Hovland</option>
+                <option>Brooks Koepka</option>
+                <option>Xander Schauffele</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="golfer3">Select your third golfer (rank 21-100)</label>
+              <select class="form-control" id="golfer3" name="golfer3" required>
+                <option value="">Choose a golfer...</option>
+                <option>Scottie Scheffler</option>
+                <option>Rory McIlroy</option>
+                <option>Jon Rahm</option>
+                <option>Viktor Hovland</option>
+                <option>Brooks Koepka</option>
+                <option>Xander Schauffele</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="golfer4">Select your fourth golfer (rank 31-100)</label>
+              <select class="form-control" id="golfer4" name="golfer4" required>
+                <option value="">Choose a golfer...</option>
+                <option>Scottie Scheffler</option>
+                <option>Rory McIlroy</option>
+                <option>Jon Rahm</option>
+                <option>Viktor Hovland</option>
+                <option>Brooks Koepka</option>
+                <option>Xander Schauffele</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="customGolfer">If you want to use any golfer(s) ranked outside the top 100, enter their name here</label>
+              <input type="text" class="form-control" id="customGolfer" name="customGolfer" placeholder="Enter golfer(s) name">
+            </div>
+
+            <div class="form-group">
+              <label for="userEmail">Enter your email address to receive your picks</label>
+              <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required>
+              <input type="hidden" name="_cc" value="">
+              <small class="form-text text-muted">You'll receive a confirmation email with your picks.</small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg btn-block">Submit Picks</button>
+          </form>
+        </div>
+
+        <div class="tab-pane fade" id="season-standings" role="tabpanel" aria-labelledby="season-standings-tab">
+          <div class="mt-4">
+            <h3>Season Standings</h3>
+            <div class="embed-responsive embed-responsive-16by9">
+              <iframe class="embed-responsive-item" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_DDi9qNl-euVUeEe-gfGyeCoxiW9ZfwT4NYAN1xs53Fe2SnHgYZY6WuZ8nWfJvA/pubhtml?gid=463701169&amp;single=true&amp;widget=true&amp;headers=false"></iframe>
             </div>
           </div>
         </div>
-      </section> -->
-      <section class="section stats">
-        <div class="region no-pad">
-          <div class="block">
-            <div class="column bg-green">
-              <div class="module module--hs">
-                <h3 class="header">High Scores</h3>
-                <div class="list flex flex-wrap">
-                  <div class="list__item auto">
-                    <p><span class="score">231.1</span><span class="manager">Devin</span><span class="year">2020</span></p>
-                    <p><span class="score">211.7</span><span class="manager">Darin</span><span class="year">2021</span></p>
-                    <p><span class="score">209.8</span><span class="manager">Chubbs</span><span class="year">2022</span></p>
-                    <p><span class="score">208.7</span><span class="manager">Lersch</span><span class="year">2019</span></p>
-                    <p><span class="score">200.4</span><span class="manager">Bryce</span><span class="year">2022</span></p>
-                  </div>
-                  <div class="list__item auto">
-                    <p><span class="score">199.6</span><span class="manager">Stuart</span><span class="year">2020</span></p>
-                    <p><span class="score">199.4</span><span class="manager">Stuart</span><span class="year">2021</span></p>
-                    <p><span class="score">199.1</span><span class="manager">Bryce</span><span class="year">2018</span></p>
-                    <p><span class="score">197.4</span><span class="manager">Devin</span><span class="year">2018</span></p>
-                    <p><span class="score">188.2</span><span class="manager">Bryce</span><span class="year">2018</span></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="column flex flex-ac">
-              <div class="module module--poopstack flex">
-                <div class="el el--img auto ta-c">
-                  <img class="img icon--poopstack" src="content/images/icons/icon--poopstack.svg"/>
-                </div>
-                <div class="el el--text auto">
-                  <h3 class="header">2021 Last Place Finisher</h3>
-                  <p class="team">Devin's Team</p>
-                  <p class="manager">Devin Shannon</p>
-                  <h4 class="header"></h4>
-                  <p class="punishment"></p>
-                </div>
-              </div>
+
+        <div class="tab-pane fade" id="masters" role="tabpanel" aria-labelledby="masters-tab">
+          <div class="mt-4">
+            <h3>Masters Tournament</h3>
+            <div class="sheet-container">
+              <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_DDi9qNl-euVUeEe-gfGyeCoxiW9ZfwT4NYAN1xs53Fe2SnHgYZY6WuZ8nWfJvA/pubhtml"></iframe>
             </div>
           </div>
         </div>
-      </section>
-      <section class="section managers">
-        <div class="region bg-gradient">
-          <div class="block">
-            <div class="column">
-              <div class="el el--text">
-                <h2 class="header ta-c tw">Team Managers</h2>
-              </div>
-            </div>
-          </div>
-          <div class="block block--center">
-            <div class="column">
-              <div class="el el--manager">
-                <div class="portrait">
-                  <img class="img" src="content/images/managers/stuart.jpg"/>
-                </div>
-                <div class="info">
-                  <h4 class="name">Stuart Wyse</h4>
-                  <div class="team" value="1"></div>
-                  <div class="description">Three-time Champion (2015, 2020, 2021)</div>
-                </div>
-              </div>
-              <div class="el el--manager">
-                <div class="portrait">
-                  <img class="img" src="content/images/managers/lersch.jpg"/>
-                </div>
-                <div class="info">
-                  <h4 class="name">Tyson Lersch</h4>
-                  <div class="team" value="9"></div>
-                  <div class="description">Two-time Champion (2016, 2019)</div>
-                </div>
-              </div>
-              <div class="el el--manager">
-                <div class="portrait">
-                  <img class="img" src="content/images/managers/trick.jpg"/>
-                </div>
-                <div class="info">
-                  <h4 class="name">Tyson Dietrich</h4>
-                  <div class="team" value="5"></div>
-                  <div class="description">2018 Champion</div>
-                </div>
-              </div>
-            </div>
-            <div class="column">
-              <div class="el el--manager">
-                <div class="portrait">
-                  <img class="img" src="content/images/managers/bryce.jpg"/>
-                </div>
-                <div class="info">
-                  <h4 class="name">Bryce Tinsman</h4>
-                  <div class="team" value="4"></div>
-                  <div class="description">2014 Champion, Four-time Runner Up</div>
-                </div>
-              </div>
-              <div class="el el--manager">
-                <div class="portrait">
-                  <img class="img" src="content/images/managers/seth.jpg"/>
-                </div>
-                <div class="info">
-                  <h4 class="name">Seth Yoder</h4>
-                  <div class="team" value="8"></div>
-                  <div class="description">Consistently Average</div>
-                </div>
-              </div>
-              <div class="el el--manager">
-                <div class="portrait">
-                  <img class="img" src="content/images/managers/chubbs.jpg"/>
-                </div>
-                <div class="info">
-                  <h4 class="name">Tanner Wyse</h4>
-                  <div class="team" value="7"></div>
-                  <div class="description">Three-time Last Place Finisher</div>
-                </div>
-              </div>
-            </div>
-            <div class="column">
-              <div class="el el--manager">
-                <div class="portrait">
-                  <img class="img" src="content/images/managers/darin.jpg"/>
-                </div>
-                <div class="info">
-                  <h4 class="name">Darin Sauder</h4>
-                  <div class="team" value="3"></div>
-                  <div class="description">WNBA Game Attendee</div>
-                </div>
-              </div>
-              <div class="el el--manager">
-                <div class="portrait">
-                  <img class="img" src="content/images/managers/devin.jpg"/>
-                </div>
-                <div class="info">
-                  <h4 class="name">Devin Shannon</h4>
-                  <div class="team" value="6"></div>
-                  <div class="description">Three-time Last Place Finisher, WNBA Game Attendee</div>
-                </div>
-              </div>
-            </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
+
       <section class="section footer">
         <div class="region bg-dark">
           <div class="block">
             <div class="column">
               <div class="module">
                 <div class="el el--text">
-                  <p class="copyright">Copyright &copy; 2022 the brotherhood. All rights reserved.</p>
-                </div>
-              </div>
-            </div>
-            <div class="column">
-              <div class="module">
-                <div class="el el--social-links">
-                  <a class="social__link espn" href="https://fantasy.espn.com/football/league?leagueId=848574" target="_blank"></a>
+                  <p class="copyright">Copyright &copy; 2025 the commissioner. All rights reserved.</p>
                 </div>
               </div>
             </div>
@@ -373,8 +184,13 @@
         </div>
       </section>
     </div>
-    <script type="text/javascript" src= "http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+    <!-- Add jQuery before Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
     <script src="content/scripts/scripts.js"></script>
+    <script src="content/scripts/form-handler.js"></script>
     <script data-main="content/scripts/main.js" src="content/scripts/require.min.js"></script>
   </body>
 </html>
