@@ -84,7 +84,7 @@
       <!-- Nav tabs -->
       <ul class="nav nav-tabs" id="myTab" role="tablist">
         <li class="nav-item">
-          <a class="nav-link" id="pick-submission-tab" data-toggle="tab" href="#pick-submission" role="tab" aria-controls="pick-submission" aria-selected="true">Pick Submission</a>
+          <a class="nav-link active" id="pick-submission-tab" data-toggle="tab" href="#pick-submission" role="tab" aria-controls="pick-submission" aria-selected="true">Pick Submission</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" id="pga-championship-tab" data-toggle="tab" href="#pga-championship" role="tab" aria-controls="pga-championship" aria-selected="false">PGA Championship</a>
@@ -109,28 +109,28 @@
             <p class="mb-4">Golfer rankings are based on <a href="https://tugr.org/rankings" target="_blank">TUGR (The Universal Golf Rankings)</a></p>
             <p class="mb-4 text-muted rankings-update-text"></p>
             <div class="form-group">
-              <label for="golfer1">Select your first golfer (rank 1-10)</label>
+              <label for="golfer1">Select your first golfer (rank 1-100)</label>
               <select class="form-control" id="golfer1" name="golfer1" required disabled>
                 <option value="">Choose a golfer...</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer2">Select your second golfer (rank 11-20)</label>
+              <label for="golfer2">Select your second golfer (rank 11-100)</label>
               <select class="form-control" id="golfer2" name="golfer2" required disabled>
                 <option value="">Choose a golfer...</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer3">Select your third golfer (rank 21-30)</label>
+              <label for="golfer3">Select your third golfer (rank 21-100)</label>
               <select class="form-control" id="golfer3" name="golfer3" required disabled>
                 <option value="">Choose a golfer...</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer4">Select your fourth golfer (rank 31-40)</label>
+              <label for="golfer4">Select your fourth golfer (rank 31-100)</label>
               <select class="form-control" id="golfer4" name="golfer4" required disabled>
                 <option value="">Choose a golfer...</option>
               </select>
@@ -206,15 +206,11 @@
     
     <!-- Add our custom scripts -->
     <script>
-      // Debug code to verify script loading and tab functionality
+      // Initialize tabs
       $(document).ready(function() {
-        console.log('Document ready!');
         $('#myTab a').on('click', function (e) {
           console.log('Tab clicked:', e.target.id);
         });
-        
-        // Force League History tab to be active for testing
-        $('#league-history-tab').tab('show');
       });
     </script>
     <script src="content/scripts/scripts.js"></script>

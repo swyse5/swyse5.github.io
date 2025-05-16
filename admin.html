@@ -26,6 +26,52 @@
             border-radius: 5px;
             background-color: #f8f9fa;
         }
+        .ranking-group {
+            margin-bottom: 20px;
+        }
+        .ranking-entry {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .ranking-entry span {
+            width: 30px;
+            font-weight: bold;
+            color: #666;
+        }
+        .ranking-entry input {
+            flex: 1;
+            margin-left: 8px;
+        }
+        /* Styles for the rankings list */
+        #currentRankings .list-group-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        #currentRankings .remove-golfer {
+            padding: 0.25rem 0.5rem;
+            margin-left: 1rem;
+        }
+        #currentRankings .remove-golfer i {
+            font-size: 0.8rem;
+        }
+        #currentRankings .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+        /* Styles for collapsible section */
+        .collapse {
+            transition: all 0.2s ease;
+        }
+        [data-toggle="collapse"] .fas {
+            transition: transform 0.2s ease;
+        }
+        [data-toggle="collapse"][aria-expanded="true"] .fas {
+            transform: rotate(180deg);
+        }
+        #rankingsListSection {
+            max-height: 500px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -46,7 +92,9 @@
         <!-- Admin Panel (hidden by default) -->
         <div id="adminPanel" class="admin-panel">
             <h2>Admin Panel</h2>
-            <div class="form-status">
+            
+            <!-- Form Status Section -->
+            <div class="form-status mb-5">
                 <h4>Pick Submission Form Status</h4>
                 <div class="custom-control custom-switch mb-3">
                     <input type="checkbox" class="custom-control-input" id="formToggle">
@@ -67,13 +115,38 @@
                         <option value="Open Championship">Open Championship</option>
                     </select>
                 </div>
+            </div>
 
-                <div class="alert alert-success" id="saveStatus" style="display: none;">
-                    Settings saved successfully!
+            <!-- Golfer Rankings Section -->
+            <div class="golfer-rankings mb-5">
+                <h4>Golfer Rankings</h4>
+                <p class="text-muted">Enter golfer rankings as JSON with a rankings array containing golfer objects. Just copy/paste the entire json from <a href="https://tugr.org/api/rankings" target="_blank">tugr.org/api/rankings</a>.</p>
+                
+                <div class="form-group">
+                    <textarea class="form-control" id="rankingsJson" rows="15" placeholder='{"rankings": [{"name": "Golfer Name", "fullName": "Golfer Full Name", "ranking": 1}]}'></textarea>
                 </div>
 
-                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+                <!-- Current Rankings List -->
+                <div class="mt-4">
+                    <button class="btn btn-outline-secondary mb-3" type="button" data-toggle="collapse" data-target="#rankingsListSection" aria-expanded="false" aria-controls="rankingsListSection">
+                        <i class="fas fa-chevron-down"></i> Remove Golfers
+                    </button>
+                    <div class="collapse" id="rankingsListSection">
+                        <div id="currentRankings" class="list-group">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger" id="jsonError" style="display: none;">
+                    Invalid JSON format. Please check your input.
+                </div>
             </div>
+
+            <div class="alert alert-success" id="saveStatus" style="display: none;">
+                Settings saved successfully!
+            </div>
+
             <button class="btn btn-secondary mt-4" onclick="logout()">Logout</button>
         </div>
     </div>
