@@ -22,10 +22,13 @@
     <style>
       .sheet-container {
         position: relative;
-        padding-bottom: 85vh; /* Slightly reduced height */
-        height: 0;
+        width: 100%;
+        height: 800px;
+        margin: 1rem 0;
         overflow: hidden;
-        margin: 1rem 0; /* Positive margin for spacing */
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
       }
       .sheet-container iframe {
         position: absolute;
@@ -37,9 +40,9 @@
       }
       /* Adjust container width */
       .tab-content {
-        max-width: 90vw; /* Slightly reduced width */
+        max-width: 95vw;
         margin: 0 auto;
-        padding: 1rem; /* Add padding */
+        padding: 1rem;
       }
       /* Ensure proper tab pane spacing */
       .tab-pane {
@@ -53,6 +56,16 @@
       .header--banner {
         font-size: 2rem;
         margin: 0.5rem 0;
+      }
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .sheet-container {
+          height: 600px;
+        }
+        .tab-content {
+          max-width: 100vw;
+          padding: 0.5rem;
+        }
       }
     </style>
   </head>
@@ -79,6 +92,9 @@
         <li class="nav-item">
           <a class="nav-link" id="masters-tab" data-toggle="tab" href="#masters" role="tab" aria-controls="masters" aria-selected="false">Masters</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" id="league-history-tab" data-toggle="tab" href="#league-history" role="tab" aria-controls="league-history" aria-selected="false">League History</a>
+        </li>
       </ul>
 
       <!-- Tab panes -->
@@ -91,7 +107,7 @@
               Pick submission is currently closed. Check back soon!
             </div>
             <p class="mb-4">Golfer rankings are based on <a href="https://tugr.org/rankings" target="_blank">TUGR (The Universal Golf Rankings)</a></p>
-            <p class="mb-4 text-muted">Rankings last updated: May 11, 2025 for the PGA Championship</p>
+            <p class="mb-4 text-muted rankings-update-text"></p>
             <div class="form-group">
               <label for="golfer1">Select your first golfer (rank 1-10)</label>
               <select class="form-control" id="golfer1" name="golfer1" required disabled>
@@ -153,6 +169,19 @@
             </div>
           </div>
         </div>
+
+        <div class="tab-pane fade" id="league-history" role="tabpanel" aria-labelledby="league-history-tab">
+          <div class="mt-4">
+            <h3>All-Time Leaderboards</h3>
+            <div id="league-history-content" class="mt-4">
+              <div class="text-center">
+                <div class="spinner-border" role="status">
+                  <span class="sr-only">Loading...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <section class="section footer">
@@ -161,7 +190,7 @@
             <div class="column">
               <div class="module">
                 <div class="el el--text">
-                  <p class="copyright">Copyright &copy; 2025 the commissioner. All rights reserved.</p>
+                  <p class="copyright">Copyright &copy; 2025 the commissioner. All rights reserved. <a href="admin.html" class="text-muted ml-2" style="text-decoration: none; opacity: 0.7;">Admin</a></p>
                 </div>
               </div>
             </div>
@@ -170,13 +199,27 @@
       </section>
     </div>
 
-    <!-- Add jQuery before Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+    <!-- Add jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
+    
+    <!-- Add our custom scripts -->
+    <script>
+      // Debug code to verify script loading and tab functionality
+      $(document).ready(function() {
+        console.log('Document ready!');
+        $('#myTab a').on('click', function (e) {
+          console.log('Tab clicked:', e.target.id);
+        });
+        
+        // Force League History tab to be active for testing
+        $('#league-history-tab').tab('show');
+      });
+    </script>
     <script src="content/scripts/scripts.js"></script>
     <script src="content/scripts/form-handler.js"></script>
     <script src="content/scripts/golfer-rankings.js"></script>
-    <script data-main="content/scripts/main.js" src="content/scripts/require.min.js"></script>
+    <script src="content/scripts/league-history.js"></script>
   </body>
 </html>

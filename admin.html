@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel - Majors Best Ball</title>
+    <link rel="icon" type="image/png" href="content/images/favicon.png">
+    <link rel="stylesheet" type="text/css" href="content/styles/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;500;700;900&family=Roboto:wght@300,400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .admin-panel {
+            display: none;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-status {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div id="loginForm" class="login-container">
+            <h2 class="text-center mb-4">Admin Login</h2>
+            <div class="alert alert-danger" id="loginError" style="display: none;">
+                Invalid password. Please try again.
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" class="form-control" id="password" required>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" onclick="authenticate()">Login</button>
+        </div>
+
+        <!-- Admin Panel (hidden by default) -->
+        <div id="adminPanel" class="admin-panel">
+            <h2>Admin Panel</h2>
+            <div class="form-status">
+                <h4>Pick Submission Form Status</h4>
+                <div class="custom-control custom-switch mb-3">
+                    <input type="checkbox" class="custom-control-input" id="formToggle">
+                    <label class="custom-control-label" for="formToggle">Enable Pick Submissions</label>
+                </div>
+
+                <h4 class="mt-4">Rankings Information</h4>
+                <div class="form-group">
+                    <label for="rankingsDate">Rankings Last Updated Date</label>
+                    <input type="date" class="form-control" id="rankingsDate">
+                </div>
+                <div class="form-group">
+                    <label for="tournament">Tournament</label>
+                    <select class="form-control" id="tournament">
+                        <option value="Masters">Masters</option>
+                        <option value="PGA Championship">PGA Championship</option>
+                        <option value="US Open">US Open</option>
+                        <option value="Open Championship">Open Championship</option>
+                    </select>
+                </div>
+
+                <div class="alert alert-success" id="saveStatus" style="display: none;">
+                    Settings saved successfully!
+                </div>
+
+                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+            <button class="btn btn-secondary mt-4" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
+    <script src="content/scripts/admin.js"></script>
+</body>
+</html> 

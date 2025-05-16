@@ -1,4 +1,53 @@
+// Function to check if form submissions are enabled
+function isFormEnabled() {
+    return localStorage.getItem('formEnabled') === 'true';
+}
+
+// Function to update rankings information
+function updateRankingsInfo() {
+    const rankingsDate = localStorage.getItem('rankingsDate');
+    const tournament = localStorage.getItem('rankingsTournament');
+    const rankingsText = document.querySelector('.rankings-update-text');
+    
+    if (rankingsDate && tournament) {
+        const formattedDate = new Date(rankingsDate).toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
+        rankingsText.textContent = `Rankings last updated: ${formattedDate} for the ${tournament}`;
+    } else {
+        rankingsText.style.display = 'none';
+    }
+}
+
+// Function to update form elements based on enabled status
+function updateFormElements() {
+    const formEnabled = isFormEnabled();
+    const formElements = document.querySelectorAll('#pick-submission form select, #pick-submission form input, #pick-submission form button');
+    const statusMessage = document.querySelector('#pick-submission .alert-info');
+
+    formElements.forEach(element => {
+        element.disabled = !formEnabled;
+    });
+
+    if (statusMessage) {
+        statusMessage.style.display = formEnabled ? 'none' : 'block';
+        statusMessage.textContent = formEnabled ? '' : 'Pick submission is currently closed. Check back soon!';
+    }
+}
+
+// Initialize form status on page load
 document.addEventListener('DOMContentLoaded', function() {
+    updateFormElements();
+    updateRankingsInfo();
+
+    // Check for form status changes every 30 seconds
+    setInterval(() => {
+        updateFormElements();
+        updateRankingsInfo();
+    }, 30000);
+
     const form = document.querySelector('#pick-submission form');
     const messageDiv = document.getElementById('formMessage');
     
