@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel - Majors Best Ball</title>
+    <link rel="icon" type="image/png" href="content/images/favicon.png">
+    <link rel="stylesheet" type="text/css" href="content/styles/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;500;700;900&family=Roboto:wght@300,400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .admin-panel {
+            display: none;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-status {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        .ranking-group {
+            margin-bottom: 20px;
+        }
+        .ranking-entry {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .ranking-entry span {
+            width: 30px;
+            font-weight: bold;
+            color: #666;
+        }
+        .ranking-entry input {
+            flex: 1;
+            margin-left: 8px;
+        }
+        /* Styles for the rankings list */
+        #currentRankings .list-group-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        #currentRankings .remove-golfer {
+            padding: 0.25rem 0.5rem;
+            margin-left: 1rem;
+        }
+        #currentRankings .remove-golfer i {
+            font-size: 0.8rem;
+        }
+        #currentRankings .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+        /* Styles for collapsible section */
+        .collapse {
+            transition: all 0.2s ease;
+        }
+        [data-toggle="collapse"] .fas {
+            transition: transform 0.2s ease;
+        }
+        [data-toggle="collapse"][aria-expanded="true"] .fas {
+            transform: rotate(180deg);
+        }
+        #rankingsListSection {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div id="loginForm" class="login-container">
+            <h2 class="text-center mb-4">Admin Login</h2>
+            <div class="alert alert-danger" id="loginError" style="display: none;">
+                Invalid password. Please try again.
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" class="form-control" id="password" required>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" onclick="authenticate()">Login</button>
+        </div>
+
+        <!-- Admin Panel (hidden by default) -->
+        <div id="adminPanel" class="admin-panel">
+            <h2>Admin Panel</h2>
+            
+            <!-- Form Status Section -->
+            <div class="form-status mb-5">
+                <h4>Pick Submission Form Status</h4>
+                <div class="custom-control custom-switch mb-3">
+                    <input type="checkbox" class="custom-control-input" id="formToggle">
+                    <label class="custom-control-label" for="formToggle">Enable Pick Submissions</label>
+                </div>
+
+                <h4 class="mt-4">Rankings Information</h4>
+                <div class="form-group">
+                    <label for="rankingsDate">Rankings Last Updated Date</label>
+                    <input type="date" class="form-control" id="rankingsDate">
+                </div>
+                <div class="form-group">
+                    <label for="tournament">Tournament</label>
+                    <select class="form-control" id="tournament">
+                        <option value="Masters">Masters</option>
+                        <option value="PGA Championship">PGA Championship</option>
+                        <option value="US Open">US Open</option>
+                        <option value="Open Championship">Open Championship</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Golfer Rankings Section -->
+            <div class="golfer-rankings mb-5">
+                <h4>Golfer Rankings</h4>
+                <p class="text-muted">Enter golfer rankings as JSON with a rankings array containing golfer objects. Just copy/paste the entire json from <a href="https://tugr.org/api/rankings" target="_blank">tugr.org/api/rankings</a>.</p>
+                
+                <div class="form-group">
+                    <textarea class="form-control" id="rankingsJson" rows="15" placeholder='{"rankings": [{"name": "Golfer Name", "fullName": "Golfer Full Name", "ranking": 1}]}'></textarea>
+                </div>
+
+                <!-- Current Rankings List -->
+                <div class="mt-4">
+                    <button class="btn btn-outline-secondary mb-3" type="button" data-toggle="collapse" data-target="#rankingsListSection" aria-expanded="false" aria-controls="rankingsListSection">
+                        <i class="fas fa-chevron-down"></i> Remove Golfers
+                    </button>
+                    <div class="collapse" id="rankingsListSection">
+                        <div id="currentRankings" class="list-group">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger" id="jsonError" style="display: none;">
+                    Invalid JSON format. Please check your input.
+                </div>
+            </div>
+
+            <div class="alert alert-success" id="saveStatus" style="display: none;">
+                Settings saved successfully!
+            </div>
+
+            <button class="btn btn-secondary mt-4" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
+    <script src="content/scripts/admin.js"></script>
+</body>
+</html> 
