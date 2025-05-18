@@ -21,6 +21,19 @@ function updateRankingsInfo() {
     }
 }
 
+// Function to update submission subtext
+function updateSubmissionSubtext() {
+    const subtextElement = document.getElementById('submissionSubtextDisplay');
+    const subtext = localStorage.getItem('submissionSubtext') || '';
+    
+    if (subtext) {
+        subtextElement.innerHTML = subtext;
+        subtextElement.style.display = 'block';
+    } else {
+        subtextElement.style.display = 'none';
+    }
+}
+
 // Function to update form elements based on enabled status
 function updateFormElements() {
     const formEnabled = isFormEnabled();
@@ -41,11 +54,13 @@ function updateFormElements() {
 document.addEventListener('DOMContentLoaded', function() {
     updateFormElements();
     updateRankingsInfo();
+    updateSubmissionSubtext();
 
     // Check for form status changes every 30 seconds
     setInterval(() => {
         updateFormElements();
         updateRankingsInfo();
+        updateSubmissionSubtext();
     }, 30000);
 
     const form = document.querySelector('#pick-submission form');

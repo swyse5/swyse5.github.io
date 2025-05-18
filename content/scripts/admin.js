@@ -108,10 +108,12 @@ function saveSettings(showMessage = false) {
     const formEnabled = document.getElementById('formToggle').checked;
     const rankingsDate = document.getElementById('rankingsDate').value;
     const tournament = document.getElementById('tournament').value;
+    const submissionSubtext = document.getElementById('submissionSubtext').value;
 
     localStorage.setItem('formEnabled', formEnabled);
     localStorage.setItem('rankingsDate', rankingsDate);
     localStorage.setItem('rankingsTournament', tournament);
+    localStorage.setItem('submissionSubtext', submissionSubtext);
 
     // Save golfer rankings
     try {
@@ -151,10 +153,12 @@ function loadSettings() {
     const formEnabled = localStorage.getItem('formEnabled') === 'true';
     const rankingsDate = localStorage.getItem('rankingsDate') || '';
     const tournament = localStorage.getItem('rankingsTournament') || '';
+    const submissionSubtext = localStorage.getItem('submissionSubtext') || '';
 
     document.getElementById('formToggle').checked = formEnabled;
     document.getElementById('rankingsDate').value = rankingsDate;
     document.getElementById('tournament').value = tournament;
+    document.getElementById('submissionSubtext').value = submissionSubtext;
 
     // Load golfer rankings
     const rankingsJson = localStorage.getItem('golferRankingsData');
@@ -202,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showAdminPanel();
 
         // Add change listeners for auto-save
-        const inputs = ['formToggle', 'rankingsDate', 'tournament', 'rankingsJson'];
+        const inputs = ['formToggle', 'rankingsDate', 'tournament', 'rankingsJson', 'submissionSubtext'];
         inputs.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
