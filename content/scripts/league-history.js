@@ -15,10 +15,7 @@ $(document).ready(function() {
             <div class="sheet-container">
                 <iframe 
                     src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSALess6eaKke3QXEQ_ZHntcaeAgAwrR304VIXVEYfQ_V8yPDwMWJ5I-aarHWJiOb8FzUM0sKdnpb51/pubhtml?widget=true&headers=false" 
-                    frameborder="0"
-                    width="100%"
-                    height="100%"
-                    style="min-height: 800px;"
+                    style="border: 0;"
                 ></iframe>
             </div>
         `;

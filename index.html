@@ -106,8 +106,17 @@
             <div class="alert alert-info" role="alert">
               Pick submission is currently closed. Check back soon!
             </div>
+            <div id="submissionSubtextDisplay" class="mb-4 h4 font-weight-bold"></div>
             <p class="mb-4">Golfer rankings are based on <a href="https://tugr.org/rankings" target="_blank">TUGR (The Universal Golf Rankings)</a></p>
             <p class="mb-4 text-muted rankings-update-text"></p>
+
+            <div class="form-group">
+              <label for="userEmail">Enter your email address to receive your picks</label>
+              <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required disabled>
+              <input type="hidden" name="_cc" value="">
+              <small class="form-text text-muted">You'll receive a confirmation email with your picks.</small>
+            </div>
+
             <div class="form-group">
               <label for="golfer1">Select your first golfer (rank 1-100)</label>
               <select class="form-control" id="golfer1" name="golfer1" required disabled>
@@ -141,13 +150,6 @@
               <input type="text" class="form-control" id="customGolfer" name="customGolfer" placeholder="Enter golfer(s) name" disabled>
             </div>
 
-            <div class="form-group">
-              <label for="userEmail">Enter your email address to receive your picks</label>
-              <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required disabled>
-              <input type="hidden" name="_cc" value="">
-              <small class="form-text text-muted">You'll receive a confirmation email with your picks.</small>
-            </div>
-
             <button type="submit" class="btn btn-primary btn-lg btn-block" disabled>Submit Picks</button>
           </form>
         </div>
@@ -173,7 +175,7 @@
         <div class="tab-pane fade" id="league-history" role="tabpanel" aria-labelledby="league-history-tab">
           <div class="mt-4">
             <h3>All-Time Leaderboards</h3>
-            <div id="league-history-content" class="mt-4">
+            <div id="league-history-content" class="mt-4 sheet-container">
               <div class="text-center">
                 <div class="spinner-border" role="status">
                   <span class="sr-only">Loading...</span>
