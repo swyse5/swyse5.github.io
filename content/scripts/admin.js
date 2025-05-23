@@ -106,11 +106,13 @@ function validateRankingsJson(jsonStr) {
 function saveSettings(showMessage = false) {
     // Save form toggle and rankings info
     const formEnabled = document.getElementById('formToggle').checked;
+    const hidePickSubmissionTab = document.getElementById('hidePickSubmissionTab').checked;
     const rankingsDate = document.getElementById('rankingsDate').value;
     const tournament = document.getElementById('tournament').value;
     const submissionSubtext = document.getElementById('submissionSubtext').value;
 
     localStorage.setItem('formEnabled', formEnabled);
+    localStorage.setItem('hidePickSubmissionTab', hidePickSubmissionTab);
     localStorage.setItem('rankingsDate', rankingsDate);
     localStorage.setItem('rankingsTournament', tournament);
     localStorage.setItem('submissionSubtext', submissionSubtext);
@@ -157,11 +159,13 @@ function saveSettings(showMessage = false) {
 function loadSettings() {
     // Load form toggle and rankings info
     const formEnabled = localStorage.getItem('formEnabled') === 'true';
+    const hidePickSubmissionTab = localStorage.getItem('hidePickSubmissionTab') === 'true';
     const rankingsDate = localStorage.getItem('rankingsDate') || '';
     const tournament = localStorage.getItem('rankingsTournament') || '';
     const submissionSubtext = localStorage.getItem('submissionSubtext') || '';
 
     document.getElementById('formToggle').checked = formEnabled;
+    document.getElementById('hidePickSubmissionTab').checked = hidePickSubmissionTab;
     document.getElementById('rankingsDate').value = rankingsDate;
     document.getElementById('tournament').value = tournament;
     document.getElementById('submissionSubtext').value = submissionSubtext;
