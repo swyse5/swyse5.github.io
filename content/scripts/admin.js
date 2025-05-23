@@ -127,15 +127,21 @@ function saveSettings(showMessage = false) {
         // Store the full rankings data in a new key
         localStorage.setItem('golferRankingsData', jsonStr);
 
-        // Only show the status message if explicitly requested
-        if (showMessage) {
-            const statusMsg = document.getElementById('saveStatus');
-            statusMsg.textContent = 'Settings saved successfully!';
-            statusMsg.style.display = 'block';
-            setTimeout(() => {
-                statusMsg.style.display = 'none';
-            }, 3000);
-        }
+        // Show save success message
+        const statusMsg = document.getElementById('saveStatus');
+        statusMsg.textContent = 'Changes saved successfully!';
+        statusMsg.style.display = 'block';
+        
+        // Reset the animation
+        statusMsg.style.animation = 'none';
+        statusMsg.offsetHeight; // Trigger reflow
+        statusMsg.style.animation = 'fadeInOut 3s ease-in-out';
+        
+        // Hide after animation
+        setTimeout(() => {
+            statusMsg.style.display = 'none';
+        }, 3000);
+
         document.getElementById('jsonError').style.display = 'none';
         
         // Refresh the rankings display
