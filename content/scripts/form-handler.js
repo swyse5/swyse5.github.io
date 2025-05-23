@@ -3,6 +3,35 @@ function isFormEnabled() {
     return localStorage.getItem('formEnabled') === 'true';
 }
 
+// Function to check if Pick Submission tab should be hidden
+function isPickSubmissionTabHidden() {
+    return localStorage.getItem('hidePickSubmissionTab') === 'true';
+}
+
+// Function to update Pick Submission tab visibility
+function updatePickSubmissionTabVisibility() {
+    const isHidden = isPickSubmissionTabHidden();
+    const tabElement = document.getElementById('pick-submission-tab');
+    const tabContentElement = document.getElementById('pick-submission');
+    
+    if (tabElement && tabContentElement) {
+        if (isHidden) {
+            tabElement.parentElement.style.display = 'none';
+            tabContentElement.classList.remove('show', 'active');
+            
+            // If the Pick Submission tab was active, activate the next available tab
+            if (tabElement.classList.contains('active')) {
+                const nextTab = document.querySelector('.nav-tabs .nav-link:not([id="pick-submission-tab"])');
+                if (nextTab) {
+                    nextTab.click();
+                }
+            }
+        } else {
+            tabElement.parentElement.style.display = '';
+        }
+    }
+}
+
 // Function to update rankings information
 function updateRankingsInfo() {
     const rankingsDate = localStorage.getItem('rankingsDate');
@@ -55,12 +84,14 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFormElements();
     updateRankingsInfo();
     updateSubmissionSubtext();
+    updatePickSubmissionTabVisibility();
 
     // Check for form status changes every 30 seconds
     setInterval(() => {
         updateFormElements();
         updateRankingsInfo();
         updateSubmissionSubtext();
+        updatePickSubmissionTabVisibility();
     }, 30000);
 
     const form = document.querySelector('#pick-submission form');
