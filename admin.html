@@ -6,6 +6,7 @@
     <link rel="stylesheet" type="text/css" href="content/styles/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@300;500;700;900&family=Roboto:wght@300,400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         .login-container {
             max-width: 400px;
@@ -19,6 +20,15 @@
             max-width: 800px;
             margin: 50px auto;
             padding: 20px;
+        }
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 1.1rem;
+        }
+        .back-link i {
+            margin-right: 5px;
         }
         .form-status {
             margin-top: 20px;
@@ -72,10 +82,31 @@
             max-height: 500px;
             overflow-y: auto;
         }
+        #saveStatus {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            padding: 15px 25px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: none;
+            animation: fadeInOut 3s ease-in-out;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            15% { opacity: 1; transform: translateY(0); }
+            85% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <a href="index.html" class="back-link text-dark">
+            <i class="fas fa-arrow-left"></i>Back to Main Page
+        </a>
+        
         <!-- Login Form -->
         <div id="loginForm" class="login-container">
             <h2 class="text-center mb-4">Admin Login</h2>

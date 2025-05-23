@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch('https://formspree.io/f/xvgadzdo', {
             method: 'POST',
-            mode: 'cors', // Enable CORS
+            mode: 'cors',
             cache: 'no-cache',
             headers: {
                 'Content-Type': 'application/json',
