@@ -31,11 +31,10 @@ function populateGolferSelect(selectId, startRank, endRank) {
     
     // Add golfer options for the specified rank range
     rankings.sort((a, b) => a.ranking - b.ranking).forEach(golfer => {
-        if (golfer.name) {
+        var displayName = golfer.fullName || golfer.name;
+        if (displayName) {
             const option = document.createElement('option');
-            option.value = golfer.name;
-            // Use fullName if available, otherwise use name
-            const displayName = golfer.fullName || golfer.name;
+            option.value = displayName;
             option.textContent = `${golfer.ranking}. ${displayName}`;
             select.appendChild(option);
         }

@@ -3,19 +3,19 @@ function isFormEnabled() {
     return localStorage.getItem('formEnabled') === 'true';
 }
 
-// Function to check if Pick Submission tab should be hidden
-function isPickSubmissionTabHidden() {
+// Function to check if Pick Submission tab should be shown
+function isPickSubmissionTabVisible() {
     return localStorage.getItem('hidePickSubmissionTab') === 'true';
 }
 
 // Function to update Pick Submission tab visibility
 function updatePickSubmissionTabVisibility() {
-    const isHidden = isPickSubmissionTabHidden();
+    const isVisible = isPickSubmissionTabVisible();
     const tabElement = document.getElementById('pick-submission-tab');
     const tabContentElement = document.getElementById('pick-submission');
     
     if (tabElement && tabContentElement) {
-        if (isHidden) {
+        if (!isVisible) {
             tabElement.parentElement.style.display = 'none';
             tabContentElement.classList.remove('show', 'active');
             
