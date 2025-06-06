@@ -172,7 +172,7 @@ async function saveSettings(showMessage = false) {
             try {
                 const fileResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
                     headers: {
-                        'Authorization': `token ${token}`,
+                        'Authorization': `token ${sessionStorage.getItem('github_token')}`,
                         'Accept': 'application/vnd.github.v3+json'
                     }
                 });
@@ -185,22 +185,33 @@ async function saveSettings(showMessage = false) {
             }
 
             // Create/update file
-            const response = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: `Update ${path}`,
-                    content: btoa(JSON.stringify(content, null, 2)),
-                    sha: sha || undefined
-                })
-            });
+            try {
+                // Convert content to UTF-8 encoded base64
+                const contentStr = JSON.stringify(content, null, 2);
+                const encoder = new TextEncoder();
+                const data = encoder.encode(contentStr);
+                const base64Content = btoa(String.fromCharCode(...new Uint8Array(data)));
 
-            if (!response.ok) {
-                throw new Error(`Failed to update ${path}`);
+                const response = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${sessionStorage.getItem('github_token')}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Update ${path}`,
+                        content: base64Content,
+                        sha: sha || undefined
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to update ${path}`);
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                throw error;
             }
         }
 
