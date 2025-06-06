@@ -1,18 +1,6 @@
 {
   "rankings": [
     {
-      "name": "scottie scheffler",
-      "countryFlagCode": "US",
-      "firstName": "Scottie",
-      "fullName": "Scottie Scheffler",
-      "inferredTour": "PGA",
-      "lastName": "Scheffler",
-      "ranking": 1,
-      "rankingChange": 0,
-      "score": 0,
-      "tour": ""
-    },
-    {
       "name": "jon rahm",
       "countryFlagCode": "ES",
       "firstName": "Jon",
