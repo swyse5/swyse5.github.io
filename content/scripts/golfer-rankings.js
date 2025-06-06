@@ -1,49 +1,41 @@
 // Function to populate a select element with golfer options
-function populateGolferSelect(selectId, startRank, endRank) {
+async function populateGolferSelect(selectId, startRank, endRank) {
     const select = document.getElementById(selectId);
     if (!select) return;
 
-    // Try to get full rankings data first, fall back to simple array if not available
-    let rankings = [];
-    const rankingsJson = localStorage.getItem('golferRankingsData');
-    if (rankingsJson) {
-        try {
-            const data = JSON.parse(rankingsJson);
-            // Handle both new format (with rankings array) and old format
-            rankings = (data.rankings || data);
-            // Filter rankings for the specified range
-            rankings = rankings.filter(r => r.ranking >= startRank && r.ranking <= endRank);
-        } catch (error) {
-            console.error('Error parsing rankings JSON:', error);
-        }
-    } else {
-        // Fallback to old format
-        const simpleRankings = JSON.parse(localStorage.getItem('golferRankings') || '[]');
-        rankings = simpleRankings.slice(startRank - 1, endRank).map((name, idx) => ({
-            name,
-            ranking: startRank + idx,
-            fullName: name
-        }));
+    try {
+        // Get rankings from JSON file
+        const response = await fetch('/data/rankings.json?' + new Date().getTime());
+        const data = await response.json();
+        const rankings = data.rankings || [];
+
+        // Filter rankings for the specified range
+        const filteredRankings = rankings
+            .filter(r => r.ranking >= startRank && r.ranking <= endRank)
+            .sort((a, b) => a.ranking - b.ranking);
+
+        // Clear existing options
+        select.innerHTML = '<option value="">Choose a golfer...</option>';
+        
+        // Add golfer options
+        filteredRankings.forEach(golfer => {
+            const displayName = golfer.fullName || golfer.name;
+            if (displayName) {
+                const option = document.createElement('option');
+                option.value = displayName;
+                option.textContent = `${golfer.ranking}. ${displayName}`;
+                select.appendChild(option);
+            }
+        });
+    } catch (error) {
+        console.error('Error loading rankings:', error);
+        select.innerHTML = '<option value="">Error loading golfers</option>';
     }
-    
-    // Clear existing options
-    select.innerHTML = '<option value="">Choose a golfer...</option>';
-    
-    // Add golfer options for the specified rank range
-    rankings.sort((a, b) => a.ranking - b.ranking).forEach(golfer => {
-        var displayName = golfer.fullName || golfer.name;
-        if (displayName) {
-            const option = document.createElement('option');
-            option.value = displayName;
-            option.textContent = `${golfer.ranking}. ${displayName}`;
-            select.appendChild(option);
-        }
-    });
 }
 
 // Initialize golfer selections
 document.addEventListener('DOMContentLoaded', function() {
-    // Initial population of select elements with expanded ranges
+    // Initial population of select elements
     populateGolferSelect('golfer1', 1, 100);
     populateGolferSelect('golfer2', 11, 100);
     populateGolferSelect('golfer3', 21, 100);
