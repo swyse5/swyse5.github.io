@@ -102,81 +102,176 @@ function validateRankingsJson(jsonStr) {
     }
 }
 
-// Function to save settings to localStorage
-function saveSettings(showMessage = false) {
-    // Save form toggle and rankings info
-    const formEnabled = document.getElementById('formToggle').checked;
-    const hidePickSubmissionTab = document.getElementById('hidePickSubmissionTab').checked;
-    const rankingsDate = document.getElementById('rankingsDate').value;
-    const tournament = document.getElementById('tournament').value;
-    const submissionSubtext = document.getElementById('submissionSubtext').value;
-
-    localStorage.setItem('formEnabled', formEnabled);
-    localStorage.setItem('hidePickSubmissionTab', hidePickSubmissionTab);
-    localStorage.setItem('rankingsDate', rankingsDate);
-    localStorage.setItem('rankingsTournament', tournament);
-    localStorage.setItem('submissionSubtext', submissionSubtext);
-
-    // Save golfer rankings
+// Function to load settings from JSON files
+async function loadSettings() {
     try {
-        const jsonStr = document.getElementById('rankingsJson').value;
-        const rankings = validateRankingsJson(jsonStr);
+        // Load settings
+        const settingsResponse = await fetch('/data/settings.json?' + new Date().getTime());
+        const settings = await settingsResponse.json();
         
-        // Convert to simple array of names for backward compatibility
-        const namesArray = rankings.map(r => r.name);
-        localStorage.setItem('golferRankings', JSON.stringify(namesArray));
-        
-        // Store the full rankings data in a new key
-        localStorage.setItem('golferRankingsData', jsonStr);
+        // Load rankings
+        const rankingsResponse = await fetch('/data/rankings.json?' + new Date().getTime());
+        const rankingsData = await rankingsResponse.json();
 
-        // Show save success message
+        // Update form elements
+        document.getElementById('formToggle').checked = settings.formEnabled;
+        document.getElementById('hidePickSubmissionTab').checked = settings.hidePickSubmissionTab;
+        document.getElementById('rankingsDate').value = settings.rankingsDate || '';
+        document.getElementById('tournament').value = settings.rankingsTournament || '';
+        document.getElementById('submissionSubtext').value = settings.submissionSubtext || '';
+
+        // Update rankings textarea
+        document.getElementById('rankingsJson').value = JSON.stringify(rankingsData, null, 2);
+        displayCurrentRankings();
+    } catch (error) {
+        console.error('Error loading settings:', error);
+    }
+}
+
+// Function to save settings using GitHub API
+async function saveSettings(showMessage = false) {
+    if (!isAuthenticated()) {
+        console.error('Not authenticated');
+        return;
+    }
+
+    try {
+        // Prepare settings data
+        const settings = {
+            formEnabled: document.getElementById('formToggle').checked,
+            hidePickSubmissionTab: document.getElementById('hidePickSubmissionTab').checked,
+            rankingsDate: document.getElementById('rankingsDate').value,
+            rankingsTournament: document.getElementById('tournament').value,
+            submissionSubtext: document.getElementById('submissionSubtext').value
+        };
+
+        // Prepare rankings data
+        const rankingsJson = document.getElementById('rankingsJson').value;
+        let rankingsData;
+        try {
+            rankingsData = JSON.parse(rankingsJson);
+            validateRankingsJson(rankingsJson);
+        } catch (error) {
+            const errorMsg = document.getElementById('jsonError');
+            errorMsg.textContent = error.message;
+            errorMsg.style.display = 'block';
+            return;
+        }
+
+        // Create commits using GitHub API
+        const token = sessionStorage.getItem('github_token');
+        if (!token) {
+            throw new Error('GitHub token not found. Please log in again.');
+        }
+
+        // Function to create/update file in GitHub
+        async function updateGitHubFile(path, content) {
+            // Get current file SHA (if it exists)
+            const repo = 'swyse5/swyse5.github.io';
+            let sha = '';
+            try {
+                const fileResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                if (fileResponse.ok) {
+                    const fileData = await fileResponse.json();
+                    sha = fileData.sha;
+                }
+            } catch (error) {
+                console.log('File might not exist yet:', error);
+            }
+
+            // Create/update file
+            const response = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: `Update ${path}`,
+                    content: btoa(JSON.stringify(content, null, 2)),
+                    sha: sha || undefined
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to update ${path}`);
+            }
+        }
+
+        // Update both files
+        await updateGitHubFile('data/settings.json', settings);
+        await updateGitHubFile('data/rankings.json', rankingsData);
+
+        // Show success message
         const statusMsg = document.getElementById('saveStatus');
-        statusMsg.textContent = 'Changes saved successfully!';
+        statusMsg.textContent = 'Changes saved successfully! The site will update in a few minutes.';
         statusMsg.style.display = 'block';
-        
-        // Reset the animation
         statusMsg.style.animation = 'none';
         statusMsg.offsetHeight; // Trigger reflow
         statusMsg.style.animation = 'fadeInOut 3s ease-in-out';
-        
-        // Hide after animation
         setTimeout(() => {
             statusMsg.style.display = 'none';
         }, 3000);
 
         document.getElementById('jsonError').style.display = 'none';
-        
-        // Refresh the rankings display
         displayCurrentRankings();
     } catch (error) {
-        const errorMsg = document.getElementById('jsonError');
-        errorMsg.textContent = error.message;
-        errorMsg.style.display = 'block';
+        console.error('Error saving settings:', error);
+        alert('Error saving changes. Please check the console for details.');
     }
 }
 
-// Load settings from localStorage
-function loadSettings() {
-    // Load form toggle and rankings info
-    const formEnabled = localStorage.getItem('formEnabled') === 'true';
-    const hidePickSubmissionTab = localStorage.getItem('hidePickSubmissionTab') === 'true';
-    const rankingsDate = localStorage.getItem('rankingsDate') || '';
-    const tournament = localStorage.getItem('rankingsTournament') || '';
-    const submissionSubtext = localStorage.getItem('submissionSubtext') || '';
-
-    document.getElementById('formToggle').checked = formEnabled;
-    document.getElementById('hidePickSubmissionTab').checked = hidePickSubmissionTab;
-    document.getElementById('rankingsDate').value = rankingsDate;
-    document.getElementById('tournament').value = tournament;
-    document.getElementById('submissionSubtext').value = submissionSubtext;
-
-    // Load golfer rankings
-    const rankingsJson = localStorage.getItem('golferRankingsData');
-    if (rankingsJson) {
-        document.getElementById('rankingsJson').value = rankingsJson;
-        displayCurrentRankings();
-    }
+// Function to authenticate with GitHub
+async function authenticateWithGitHub() {
+    const clientId = 'YOUR_GITHUB_CLIENT_ID'; // You'll need to create this
+    const redirectUri = window.location.origin + '/admin.html';
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=repo`;
 }
+
+// Check for GitHub authentication callback
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    
+    if (code) {
+        // Exchange code for token (this needs a backend service)
+        // For now, you'll need to manually add a personal access token
+        // We'll use a temporary solution where you paste your token
+        if (!sessionStorage.getItem('github_token')) {
+            const token = prompt('Please enter your GitHub personal access token:');
+            if (token) {
+                sessionStorage.setItem('github_token', token);
+            }
+        }
+    }
+
+    if (isAuthenticated()) {
+        showAdminPanel();
+        loadSettings();
+
+        // Add change listeners for auto-save
+        const inputs = ['formToggle', 'hidePickSubmissionTab', 'rankingsDate', 'tournament', 'rankingsJson', 'submissionSubtext'];
+        inputs.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                const eventType = element.tagName === 'TEXTAREA' ? 'input' : 'change';
+                element.addEventListener(eventType, () => saveSettings());
+            }
+        });
+
+        // Add input listener to rankings JSON textarea for display updates
+        const rankingsTextarea = document.getElementById('rankingsJson');
+        if (rankingsTextarea) {
+            rankingsTextarea.addEventListener('input', displayCurrentRankings);
+        }
+    }
+});
 
 // Authentication function
 async function authenticate() {
@@ -196,7 +291,6 @@ async function authenticate() {
 function showAdminPanel() {
     document.getElementById('loginForm').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
-    loadSettings();
 }
 
 // Check if user is authenticated

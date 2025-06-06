@@ -1,16 +1,30 @@
-// Function to check if form submissions are enabled
-function isFormEnabled() {
-    return localStorage.getItem('formEnabled') === 'true';
+// Function to check if form is enabled
+async function isFormEnabled() {
+    try {
+        const response = await fetch('/data/settings.json?' + new Date().getTime());
+        const settings = await response.json();
+        return settings.formEnabled;
+    } catch (error) {
+        console.error('Error checking form status:', error);
+        return false;
+    }
 }
 
 // Function to check if Pick Submission tab should be shown
-function isPickSubmissionTabVisible() {
-    return localStorage.getItem('hidePickSubmissionTab') === 'true';
+async function isPickSubmissionTabVisible() {
+    try {
+        const response = await fetch('/data/settings.json?' + new Date().getTime());
+        const settings = await response.json();
+        return settings.hidePickSubmissionTab;
+    } catch (error) {
+        console.error('Error checking tab visibility:', error);
+        return true;
+    }
 }
 
 // Function to update Pick Submission tab visibility
-function updatePickSubmissionTabVisibility() {
-    const isVisible = isPickSubmissionTabVisible();
+async function updatePickSubmissionTabVisibility() {
+    const isVisible = await isPickSubmissionTabVisible();
     const tabElement = document.getElementById('pick-submission-tab');
     const tabContentElement = document.getElementById('pick-submission');
     
@@ -33,39 +47,51 @@ function updatePickSubmissionTabVisibility() {
 }
 
 // Function to update rankings information
-function updateRankingsInfo() {
-    const rankingsDate = localStorage.getItem('rankingsDate');
-    const tournament = localStorage.getItem('rankingsTournament');
-    const rankingsText = document.querySelector('.rankings-update-text');
-    
-    if (rankingsDate && tournament) {
-        const formattedDate = new Date(rankingsDate).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric'
-        });
-        rankingsText.textContent = `Rankings last updated: ${formattedDate} for the ${tournament}`;
-    } else {
-        rankingsText.style.display = 'none';
+async function updateRankingsInfo() {
+    try {
+        const response = await fetch('/data/settings.json?' + new Date().getTime());
+        const settings = await response.json();
+        const rankingsDate = settings.rankingsDate;
+        const tournament = settings.rankingsTournament;
+        const rankingsText = document.querySelector('.rankings-update-text');
+        
+        if (rankingsDate && tournament) {
+            const formattedDate = new Date(rankingsDate).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            rankingsText.textContent = `Rankings last updated: ${formattedDate} for the ${tournament}`;
+        } else {
+            rankingsText.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error updating rankings info:', error);
     }
 }
 
 // Function to update submission subtext
-function updateSubmissionSubtext() {
-    const subtextElement = document.getElementById('submissionSubtextDisplay');
-    const subtext = localStorage.getItem('submissionSubtext') || '';
-    
-    if (subtext) {
-        subtextElement.innerHTML = subtext;
-        subtextElement.style.display = 'block';
-    } else {
-        subtextElement.style.display = 'none';
+async function updateSubmissionSubtext() {
+    try {
+        const response = await fetch('/data/settings.json?' + new Date().getTime());
+        const settings = await response.json();
+        const submissionSubtext = settings.submissionSubtext;
+        const subtextElement = document.getElementById('submissionSubtextDisplay');
+        
+        if (submissionSubtext && subtextElement) {
+            subtextElement.innerHTML = submissionSubtext;
+            subtextElement.style.display = 'block';
+        } else if (subtextElement) {
+            subtextElement.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error updating submission subtext:', error);
     }
 }
 
 // Function to update form elements based on enabled status
-function updateFormElements() {
-    const formEnabled = isFormEnabled();
+async function updateFormElements() {
+    const formEnabled = await isFormEnabled();
     const formElements = document.querySelectorAll('#pick-submission form select, #pick-submission form input, #pick-submission form button');
     const statusMessage = document.querySelector('#pick-submission .alert-info');
 
@@ -80,18 +106,18 @@ function updateFormElements() {
 }
 
 // Initialize form status on page load
-document.addEventListener('DOMContentLoaded', function() {
-    updateFormElements();
-    updateRankingsInfo();
-    updateSubmissionSubtext();
-    updatePickSubmissionTabVisibility();
+document.addEventListener('DOMContentLoaded', async function() {
+    await updateFormElements();
+    await updateRankingsInfo();
+    await updateSubmissionSubtext();
+    await updatePickSubmissionTabVisibility();
 
     // Check for form status changes every 30 seconds
-    setInterval(() => {
-        updateFormElements();
-        updateRankingsInfo();
-        updateSubmissionSubtext();
-        updatePickSubmissionTabVisibility();
+    setInterval(async () => {
+        await updateFormElements();
+        await updateRankingsInfo();
+        await updateSubmissionSubtext();
+        await updatePickSubmissionTabVisibility();
     }, 30000);
 
     const form = document.querySelector('#pick-submission form');
