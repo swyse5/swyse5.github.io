@@ -13,18 +13,6 @@
       "tour": "LIV"
     },
     {
-      "name": "rory mcilroy",
-      "countryFlagCode": "NIE",
-      "firstName": "Rory",
-      "fullName": "Rory McIlroy",
-      "inferredTour": "PGA",
-      "lastName": "McIlroy",
-      "ranking": 3,
-      "rankingChange": -1,
-      "score": 0.9014825820922852,
-      "tour": ""
-    },
-    {
       "name": "bryson dechambeau",
       "countryFlagCode": "US",
       "firstName": "Bryson",
