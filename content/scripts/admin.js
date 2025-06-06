@@ -280,7 +280,17 @@ async function authenticate() {
     
     if (hashedPassword === ADMIN_PASSWORD_HASH) {
         sessionStorage.setItem('adminAuthenticated', 'true');
+        
+        // Prompt for GitHub token if not already set
+        if (!sessionStorage.getItem('github_token')) {
+            const token = prompt('Please enter your GitHub personal access token:');
+            if (token) {
+                sessionStorage.setItem('github_token', token);
+            }
+        }
+        
         showAdminPanel();
+        loadSettings();
     } else {
         document.getElementById('loginError').style.display = 'block';
         document.getElementById('password').value = '';
