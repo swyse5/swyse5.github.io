@@ -565,18 +565,6 @@
       "tour": ""
     },
     {
-      "name": "sergio garcia",
-      "countryFlagCode": "ES",
-      "firstName": "Sergio",
-      "fullName": "Sergio Garcia",
-      "inferredTour": "LIV",
-      "lastName": "Garcia",
-      "ranking": 58,
-      "rankingChange": -8,
-      "score": 2.495063781738281,
-      "tour": "LIV"
-    },
-    {
       "name": "brian harman",
       "countryFlagCode": "US",
       "firstName": "Brian",
