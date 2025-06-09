@@ -397,18 +397,6 @@
       "tour": "LIV"
     },
     {
-      "name": "billy horschel",
-      "countryFlagCode": "US",
-      "firstName": "Billy",
-      "fullName": "Billy Horschel",
-      "inferredTour": "PGA",
-      "lastName": "Horschel",
-      "ranking": 37,
-      "rankingChange": 0,
-      "score": 2.257469892501831,
-      "tour": ""
-    },
-    {
       "name": "adam scott",
       "countryFlagCode": "AU",
       "firstName": "Adam",
