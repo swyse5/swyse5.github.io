@@ -858,18 +858,6 @@
       "rankingChange": 1,
       "score": 2.77989935874939,
       "tour": "PGA"
-    },
-    {
-      "name": "sahith theegala",
-      "countryFlagCode": "US",
-      "firstName": "Sahith",
-      "fullName": "Sahith Theegala",
-      "inferredTour": "PGA",
-      "lastName": "Theegala",
-      "ranking": 100,
-      "rankingChange": 2,
-      "score": 2.789307832717896,
-      "tour": ""
     }
   ],
   "runDate": "06-08-2025"
