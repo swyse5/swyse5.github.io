@@ -716,18 +716,6 @@
       "tour": "PGA"
     },
     {
-      "name": "rickie fowler",
-      "countryFlagCode": "US",
-      "firstName": "Rickie",
-      "fullName": "Rickie Fowler",
-      "inferredTour": "PGA",
-      "lastName": "Fowler",
-      "ranking": 73,
-      "rankingChange": -1,
-      "score": 2.591406106948853,
-      "tour": ""
-    },
-    {
       "name": "christiaan bezuidenhout",
       "countryFlagCode": "ZA",
       "firstName": "Christiaan",
