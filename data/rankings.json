@@ -445,6 +445,18 @@
       "tour": ""
     },
     {
+      "name": "daniel berger",
+      "countryFlagCode": "US",
+      "firstName": "Daniel",
+      "fullName": "Daniel Berger",
+      "inferredTour": "PGA",
+      "lastName": "Berger",
+      "ranking": 47,
+      "rankingChange": 1,
+      "score": 2.35570764541626,
+      "tour": ""
+    },
+    {
       "name": "max greyserman",
       "countryFlagCode": "US",
       "firstName": "Max",
