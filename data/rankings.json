@@ -469,18 +469,6 @@
       "tour": "LIV"
     },
     {
-      "name": "min woo lee",
-      "countryFlagCode": "AU",
-      "firstName": "Min",
-      "fullName": "Min Woo Lee",
-      "inferredTour": "PGA",
-      "lastName": "Woo Lee",
-      "ranking": 50,
-      "rankingChange": 1,
-      "score": 2.400964260101318,
-      "tour": "PGA"
-    },
-    {
       "name": "max greyserman",
       "countryFlagCode": "US",
       "firstName": "Max",
