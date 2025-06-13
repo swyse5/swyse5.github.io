@@ -692,18 +692,6 @@
       "tour": "LIV"
     },
     {
-      "name": "justin rose",
-      "countryFlagCode": "GB-ENG",
-      "firstName": "Justin",
-      "fullName": "Justin Rose",
-      "inferredTour": "PGA",
-      "lastName": "Rose",
-      "ranking": 88,
-      "rankingChange": -12,
-      "score": 2.696387052536011,
-      "tour": ""
-    },
-    {
       "name": "eric cole",
       "countryFlagCode": "US",
       "firstName": "Eric",
