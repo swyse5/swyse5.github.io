@@ -517,18 +517,6 @@
       "tour": ""
     },
     {
-      "name": "tom hoge",
-      "countryFlagCode": "US",
-      "firstName": "Tom",
-      "fullName": "Tom Hoge",
-      "inferredTour": "PGA",
-      "lastName": "Hoge",
-      "ranking": 65,
-      "rankingChange": -2,
-      "score": 2.557994604110718,
-      "tour": ""
-    },
-    {
       "name": "thorbjorn olesen",
       "countryFlagCode": "DK",
       "firstName": "Thorbjorn",
