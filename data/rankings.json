@@ -13,18 +13,6 @@
       "tour": ""
     },
     {
-      "name": "bryson dechambeau",
-      "countryFlagCode": "US",
-      "firstName": "Bryson",
-      "fullName": "Bryson DeChambeau",
-      "inferredTour": "LIV",
-      "lastName": "DeChambeau",
-      "ranking": 2,
-      "rankingChange": 2,
-      "score": 0.8513007164001474,
-      "tour": "LIV"
-    },
-    {
       "name": "jon rahm",
       "countryFlagCode": "ES",
       "firstName": "Jon",
