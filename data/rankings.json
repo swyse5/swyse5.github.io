@@ -337,18 +337,6 @@
       "tour": ""
     },
     {
-      "name": "cameron smith",
-      "countryFlagCode": "AU",
-      "firstName": "Cameron",
-      "fullName": "Cameron Smith",
-      "inferredTour": "LIV",
-      "lastName": "Smith",
-      "ranking": 45,
-      "rankingChange": -2,
-      "score": 2.330211162567139,
-      "tour": "LIV"
-    },
-    {
       "name": "daniel berger",
       "countryFlagCode": "US",
       "firstName": "Daniel",
