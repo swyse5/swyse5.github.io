@@ -469,18 +469,6 @@
       "tour": ""
     },
     {
-      "name": "thorbjorn olesen",
-      "countryFlagCode": "DK",
-      "firstName": "Thorbjorn",
-      "fullName": "Thorbjorn Olesen",
-      "inferredTour": "PGA",
-      "lastName": "Olesen",
-      "ranking": 66,
-      "rankingChange": 3,
-      "score": 2.558159828186035,
-      "tour": "PGA"
-    },
-    {
       "name": "johnny keefer",
       "inferredTour": "KFT",
       "ranking": 67,
