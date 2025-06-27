@@ -1,7 +1,7 @@
 {
   "formEnabled": false,
-  "hidePickSubmissionTab": false,
-  "rankingsDate": "2025-06-09",
-  "rankingsTournament": "US Open",
-  "submissionSubtext": "US Open Rounds 3-4 Picks"
+  "hidePickSubmissionTab": true,
+  "rankingsDate": "",
+  "rankingsTournament": "Masters",
+  "submissionSubtext": ""
 }
