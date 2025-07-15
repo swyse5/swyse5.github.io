@@ -421,18 +421,6 @@
       "tour": "PGA"
     },
     {
-      "name": "billy horschel",
-      "countryFlagCode": "US",
-      "firstName": "Billy",
-      "fullName": "Billy Horschel",
-      "inferredTour": "PGA",
-      "lastName": "Horschel",
-      "ranking": 37,
-      "rankingChange": 3,
-      "score": 2.203941106796265,
-      "tour": ""
-    },
-    {
       "name": "patrick reed",
       "countryFlagCode": "US",
       "firstName": "Patrick",
