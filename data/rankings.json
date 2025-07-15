@@ -853,18 +853,6 @@
       "tour": "PGA"
     },
     {
-      "name": "alex smalley",
-      "countryFlagCode": "US",
-      "firstName": "Alex",
-      "fullName": "Alex Smalley",
-      "inferredTour": "PGA",
-      "lastName": "Smalley",
-      "ranking": 99,
-      "rankingChange": -6,
-      "score": 2.689364194869995,
-      "tour": ""
-    },
-    {
       "name": "jhonattan vegas",
       "countryFlagCode": "VE",
       "firstName": "Jhonattan",
