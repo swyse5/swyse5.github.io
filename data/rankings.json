@@ -793,18 +793,6 @@
       "tour": "PGA"
     },
     {
-      "name": "will zalatoris",
-      "countryFlagCode": "US",
-      "firstName": "Will",
-      "fullName": "Will Zalatoris",
-      "inferredTour": "PGA",
-      "lastName": "Zalatoris",
-      "ranking": 85,
-      "rankingChange": -1,
-      "score": 2.623614072799683,
-      "tour": ""
-    },
-    {
       "name": "charl schwartzel",
       "countryFlagCode": "ZA",
       "firstName": "Charl",
