@@ -769,18 +769,6 @@
       "tour": ""
     },
     {
-      "name": "jake knapp",
-      "countryFlagCode": "US",
-      "firstName": "Jake",
-      "fullName": "Jake Knapp",
-      "inferredTour": "PGA",
-      "lastName": "Knapp",
-      "ranking": 81,
-      "rankingChange": 9,
-      "score": 2.594690561294556,
-      "tour": "PGA"
-    },
-    {
       "name": "sergio garcia",
       "countryFlagCode": "ES",
       "firstName": "Sergio",
