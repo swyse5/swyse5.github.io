@@ -793,18 +793,6 @@
       "tour": "PGA"
     },
     {
-      "name": "charl schwartzel",
-      "countryFlagCode": "ZA",
-      "firstName": "Charl",
-      "fullName": "Charl Schwartzel",
-      "inferredTour": "LIV",
-      "lastName": "Schwartzel",
-      "ranking": 86,
-      "rankingChange": -4,
-      "score": 2.624606370925903,
-      "tour": ""
-    },
-    {
       "name": "lee hodges",
       "countryFlagCode": "US",
       "firstName": "Lee",
