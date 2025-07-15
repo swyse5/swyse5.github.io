@@ -793,18 +793,6 @@
       "tour": "PGA"
     },
     {
-      "name": "kurt kitayama",
-      "countryFlagCode": "US",
-      "firstName": "Kurt",
-      "fullName": "Kurt Kitayama",
-      "inferredTour": "PGA",
-      "lastName": "Kitayama",
-      "ranking": 84,
-      "rankingChange": 20,
-      "score": 2.619655132293701,
-      "tour": ""
-    },
-    {
       "name": "will zalatoris",
       "countryFlagCode": "US",
       "firstName": "Will",
