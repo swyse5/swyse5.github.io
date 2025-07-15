@@ -793,18 +793,6 @@
       "tour": "PGA"
     },
     {
-      "name": "lee hodges",
-      "countryFlagCode": "US",
-      "firstName": "Lee",
-      "fullName": "Lee Hodges",
-      "inferredTour": "PGA",
-      "lastName": "Hodges",
-      "ranking": 87,
-      "rankingChange": 15,
-      "score": 2.634554147720337,
-      "tour": ""
-    },
-    {
       "name": "jordan smith",
       "countryFlagCode": "GB-ENG",
       "firstName": "Jordan",
