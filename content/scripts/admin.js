@@ -65,8 +65,8 @@ function removeGolfer(rankingToRemove) {
         const updatedData = data.rankings ? { ...data, rankings: updatedRankings } : updatedRankings;
         document.getElementById('rankingsJson').value = JSON.stringify(updatedData, null, 2);
 
-        // Auto-save the changes
-        saveSettings(true);
+        // Update the display without auto-saving
+        displayCurrentRankings();
     } catch (error) {
         console.error('Error removing golfer:', error);
     }
@@ -266,17 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showAdminPanel();
         loadSettings();
 
-        // Add change listeners for auto-save
-        const inputs = ['formToggle', 'hidePickSubmissionTab', 'rankingsDate', 'tournament', 'rankingsJson', 'submissionSubtext'];
-        inputs.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                const eventType = element.tagName === 'TEXTAREA' ? 'input' : 'change';
-                element.addEventListener(eventType, () => saveSettings());
-            }
-        });
-
-        // Add input listener to rankings JSON textarea for display updates
+        // Add input listener to rankings JSON textarea for display updates only (no autosave)
         const rankingsTextarea = document.getElementById('rankingsJson');
         if (rankingsTextarea) {
             rankingsTextarea.addEventListener('input', displayCurrentRankings);
@@ -325,23 +315,12 @@ function logout() {
     location.reload();
 }
 
-// Add event listener for JSON changes
+// Additional event listener setup for second initialization
 document.addEventListener('DOMContentLoaded', function() {
     if (isAuthenticated()) {
         showAdminPanel();
 
-        // Add change listeners for auto-save
-        const inputs = ['formToggle', 'rankingsDate', 'tournament', 'rankingsJson', 'submissionSubtext'];
-        inputs.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                // Use input event for textarea to catch all changes
-                const eventType = element.tagName === 'TEXTAREA' ? 'input' : 'change';
-                element.addEventListener(eventType, () => saveSettings());
-            }
-        });
-
-        // Add input listener to rankings JSON textarea for display updates
+        // Add input listener to rankings JSON textarea for display updates only (no autosave)
         const rankingsTextarea = document.getElementById('rankingsJson');
         if (rankingsTextarea) {
             rankingsTextarea.addEventListener('input', displayCurrentRankings);
