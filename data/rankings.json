@@ -349,18 +349,6 @@
       "tour": ""
     },
     {
-      "name": "sebastian munoz",
-      "countryFlagCode": "CO",
-      "firstName": "Sebastian",
-      "fullName": "Sebastian Munoz",
-      "inferredTour": "LIV",
-      "lastName": "Munoz",
-      "ranking": 30,
-      "rankingChange": 0,
-      "score": 2.103559494018555,
-      "tour": "LIV"
-    },
-    {
       "name": "adam scott",
       "countryFlagCode": "AU",
       "firstName": "Adam",
@@ -383,13 +371,6 @@
       "rankingChange": 0,
       "score": 2.117221117019653,
       "tour": ""
-    },
-    {
-      "name": "jackson koivun",
-      "inferredTour": "PGA",
-      "ranking": 33,
-      "rankingChange": 80,
-      "score": 2.145532369613647
     },
     {
       "name": "akshay bhatia",
@@ -440,18 +421,6 @@
       "tour": ""
     },
     {
-      "name": "billy horschel",
-      "countryFlagCode": "US",
-      "firstName": "Billy",
-      "fullName": "Billy Horschel",
-      "inferredTour": "PGA",
-      "lastName": "Horschel",
-      "ranking": 38,
-      "rankingChange": -1,
-      "score": 2.223347187042236,
-      "tour": ""
-    },
-    {
       "name": "daniel berger",
       "countryFlagCode": "US",
       "firstName": "Daniel",
@@ -461,30 +430,6 @@
       "ranking": 39,
       "rankingChange": 0,
       "score": 2.226696014404297,
-      "tour": ""
-    },
-    {
-      "name": "ryan gerard",
-      "countryFlagCode": "US",
-      "firstName": "Ryan",
-      "fullName": "Ryan Gerard",
-      "inferredTour": "PGA",
-      "lastName": "Gerard",
-      "ranking": 40,
-      "rankingChange": 13,
-      "score": 2.231848478317261,
-      "tour": ""
-    },
-    {
-      "name": "alex noren",
-      "countryFlagCode": "SE",
-      "firstName": "Alex",
-      "fullName": "Alex Noren",
-      "inferredTour": "PGA",
-      "lastName": "Noren",
-      "ranking": 41,
-      "rankingChange": 1,
-      "score": 2.239402770996094,
       "tour": ""
     },
     {
@@ -536,18 +481,6 @@
       "tour": "PGAT"
     },
     {
-      "name": "david puig",
-      "countryFlagCode": "ES",
-      "firstName": "David",
-      "fullName": "David Puig",
-      "inferredTour": "LIV",
-      "lastName": "Puig",
-      "ranking": 46,
-      "rankingChange": -5,
-      "score": 2.290283441543579,
-      "tour": "LIV"
-    },
-    {
       "name": "nick taylor",
       "countryFlagCode": "CA",
       "firstName": "Nick",
@@ -596,18 +529,6 @@
       "tour": ""
     },
     {
-      "name": "sam stevens",
-      "countryFlagCode": "US",
-      "firstName": "Sami",
-      "fullName": "Sam Stevens",
-      "inferredTour": "PGA",
-      "lastName": "Stevens",
-      "ranking": 51,
-      "rankingChange": 1,
-      "score": 2.337963104248047,
-      "tour": ""
-    },
-    {
       "name": "lucas glover",
       "countryFlagCode": "US",
       "firstName": "Lucas",
@@ -644,30 +565,6 @@
       "tour": ""
     },
     {
-      "name": "luke clanton",
-      "countryFlagCode": "US",
-      "firstName": "Luke",
-      "fullName": "Luke Clanton",
-      "inferredTour": "PGA",
-      "lastName": "Clanton",
-      "ranking": 55,
-      "rankingChange": -8,
-      "score": 2.423419713973999,
-      "tour": ""
-    },
-    {
-      "name": "michael thorbjornsen",
-      "countryFlagCode": "US",
-      "firstName": "Michael",
-      "fullName": "Michael Thorbjornsen",
-      "inferredTour": "PGA",
-      "lastName": "Thorbjornsen",
-      "ranking": 56,
-      "rankingChange": 9,
-      "score": 2.426454067230225,
-      "tour": ""
-    },
-    {
       "name": "brian harman",
       "countryFlagCode": "US",
       "firstName": "Brian",
@@ -692,18 +589,6 @@
       "tour": "PGA"
     },
     {
-      "name": "cameron tringale",
-      "countryFlagCode": "US",
-      "firstName": "Cameron",
-      "fullName": "Cameron Tringale",
-      "inferredTour": "LIV",
-      "lastName": "Tringale",
-      "ranking": 59,
-      "rankingChange": 7,
-      "score": 2.456428289413452,
-      "tour": "LIV"
-    },
-    {
       "name": "andrew novak",
       "countryFlagCode": "US",
       "firstName": "Andrew",
@@ -716,18 +601,6 @@
       "tour": ""
     },
     {
-      "name": "kevin roy",
-      "countryFlagCode": "US",
-      "firstName": "Kevin",
-      "fullName": "Kevin Roy",
-      "inferredTour": "PGA",
-      "lastName": "Roy",
-      "ranking": 61,
-      "rankingChange": 32,
-      "score": 2.458293676376343,
-      "tour": ""
-    },
-    {
       "name": "sungjae im",
       "countryFlagCode": "KR",
       "firstName": "Sungjae",
@@ -737,18 +610,6 @@
       "ranking": 62,
       "rankingChange": -11,
       "score": 2.458362579345703,
-      "tour": ""
-    },
-    {
-      "name": "matt kuchar",
-      "countryFlagCode": "US",
-      "firstName": "Matt",
-      "fullName": "Matt Kuchar",
-      "inferredTour": "PGA",
-      "lastName": "Kuchar",
-      "ranking": 63,
-      "rankingChange": 14,
-      "score": 2.460622549057007,
       "tour": ""
     },
     {
@@ -788,42 +649,6 @@
       "tour": "LIV"
     },
     {
-      "name": "keith mitchell",
-      "countryFlagCode": "US",
-      "firstName": "Keith",
-      "fullName": "Keith Mitchell",
-      "inferredTour": "PGA",
-      "lastName": "Mitchell",
-      "ranking": 67,
-      "rankingChange": 0,
-      "score": 2.497750282287598,
-      "tour": ""
-    },
-    {
-      "name": "kurt kitayama",
-      "countryFlagCode": "US",
-      "firstName": "Kurt",
-      "fullName": "Kurt Kitayama",
-      "inferredTour": "PGA",
-      "lastName": "Kitayama",
-      "ranking": 68,
-      "rankingChange": 16,
-      "score": 2.513567209243774,
-      "tour": ""
-    },
-    {
-      "name": "emiliano grillo",
-      "countryFlagCode": "AR",
-      "firstName": "Emiliano",
-      "fullName": "Emiliano Grillo",
-      "inferredTour": "PGA",
-      "lastName": "Grillo",
-      "ranking": 69,
-      "rankingChange": 26,
-      "score": 2.51577091217041,
-      "tour": ""
-    },
-    {
       "name": "thomas detry",
       "countryFlagCode": "BE",
       "firstName": "Thomas",
@@ -836,30 +661,6 @@
       "tour": ""
     },
     {
-      "name": "jake knapp",
-      "countryFlagCode": "US",
-      "firstName": "Jake",
-      "fullName": "Jake Knapp",
-      "inferredTour": "PGA",
-      "lastName": "Knapp",
-      "ranking": 71,
-      "rankingChange": 10,
-      "score": 2.527428865432739,
-      "tour": "PGA"
-    },
-    {
-      "name": "jacob bridgeman",
-      "countryFlagCode": "US",
-      "firstName": "Jacob",
-      "fullName": "Jacob Bridgeman",
-      "inferredTour": "PGA",
-      "lastName": "Bridgeman",
-      "ranking": 72,
-      "rankingChange": 17,
-      "score": 2.529099225997925,
-      "tour": "PGA"
-    },
-    {
       "name": "tom hoge",
       "countryFlagCode": "US",
       "firstName": "Tom",
@@ -870,30 +671,6 @@
       "rankingChange": -3,
       "score": 2.532985210418701,
       "tour": ""
-    },
-    {
-      "name": "andrew putnam",
-      "countryFlagCode": "US",
-      "firstName": "Andrew",
-      "fullName": "Andrew Putnam",
-      "inferredTour": "PGA",
-      "lastName": "Putnam",
-      "ranking": 74,
-      "rankingChange": -11,
-      "score": 2.538650274276733,
-      "tour": ""
-    },
-    {
-      "name": "paul casey",
-      "countryFlagCode": "GB-ENG",
-      "firstName": "Paul",
-      "fullName": "Paul Casey",
-      "inferredTour": "LIV",
-      "lastName": "Casey",
-      "ranking": 75,
-      "rankingChange": -21,
-      "score": 2.543903589248657,
-      "tour": "LIV"
     },
     {
       "name": "wyndham clark",
@@ -920,42 +697,6 @@
       "tour": ""
     },
     {
-      "name": "lee hodges",
-      "countryFlagCode": "US",
-      "firstName": "Lee",
-      "fullName": "Lee Hodges",
-      "inferredTour": "PGA",
-      "lastName": "Hodges",
-      "ranking": 78,
-      "rankingChange": 9,
-      "score": 2.549122810363769,
-      "tour": ""
-    },
-    {
-      "name": "doug ghim",
-      "countryFlagCode": "US",
-      "firstName": "Doug",
-      "fullName": "Doug Ghim",
-      "inferredTour": "PGA",
-      "lastName": "Ghim",
-      "ranking": 79,
-      "rankingChange": 11,
-      "score": 2.549578905105591,
-      "tour": ""
-    },
-    {
-      "name": "abraham ancer",
-      "countryFlagCode": "MX",
-      "firstName": "Abraham",
-      "fullName": "Abraham Ancer",
-      "inferredTour": "LIV",
-      "lastName": "Ancer",
-      "ranking": 80,
-      "rankingChange": 17,
-      "score": 2.554702997207642,
-      "tour": "LIV"
-    },
-    {
       "name": "rasmus hojgaard",
       "countryFlagCode": "DK",
       "firstName": "Rasmus",
@@ -965,18 +706,6 @@
       "ranking": 81,
       "rankingChange": -3,
       "score": 2.567642211914062,
-      "tour": ""
-    },
-    {
-      "name": "beau hossler",
-      "countryFlagCode": "US",
-      "firstName": "Beau",
-      "fullName": "Beau Hossler",
-      "inferredTour": "PGA",
-      "lastName": "Hossler",
-      "ranking": 82,
-      "rankingChange": 14,
-      "score": 2.596803665161133,
       "tour": ""
     },
     {
@@ -992,18 +721,6 @@
       "tour": "LIV"
     },
     {
-      "name": "thomas pieters",
-      "countryFlagCode": "BE",
-      "firstName": "Thomas",
-      "fullName": "Thomas Pieters",
-      "inferredTour": "LIV",
-      "lastName": "Pieters",
-      "ranking": 84,
-      "rankingChange": -4,
-      "score": 2.600950956344604,
-      "tour": "LIV"
-    },
-    {
       "name": "sergio garcia",
       "countryFlagCode": "ES",
       "firstName": "Sergio",
@@ -1014,18 +731,6 @@
       "rankingChange": -3,
       "score": 2.601916313171387,
       "tour": "LIV"
-    },
-    {
-      "name": "will zalatoris",
-      "countryFlagCode": "US",
-      "firstName": "Will",
-      "fullName": "Will Zalatoris",
-      "inferredTour": "PGA",
-      "lastName": "Zalatoris",
-      "ranking": 86,
-      "rankingChange": -1,
-      "score": 2.619579076766968,
-      "tour": ""
     },
     {
       "name": "byeong hun an",
@@ -1040,18 +745,6 @@
       "tour": ""
     },
     {
-      "name": "rasmus neergaardpetersen",
-      "countryFlagCode": "DK",
-      "firstName": "Rasmus",
-      "fullName": "Rasmus Neergaardpetersen",
-      "inferredTour": "DPWT",
-      "lastName": "Neergaardpetersen",
-      "ranking": 88,
-      "rankingChange": -9,
-      "score": 2.627402305603027,
-      "tour": ""
-    },
-    {
       "name": "christiaan bezuidenhout",
       "countryFlagCode": "ZA",
       "firstName": "Christiaan",
@@ -1062,18 +755,6 @@
       "rankingChange": -13,
       "score": 2.628292322158813,
       "tour": ""
-    },
-    {
-      "name": "talor gooch",
-      "countryFlagCode": "US",
-      "firstName": "Talor",
-      "fullName": "Talor Gooch",
-      "inferredTour": "LIV",
-      "lastName": "Gooch",
-      "ranking": 90,
-      "rankingChange": 38,
-      "score": 2.635203599929809,
-      "tour": "LIV"
     },
     {
       "name": "cameron young",
@@ -1133,25 +814,6 @@
       "ranking": 95,
       "rankingChange": 7,
       "score": 2.684977769851684,
-      "tour": ""
-    },
-    {
-      "name": "johnny keefer",
-      "inferredTour": "LAT",
-      "ranking": 96,
-      "rankingChange": -21,
-      "score": 2.688676357269287
-    },
-    {
-      "name": "charl schwartzel",
-      "countryFlagCode": "ZA",
-      "firstName": "Charl",
-      "fullName": "Charl Schwartzel",
-      "inferredTour": "LIV",
-      "lastName": "Schwartzel",
-      "ranking": 97,
-      "rankingChange": -11,
-      "score": 2.68925666809082,
       "tour": ""
     },
     {
