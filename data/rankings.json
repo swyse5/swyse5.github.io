@@ -265,18 +265,6 @@
       "tour": ""
     },
     {
-      "name": "si woo kim",
-      "countryFlagCode": "KR",
-      "firstName": "Si",
-      "fullName": "Si Woo Kim",
-      "inferredTour": "PGA",
-      "lastName": "Woo Kim",
-      "ranking": 26,
-      "rankingChange": 2,
-      "score": 2.020174264907837,
-      "tour": ""
-    },
-    {
       "name": "ben griffin",
       "countryFlagCode": "US",
       "firstName": "Ben",
@@ -298,18 +286,6 @@
       "ranking": 29,
       "rankingChange": 0,
       "score": 2.061224460601807,
-      "tour": ""
-    },
-    {
-      "name": "adam scott",
-      "countryFlagCode": "AU",
-      "firstName": "Adam",
-      "fullName": "Adam Scott",
-      "inferredTour": "PGA",
-      "lastName": "Scott",
-      "ranking": 31,
-      "rankingChange": 0,
-      "score": 2.111385345458984,
       "tour": ""
     },
     {
