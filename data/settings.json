@@ -1,6 +1,6 @@
 {
-  "formEnabled": true,
-  "hidePickSubmissionTab": true,
+  "formEnabled": false,
+  "hidePickSubmissionTab": false,
   "rankingsDate": "2025-07-14",
   "rankingsTournament": "Open Championship",
   "submissionSubtext": "British Open Rounds 3-4 Picks"
