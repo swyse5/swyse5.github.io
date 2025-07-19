@@ -385,18 +385,6 @@
       "tour": ""
     },
     {
-      "name": "ryan fox",
-      "countryFlagCode": "NZ",
-      "firstName": "Ryan",
-      "fullName": "Ryan Fox",
-      "inferredTour": "PGA",
-      "lastName": "Fox",
-      "ranking": 53,
-      "rankingChange": 3,
-      "score": 2.386761665344238,
-      "tour": "PGA"
-    },
-    {
       "name": "brian harman",
       "countryFlagCode": "US",
       "firstName": "Brian",
@@ -481,18 +469,6 @@
       "tour": ""
     },
     {
-      "name": "lucas herbert",
-      "countryFlagCode": "AU",
-      "firstName": "Lucas",
-      "fullName": "Lucas Herbert",
-      "inferredTour": "LIV",
-      "lastName": "Herbert",
-      "ranking": 83,
-      "rankingChange": -19,
-      "score": 2.598445892333984,
-      "tour": "LIV"
-    },
-    {
       "name": "sergio garcia",
       "countryFlagCode": "ES",
       "firstName": "Sergio",
@@ -503,18 +479,6 @@
       "rankingChange": -3,
       "score": 2.601916313171387,
       "tour": "LIV"
-    },
-    {
-      "name": "byeong hun an",
-      "countryFlagCode": "KR",
-      "firstName": "Byeong",
-      "fullName": "Byeong Hun An",
-      "inferredTour": "PGA",
-      "lastName": "Hun An",
-      "ranking": 87,
-      "rankingChange": 7,
-      "score": 2.625247478485107,
-      "tour": ""
     },
     {
       "name": "christiaan bezuidenhout",
