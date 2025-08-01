@@ -161,29 +161,57 @@
                 </div>
             </div>
 
-            <!-- Golfer Rankings Section -->
-            <div class="golfer-rankings mb-5">
-                <h4>Golfer Rankings</h4>
-                <p class="text-muted">Enter golfer rankings as JSON with a rankings array containing golfer objects. Just copy/paste the entire json from <a href="https://tugr.org/api/rankings" target="_blank">tugr.org/api/rankings</a>.</p>
+            <!-- Golfer Salary List Section -->
+            <div class="golfer-salaries mb-5">
+                <h4>Golfer Salary List</h4>
+                <p class="text-muted">Upload a CSV file with golfer names and salary values, or enter the data manually. Format: Name, Salary (e.g., "Tiger Woods, 25")</p>
                 
+                <!-- CSV Upload -->
                 <div class="form-group">
-                    <textarea class="form-control" id="rankingsJson" rows="15" placeholder='{"rankings": [{"name": "Golfer Name", "fullName": "Golfer Full Name", "ranking": 1}]}'></textarea>
+                    <label for="csvUpload">Upload CSV File</label>
+                    <input type="file" class="form-control-file" id="csvUpload" accept=".csv" onchange="handleCSVUpload(event)">
+                    <small class="form-text text-muted">CSV should have two columns: Golfer Name, Salary Value</small>
                 </div>
 
-                <!-- Current Rankings List -->
+                <div class="text-center my-3">
+                    <span class="text-muted">- OR -</span>
+                </div>
+
+                <!-- Manual Entry -->
+                <div class="form-group">
+                    <label for="salaryData">Manual Entry (CSV Format)</label>
+                    <textarea class="form-control" id="salaryData" rows="15" placeholder='Tiger Woods, 25.50&#10;Rory McIlroy, 22&#10;Jon Rahm, 20.25&#10;Scottie Scheffler, 18.75'></textarea>
+                    <small class="form-text text-muted">Enter one golfer per line: Name, Salary (supports cents, e.g., 25.50)</small>
+                </div>
+
+                <!-- Salary Cap Setting -->
+                <div class="form-group">
+                    <label for="salaryCap">Salary Cap</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">$</span>
+                        </div>
+                        <input type="number" class="form-control" id="salaryCap" value="100" min="1" max="1000" step="0.01">
+                    </div>
+                    <small class="form-text text-muted">Total budget users can spend on 4 golfers</small>
+                </div>
+
+
+
+                <!-- Current Golfers List -->
                 <div class="mt-4">
-                    <button class="btn btn-outline-secondary mb-3" type="button" data-toggle="collapse" data-target="#rankingsListSection" aria-expanded="false" aria-controls="rankingsListSection">
-                        <i class="fas fa-chevron-down"></i> Remove Golfers
+                    <button class="btn btn-outline-secondary mb-3" type="button" data-toggle="collapse" data-target="#golfersListSection" aria-expanded="false" aria-controls="golfersListSection">
+                        <i class="fas fa-chevron-down"></i> View/Edit Current Golfers
                     </button>
-                    <div class="collapse" id="rankingsListSection">
-                        <div id="currentRankings" class="list-group">
+                    <div class="collapse" id="golfersListSection">
+                        <div id="currentGolfers" class="list-group" style="max-height: 400px; overflow-y: auto;">
                             <!-- Will be populated by JavaScript -->
                         </div>
                     </div>
                 </div>
 
-                <div class="alert alert-danger" id="jsonError" style="display: none;">
-                    Invalid JSON format. Please check your input.
+                <div class="alert alert-danger" id="csvError" style="display: none;">
+                    Invalid CSV format. Please check your input.
                 </div>
             </div>
 
@@ -191,7 +219,29 @@
                 Settings saved successfully!
             </div>
 
-            <button class="btn btn-primary mt-4 mr-2" onclick="saveSettings()">Save Changes</button>
+            <!-- Local Testing Mode -->
+            <div class="testing-mode-section mt-4 mb-3">
+                <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="localTestingMode">
+                    <label class="custom-control-label" for="localTestingMode">
+                        <strong>Local Testing Mode</strong>
+                    </label>
+                </div>
+                <small class="form-text text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    When enabled, changes will only be stored locally in your browser and won't be published to GitHub. 
+                    Perfect for testing without affecting other users.
+                </small>
+                <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="clearLocalTestingData()">
+                        <i class="fas fa-trash"></i> Clear Local Testing Data
+                    </button>
+                </div>
+            </div>
+
+            <button class="btn btn-primary mt-4 mr-2" onclick="saveSettings()">
+                <span id="saveButtonText">Save Changes</span>
+            </button>
             <button class="btn btn-secondary mt-4" onclick="logout()">Logout</button>
         </div>
     </div>

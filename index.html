@@ -116,48 +116,78 @@
               Pick submission is currently closed. Check back soon!
             </div>
             <div id="submissionSubtextDisplay" class="mb-4 h4 font-weight-bold"></div>
-            <p class="mb-4">Golfer rankings are based on <a href="https://tugr.org/rankings" target="_blank">TUGR (The Universal Golf Rankings)</a></p>
+            <p class="mb-4">Select 4 golfers within your salary cap budget.</p>
             <p class="mb-4 text-muted rankings-update-text"></p>
+            
+            <!-- Salary Cap Calculator -->
+            <div class="salary-calculator mb-4 p-3 border rounded">
+                <h5 class="mb-3">Salary Cap Calculator</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h4 mb-1">$<span id="totalUsed">0</span></div>
+                            <small class="text-muted">Used</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h4 mb-1">$<span id="totalRemaining">100</span></div>
+                            <small class="text-muted">Remaining</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="h4 mb-1">$<span id="salaryCap">100</span></div>
+                            <small class="text-muted">Total Budget</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress mt-3">
+                    <div class="progress-bar" role="progressbar" style="width: 0%" id="budgetProgress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div id="budgetWarning" class="alert alert-warning mt-2" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> You're over budget! Please adjust your selections.
+                </div>
+            </div>
 
             <div class="form-group">
               <label for="userEmail">Enter your email address</label>
               <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required disabled>
               <input type="hidden" name="_cc" value="">
+              <input type="hidden" name="totalSalary" id="totalSalaryHidden" value="0">
+              <input type="hidden" name="salaryBreakdown" id="salaryBreakdownHidden" value="">
               <small class="form-text text-muted">You'll receive a confirmation email with your picks.</small>
             </div>
 
             <div class="form-group">
-              <label for="golfer1">Select your first golfer (rank 1-100)</label>
-              <select class="form-control" id="golfer1" name="golfer1" disabled>
-                <option value="">Choose a golfer...</option>
+              <label for="golfer1">Select your first golfer</label>
+              <select class="form-control" id="golfer1" name="golfer1" disabled data-salary="0">
+                <option value="" data-salary="0">Choose a golfer...</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer2">Select your second golfer (rank 11-100)</label>
-              <select class="form-control" id="golfer2" name="golfer2" disabled>
-                <option value="">Choose a golfer...</option>
+              <label for="golfer2">Select your second golfer</label>
+              <select class="form-control" id="golfer2" name="golfer2" disabled data-salary="0">
+                <option value="" data-salary="0">Choose a golfer...</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer3">Select your third golfer (rank 21-100)</label>
-              <select class="form-control" id="golfer3" name="golfer3" disabled>
-                <option value="">Choose a golfer...</option>
+              <label for="golfer3">Select your third golfer</label>
+              <select class="form-control" id="golfer3" name="golfer3" disabled data-salary="0">
+                <option value="" data-salary="0">Choose a golfer...</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="golfer4">Select your fourth golfer (rank 31-100)</label>
-              <select class="form-control" id="golfer4" name="golfer4" disabled>
-                <option value="">Choose a golfer...</option>
+              <label for="golfer4">Select your fourth golfer</label>
+              <select class="form-control" id="golfer4" name="golfer4" disabled data-salary="0">
+                <option value="" data-salary="0">Choose a golfer...</option>
               </select>
             </div>
 
-            <div class="form-group">
-              <label for="customGolfer">If you want to use any golfer(s) ranked outside the top 100, enter their name(s) here</label>
-              <input type="text" class="form-control" id="customGolfer" name="customGolfer" placeholder="Enter golfer(s) name" disabled>
-            </div>
+
 
             <button type="submit" class="btn btn-primary btn-lg btn-block" disabled>Submit Picks</button>
           </form>
@@ -252,8 +282,10 @@
       });
     </script>
     <script src="content/scripts/scripts.js"></script>
+    <script src="content/scripts/salary-calculator.js"></script>
     <script src="content/scripts/form-handler.js"></script>
     <script src="content/scripts/golfer-rankings.js"></script>
+    <script src="content/scripts/golf-ball-animation.js"></script>
     <script src="content/scripts/league-history.js"></script>
   </body>
 </html>
