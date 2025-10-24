@@ -67,6 +67,56 @@
           padding: 0.5rem;
         }
       }
+      /* Golfer select wrapper with clear button */
+      .golfer-select-wrapper {
+        position: relative;
+        width: 100%;
+      }
+      .golfer-select-wrapper select {
+        width: 100%;
+      }
+      .clear-golfer-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        font-size: 12px;
+        transition: all 0.2s ease;
+        z-index: 10;
+      }
+      .clear-golfer-btn:hover {
+        background: #c82333;
+        transform: translateY(-50%) scale(1.1);
+      }
+      .clear-golfer-btn:active {
+        transform: translateY(-50%) scale(0.95);
+      }
+      /* Searchable dropdown styling */
+      .searchable-dropdown input[type="text"] {
+        cursor: text !important;
+        background-color: #fff !important;
+        user-select: text;
+      }
+      .searchable-dropdown input[type="text"]:focus {
+        outline: none;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+      }
+      .searchable-dropdown input[type="text"]::placeholder {
+        color: #6c757d;
+        opacity: 0.8;
+      }
     </style>
   </head>
   <body>
@@ -116,29 +166,34 @@
               Pick submission is currently closed. Check back soon!
             </div>
             <div id="submissionSubtextDisplay" class="mb-4 h4 font-weight-bold"></div>
-            <p class="mb-4">Select 4 golfers within your salary cap budget.</p>
             <p class="mb-4 text-muted rankings-update-text"></p>
             
             <!-- Salary Cap Calculator -->
             <div class="salary-calculator mb-4 p-3 border rounded">
                 <h5 class="mb-3">Salary Cap Calculator</h5>
                 <div class="row">
-                    <div class="col-md-4">
+                  <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h4 mb-1">$<span id="salaryCap">100</span></div>
+                            <small class="text-muted">Total Budget</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="text-center">
                             <div class="h4 mb-1">$<span id="totalUsed">0</span></div>
                             <small class="text-muted">Used</small>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="text-center">
                             <div class="h4 mb-1">$<span id="totalRemaining">100</span></div>
                             <small class="text-muted">Remaining</small>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="text-center">
-                            <div class="h4 mb-1">$<span id="salaryCap">100</span></div>
-                            <small class="text-muted">Total Budget</small>
+                            <div class="h4 mb-1">$<span id="avgPerPick">25.00</span></div>
+                            <small class="text-muted">Avg Per Remaining Pick</small>
                         </div>
                     </div>
                 </div>
@@ -152,7 +207,7 @@
 
             <div class="form-group">
               <label for="userEmail">Enter your email address</label>
-              <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required disabled>
+              <input type="email" class="form-control" id="userEmail" name="userEmail" placeholder="your.email@example.com" required>
               <input type="hidden" name="_cc" value="">
               <input type="hidden" name="totalSalary" id="totalSalaryHidden" value="0">
               <input type="hidden" name="salaryBreakdown" id="salaryBreakdownHidden" value="">
@@ -161,30 +216,50 @@
 
             <div class="form-group">
               <label for="golfer1">Select your first golfer</label>
-              <select class="form-control" id="golfer1" name="golfer1" disabled data-salary="0">
-                <option value="" data-salary="0">Choose a golfer...</option>
-              </select>
+              <div class="golfer-select-wrapper">
+                <select class="form-control" id="golfer1" name="golfer1" data-salary="0">
+                  <option value="" data-salary="0">Choose a golfer...</option>
+                </select>
+                <button type="button" class="clear-golfer-btn" data-target="golfer1" style="display: none;" title="Clear selection">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
 
             <div class="form-group">
               <label for="golfer2">Select your second golfer</label>
-              <select class="form-control" id="golfer2" name="golfer2" disabled data-salary="0">
-                <option value="" data-salary="0">Choose a golfer...</option>
-              </select>
+              <div class="golfer-select-wrapper">
+                <select class="form-control" id="golfer2" name="golfer2" data-salary="0">
+                  <option value="" data-salary="0">Choose a golfer...</option>
+                </select>
+                <button type="button" class="clear-golfer-btn" data-target="golfer2" style="display: none;" title="Clear selection">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
 
             <div class="form-group">
               <label for="golfer3">Select your third golfer</label>
-              <select class="form-control" id="golfer3" name="golfer3" disabled data-salary="0">
-                <option value="" data-salary="0">Choose a golfer...</option>
-              </select>
+              <div class="golfer-select-wrapper">
+                <select class="form-control" id="golfer3" name="golfer3" data-salary="0">
+                  <option value="" data-salary="0">Choose a golfer...</option>
+                </select>
+                <button type="button" class="clear-golfer-btn" data-target="golfer3" style="display: none;" title="Clear selection">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
 
             <div class="form-group">
               <label for="golfer4">Select your fourth golfer</label>
-              <select class="form-control" id="golfer4" name="golfer4" disabled data-salary="0">
-                <option value="" data-salary="0">Choose a golfer...</option>
-              </select>
+              <div class="golfer-select-wrapper">
+                <select class="form-control" id="golfer4" name="golfer4" data-salary="0">
+                  <option value="" data-salary="0">Choose a golfer...</option>
+                </select>
+                <button type="button" class="clear-golfer-btn" data-target="golfer4" style="display: none;" title="Clear selection">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
             </div>
 
 
@@ -334,7 +409,6 @@
     <script src="content/scripts/salary-calculator.js"></script>
     <script src="content/scripts/form-handler.js"></script>
     <script src="content/scripts/golfer-rankings.js"></script>
-    <script src="content/scripts/golf-ball-animation.js"></script>
     <script src="content/scripts/league-history.js"></script>
   </body>
 </html>

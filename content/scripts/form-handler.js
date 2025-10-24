@@ -133,8 +133,9 @@ async function updateFormElements() {
     const submitButton = document.querySelector('#pick-submission form button[type="submit"]');
     const statusMessage = document.querySelector('#pick-submission .alert-info');
 
+    // Always enable form elements so users can interact with dropdowns
     formElements.forEach(element => {
-        element.disabled = !formEnabled;
+        element.disabled = false;
     });
 
 

@@ -84,13 +84,19 @@ function updateSalaryCalculator() {
         const percentage = Math.min((totalUsed / currentSalaryCap) * 100, 100);
         console.log('Total used:', totalUsed, 'Remaining:', remaining);
         
+        // Calculate average per remaining pick
+        const picksRemaining = 4 - result.golfers.length;
+        const avgPerPick = picksRemaining > 0 ? remaining / picksRemaining : 0;
+        
         // Update display elements
         const totalUsedElement = document.getElementById('totalUsed');
         const totalRemainingElement = document.getElementById('totalRemaining');
+        const avgPerPickElement = document.getElementById('avgPerPick');
         
         console.log('Found elements:', {
             totalUsed: !!totalUsedElement,
-            totalRemaining: !!totalRemainingElement
+            totalRemaining: !!totalRemainingElement,
+            avgPerPick: !!avgPerPickElement
         });
         
         if (totalUsedElement) {
@@ -102,6 +108,11 @@ function updateSalaryCalculator() {
             totalRemainingElement.textContent = formatSalary(remaining);
         } else {
             console.error('totalRemaining element not found');
+        }
+        if (avgPerPickElement) {
+            avgPerPickElement.textContent = formatSalary(avgPerPick);
+        } else {
+            console.error('avgPerPick element not found');
         }
     
     // Update hidden form fields for submission
@@ -154,6 +165,9 @@ function updateSalaryCalculator() {
     
     // Check for duplicate selections
     checkForDuplicates(result.golfers);
+    
+    // Update clear button visibility
+    updateClearButtonVisibility();
     
     } catch (error) {
         console.error('Error updating salary calculator:', error);
@@ -264,6 +278,70 @@ function validatePicksForm(showMessage) {
     return true;
 }
 
+// Update clear button visibility based on selections
+function updateClearButtonVisibility() {
+    const golferSelects = ['golfer1', 'golfer2', 'golfer3', 'golfer4'];
+    
+    golferSelects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        const clearBtn = document.querySelector(`button[data-target="${selectId}"]`);
+        
+        if (select && clearBtn) {
+            // Show clear button if a golfer is selected
+            if (select.value && select.value !== '') {
+                clearBtn.style.display = 'flex';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+        }
+    });
+}
+
+// Clear a specific golfer selection
+function clearGolferSelection(selectId) {
+    const select = document.getElementById(selectId);
+    if (select) {
+        select.selectedIndex = 0;
+        select.value = '';
+        select.dataset.salary = '0';
+        
+        // Trigger change event to update calculator and refresh other dropdowns
+        const event = new Event('change', { bubbles: true });
+        select.dispatchEvent(event);
+        
+        // Update salary calculator
+        updateSalaryCalculator();
+        
+        // Refresh other dropdowns to make this golfer available again
+        if (typeof refreshOtherDropdowns === 'function') {
+            refreshOtherDropdowns(selectId);
+        }
+    }
+}
+
+// Initialize clear buttons
+function initializeClearButtons() {
+    // Add click event listeners to all clear buttons
+    const clearButtons = document.querySelectorAll('.clear-golfer-btn');
+    clearButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            clearGolferSelection(targetId);
+        });
+    });
+    
+    // Add change event listeners to golfer selects to update clear button visibility
+    const golferSelects = ['golfer1', 'golfer2', 'golfer3', 'golfer4'];
+    golferSelects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.addEventListener('change', function() {
+                updateClearButtonVisibility();
+            });
+        }
+    });
+}
+
 // Add validation to form submission
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('#pick-submission form');
@@ -275,4 +353,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Initialize clear buttons
+    initializeClearButtons();
 }); 

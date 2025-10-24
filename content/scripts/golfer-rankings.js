@@ -46,21 +46,18 @@ async function populateGolferSelect(selectId) {
         // Add golfer options
         sortedGolfers.forEach(golfer => {
             if (golfer.name) {
-                const option = document.createElement('option');
-                option.value = golfer.name;
-                option.dataset.salary = golfer.salary;
-                
                 // Check if this golfer is already selected elsewhere (excluding current dropdown)
                 const isDuplicate = isGolferDuplicateExcluding(golfer.name, selectId);
                 
-                const duplicateText = isDuplicate ? ' (Already Selected)' : '';
-                option.textContent = `${golfer.name} - $${formatSalary(golfer.salary)}${duplicateText}`;
-                
-                // Style duplicate options
+                // Skip adding this golfer if already selected in another dropdown
                 if (isDuplicate) {
-                    option.style.backgroundColor = '#f8d7da';
-                    option.style.color = '#721c24';
+                    return;
                 }
+                
+                const option = document.createElement('option');
+                option.value = golfer.name;
+                option.dataset.salary = golfer.salary;
+                option.textContent = `${golfer.name} - $${formatSalary(golfer.salary)}`;
                 
                 select.appendChild(option);
             }
@@ -100,9 +97,11 @@ function convertToSearchableDropdown(selectId, golferData) {
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.className = select.className;
-    searchInput.placeholder = 'Search golfers by name...';
+    searchInput.placeholder = 'Type to search golfers...';
     searchInput.disabled = select.disabled;
     searchInput.id = selectId + '_search';
+    searchInput.autocomplete = 'off';
+    searchInput.style.cursor = 'text';
     
     // Create dropdown list
     const dropdownList = document.createElement('div');
@@ -138,7 +137,15 @@ function convertToSearchableDropdown(selectId, golferData) {
         
         const filteredGolfers = golfers.filter(golfer => {
             const displayName = golfer.fullName || golfer.name;
-            return displayName.toLowerCase().includes(filter.toLowerCase());
+            
+            // Filter by search text
+            if (!displayName.toLowerCase().includes(filter.toLowerCase())) {
+                return false;
+            }
+            
+            // Filter out golfers already selected in other dropdowns
+            const isDuplicate = isGolferDuplicateExcluding(displayName, selectId);
+            return !isDuplicate;
         });
 
         if (filteredGolfers.length === 0) {
@@ -153,9 +160,6 @@ function convertToSearchableDropdown(selectId, golferData) {
                 const item = document.createElement('div');
                 item.className = 'dropdown-item';
                 
-                // Check if this golfer is already selected elsewhere (excluding current dropdown)
-                const isDuplicate = isGolferDuplicateExcluding(displayName, selectId);
-                
                 item.style.cssText = `
                     padding: 8px 12px;
                     cursor: pointer;
@@ -164,14 +168,11 @@ function convertToSearchableDropdown(selectId, golferData) {
                     width: 100%;
                     text-align: left;
                     color: var(--bs-body-color, #212529);
-                    ${isDuplicate ? 'opacity: 0.5; background-color: #f8d7da; color: #721c24;' : ''}
                 `;
                 
-                const duplicateText = isDuplicate ? ' (Already Selected)' : '';
-                item.textContent = `${displayName} - $${formatSalary(golfer.salary)}${duplicateText}`;
+                item.textContent = `${displayName} - $${formatSalary(golfer.salary)}`;
                 item.dataset.value = displayName;
                 item.dataset.salary = golfer.salary;
-                item.dataset.isDuplicate = isDuplicate;
                 
                 // Hover effects
                 item.addEventListener('mouseenter', () => {
@@ -185,17 +186,12 @@ function convertToSearchableDropdown(selectId, golferData) {
                 
                 // Click handler
                 item.addEventListener('click', () => {
-                    // Allow selection even if duplicate - we're replacing the current selection
                     searchInput.value = `${displayName} - $${formatSalary(golfer.salary)}`;
                     select.value = displayName;
                     select.dataset.salary = golfer.salary;
                     dropdownList.style.display = 'none';
                     
-                    if (isDuplicate) {
-                        console.log(`Searchable dropdown selected: ${displayName} ($${golfer.salary}) - replacing duplicate`);
-                    } else {
-                        console.log(`Searchable dropdown selected: ${displayName} ($${golfer.salary})`);
-                    }
+                    console.log(`Searchable dropdown selected: ${displayName} ($${golfer.salary})`);
                     
                     // Trigger change event on original select
                     const changeEvent = new Event('change', { bubbles: true });
@@ -232,7 +228,11 @@ function convertToSearchableDropdown(selectId, golferData) {
     });
 
     searchInput.addEventListener('focus', () => {
-        populateDropdown(golferData, searchInput.value);
+        // Clear the formatted value when focusing to allow easy typing
+        if (select.value) {
+            searchInput.value = '';
+        }
+        populateDropdown(golferData, '');
         dropdownList.style.display = 'block';
     });
 
@@ -241,8 +241,25 @@ function convertToSearchableDropdown(selectId, golferData) {
         setTimeout(() => {
             if (!wrapper.contains(document.activeElement)) {
                 dropdownList.style.display = 'none';
+                
+                // Restore the formatted value if a golfer was selected
+                if (select.value) {
+                    const selectedOption = Array.from(select.options).find(option => option.value === select.value);
+                    if (selectedOption) {
+                        searchInput.value = selectedOption.textContent;
+                    }
+                } else {
+                    searchInput.value = '';
+                }
             }
         }, 150);
+    });
+    
+    // Select all text when clicking on the input (makes it easy to replace)
+    searchInput.addEventListener('click', () => {
+        if (searchInput.value && select.value) {
+            searchInput.select();
+        }
     });
 
     // Keyboard navigation
@@ -283,13 +300,16 @@ function convertToSearchableDropdown(selectId, golferData) {
     Object.defineProperty(select, 'value', {
         set: function(newValue) {
             originalDescriptor.set.call(this, newValue);
-            if (newValue) {
-                const selectedOption = Array.from(this.options).find(option => option.value === newValue);
-                if (selectedOption) {
-                    searchInput.value = selectedOption.textContent;
+            // Only update search input if it doesn't have focus (to allow typing)
+            if (document.activeElement !== searchInput) {
+                if (newValue) {
+                    const selectedOption = Array.from(this.options).find(option => option.value === newValue);
+                    if (selectedOption) {
+                        searchInput.value = selectedOption.textContent;
+                    }
+                } else {
+                    searchInput.value = '';
                 }
-            } else {
-                searchInput.value = '';
             }
         },
         get: function() {
@@ -326,6 +346,9 @@ function handleGolferChange(selectElement) {
             console.log(`Golfer removed: ${selectElement.id} (salary reset to $0)`);
         }
         
+        // Refresh all other dropdowns to update available options
+        refreshOtherDropdowns(selectElement.id);
+        
         // Trigger salary calculator update
         if (typeof updateSalaryCalculator === 'function') {
             console.log('📊 Calling updateSalaryCalculator...');
@@ -343,6 +366,17 @@ function handleGolferChange(selectElement) {
             }, 100);
         }
     }
+}
+
+// Refresh other dropdowns when a selection changes
+function refreshOtherDropdowns(changedSelectId) {
+    const allSelects = ['golfer1', 'golfer2', 'golfer3', 'golfer4'];
+    
+    allSelects.forEach(selectId => {
+        if (selectId !== changedSelectId) {
+            populateGolferSelect(selectId);
+        }
+    });
 }
 
 // Initialize golfer selections
