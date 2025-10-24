@@ -1,8 +1,45 @@
+// Helper function to get settings (local testing or GitHub)
+async function getSettings() {
+    try {
+        // Check for local testing data first
+        const localSettings = localStorage.getItem('admin_local_settings');
+        if (localSettings) {
+            console.log('Using local testing settings');
+            return JSON.parse(localSettings);
+        }
+        
+        // Fall back to GitHub data
+        const response = await fetch('/data/settings.json?' + new Date().getTime());
+        return await response.json();
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        return {};
+    }
+}
+
+// Helper function to get golfer salaries (local testing or GitHub)
+async function getGolferSalaries() {
+    try {
+        // Check for local testing data first
+        const localRankings = localStorage.getItem('admin_local_rankings');
+        if (localRankings) {
+            console.log('Using local testing golfer salaries');
+            return JSON.parse(localRankings);
+        }
+        
+        // Fall back to GitHub data
+        const response = await fetch('/data/rankings.json?' + new Date().getTime());
+        return await response.json();
+    } catch (error) {
+        console.error('Error loading golfer salaries:', error);
+        return { golfers: [] };
+    }
+}
+
 // Function to check if form is enabled
 async function isFormEnabled() {
     try {
-        const response = await fetch('/data/settings.json?' + new Date().getTime());
-        const settings = await response.json();
+        const settings = await getSettings();
         return settings.formEnabled;
     } catch (error) {
         console.error('Error checking form status:', error);
@@ -13,8 +50,7 @@ async function isFormEnabled() {
 // Function to check if Pick Submission tab should be shown
 async function isPickSubmissionTabVisible() {
     try {
-        const response = await fetch('/data/settings.json?' + new Date().getTime());
-        const settings = await response.json();
+        const settings = await getSettings();
         return settings.hidePickSubmissionTab;
     } catch (error) {
         console.error('Error checking tab visibility:', error);
@@ -49,8 +85,7 @@ async function updatePickSubmissionTabVisibility() {
 // Function to update rankings information
 async function updateRankingsInfo() {
     try {
-        const response = await fetch('/data/settings.json?' + new Date().getTime());
-        const settings = await response.json();
+        const settings = await getSettings();
         const rankingsDate = settings.rankingsDate;
         const tournament = settings.rankingsTournament;
         const rankingsText = document.querySelector('.rankings-update-text');
@@ -73,8 +108,7 @@ async function updateRankingsInfo() {
 // Function to update submission subtext
 async function updateSubmissionSubtext() {
     try {
-        const response = await fetch('/data/settings.json?' + new Date().getTime());
-        const settings = await response.json();
+        const settings = await getSettings();
         const submissionSubtext = settings.submissionSubtext;
         const subtextElement = document.getElementById('submissionSubtextDisplay');
         
@@ -91,13 +125,34 @@ async function updateSubmissionSubtext() {
 
 // Function to update form elements based on enabled status
 async function updateFormElements() {
+    console.log('📝 form-handler.js: updateFormElements called');
     const formEnabled = await isFormEnabled();
-    const formElements = document.querySelectorAll('#pick-submission form select, #pick-submission form input, #pick-submission form button');
+    console.log('📝 Form enabled status:', formEnabled);
+    
+    const formElements = document.querySelectorAll('#pick-submission form select, #pick-submission form input[type="email"]');
+    const submitButton = document.querySelector('#pick-submission form button[type="submit"]');
     const statusMessage = document.querySelector('#pick-submission .alert-info');
 
+    // Always enable form elements so users can interact with dropdowns
     formElements.forEach(element => {
-        element.disabled = !formEnabled;
+        element.disabled = false;
     });
+
+
+    // Handle submit button separately to preserve salary validation
+    if (submitButton) {
+        if (formEnabled) {
+            submitButton.dataset.adminDisabled = 'false';
+            // Let salary calculator handle the button state
+            if (typeof updateSubmitButton === 'function') {
+                updateSubmitButton();
+            }
+        } else {
+            submitButton.disabled = true;
+            submitButton.dataset.adminDisabled = 'true';
+            submitButton.textContent = 'Pick submission is currently closed';
+        }
+    }
 
     if (statusMessage) {
         statusMessage.style.display = formEnabled ? 'none' : 'block';
@@ -144,6 +199,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             showMessage('Please enter your email address.', true);
             return;
         }
+        
+        // Validate salary and golfer requirements
+        if (typeof validatePicksForm === 'function') {
+            if (!validatePicksForm(showMessage)) {
+                // validatePicksForm shows appropriate error messages via showMessage
+                return;
+            }
+        }
 
         const formData = new FormData(form);
         const data = {};
@@ -153,6 +216,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Add CC
         data._cc = userEmail;
+        
+        // Add total salary calculation
+        if (typeof calculateTotalSalary === 'function') {
+            const salaryResult = calculateTotalSalary();
+            data.totalSalary = salaryResult.total;
+            data.salaryBreakdown = salaryResult.golfers.map(g => `${g.name}: $${typeof formatSalary === 'function' ? formatSalary(g.salary) : g.salary} (${g.type})`).join(', ');
+        }
 
         // Log the data being sent (for debugging)
         console.log('Preparing to send form data:', data);
