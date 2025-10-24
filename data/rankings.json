@@ -37,30 +37,6 @@
       "tour": ""
     },
     {
-      "name": "bryson dechambeau",
-      "countryFlagCode": "US",
-      "firstName": "Bryson",
-      "fullName": "Bryson DeChambeau",
-      "inferredTour": "LIV",
-      "lastName": "DeChambeau",
-      "ranking": 4,
-      "rankingChange": -1,
-      "score": 1.115474700927734,
-      "tour": "LIV"
-    },
-    {
-      "name": "tommy fleetwood",
-      "countryFlagCode": "GB-ENG",
-      "firstName": "Tommy",
-      "fullName": "Tommy Fleetwood",
-      "inferredTour": "PGA",
-      "lastName": "Fleetwood",
-      "ranking": 6,
-      "rankingChange": 0,
-      "score": 1.315632104873657,
-      "tour": ""
-    },
-    {
       "name": "russell henley",
       "countryFlagCode": "US",
       "firstName": "Russell",
