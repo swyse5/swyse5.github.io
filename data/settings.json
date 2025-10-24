@@ -1,8 +1,8 @@
 {
-  "formEnabled": false,
+  "formEnabled": true,
   "hidePickSubmissionTab": true,
-  "rankingsDate": "2025-07-14",
+  "rankingsDate": "2025-10-24",
   "rankingsTournament": "Open Championship",
-  "submissionSubtext": "British Open Rounds 3-4 Picks",
+  "submissionSubtext": "Test Time",
   "salaryCap": 100
 }
