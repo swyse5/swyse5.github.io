@@ -1,400 +1,400 @@
 {
   "golfers": [
     {
-      "name": "Scottie Scheffler",
-      "salary": 36.08
+      "name": "Scheffler, Scottie",
+      "salary": 40
     },
     {
-      "name": "Rory Mcilroy",
-      "salary": 33.77
+      "name": "Fleetwood, Tommy",
+      "salary": 33.13
     },
     {
-      "name": "Jon Rahm",
-      "salary": 33.14
+      "name": "McIlroy, Rory",
+      "salary": 31.61
     },
     {
-      "name": "Bryson Dechambeau",
-      "salary": 32.33
+      "name": "Rahm, Jon",
+      "salary": 31.14
     },
     {
-      "name": "Tommy Fleetwood",
-      "salary": 31.26
+      "name": "Griffin, Ben",
+      "salary": 30.4
     },
     {
-      "name": "Russell Henley",
-      "salary": 30.24
+      "name": "Henley, Russell",
+      "salary": 30.2
     },
     {
-      "name": "Collin Morikawa",
-      "salary": 30.16
+      "name": "Schauffele, Xander",
+      "salary": 29.86
     },
     {
-      "name": "Xander Schauffele",
-      "salary": 30.12
+      "name": "Spaun, J.J.",
+      "salary": 29.57
     },
     {
-      "name": "Tyrrell Hatton",
-      "salary": 29.36
+      "name": "DeChambeau, Bryson",
+      "salary": 28.87
     },
     {
-      "name": "Joaquin Niemann",
-      "salary": 29.16
+      "name": "MacIntyre, Robert",
+      "salary": 28.51
     },
     {
-      "name": "Justin Thomas",
-      "salary": 28.95
+      "name": "Young, Cameron",
+      "salary": 27.79
     },
     {
-      "name": "Patrick Cantlay",
-      "salary": 28.1
+      "name": "Burns, Sam",
+      "salary": 27.78
     },
     {
-      "name": "Robert Macintyre",
-      "salary": 28.08
+      "name": "Fitzpatrick, Matt",
+      "salary": 27.73
     },
     {
-      "name": "Keegan Bradley",
-      "salary": 28.07
+      "name": "Aberg, Ludvig",
+      "salary": 27.35
     },
     {
-      "name": "Corey Conners",
-      "salary": 28.04
+      "name": "Hovland, Viktor",
+      "salary": 27.06
     },
     {
-      "name": "Jj Spaun",
-      "salary": 27.97
+      "name": "Cantlay, Patrick",
+      "salary": 26.98
     },
     {
-      "name": "Sepp Straka",
-      "salary": 27.24
+      "name": "Noren, Alex",
+      "salary": 26.86
     },
     {
-      "name": "Harris English",
-      "salary": 26.7
+      "name": "Hall, Harry",
+      "salary": 26.8
     },
     {
-      "name": "Hideki Matsuyama",
-      "salary": 26.65
+      "name": "Matsuyama, Hideki",
+      "salary": 26.41
     },
     {
-      "name": "Sam Burns",
-      "salary": 26.63
+      "name": "Kim, Si Woo",
+      "salary": 26.1
     },
     {
-      "name": "Ludvig Aberg",
-      "salary": 26.34
+      "name": "English, Harris",
+      "salary": 25.23
     },
     {
-      "name": "Shane Lowry",
-      "salary": 26.29
+      "name": "Lowry, Shane",
+      "salary": 25.09
     },
     {
-      "name": "Aaron Rai",
-      "salary": 25.67
+      "name": "Bradley, Keegan",
+      "salary": 24.95
     },
     {
-      "name": "Matt Fitzpatrick",
-      "salary": 25.4
+      "name": "McNealy, Maverick",
+      "salary": 24.85
     },
     {
-      "name": "Viktor Hovland",
-      "salary": 25.18
-    },
-    {
-      "name": "Denny Mccarthy",
-      "salary": 24.86
-    },
-    {
-      "name": "Harry Hall",
+      "name": "Straka, Sepp",
       "salary": 24.8
     },
     {
-      "name": "Ben Griffin",
-      "salary": 24.76
+      "name": "Thomas, Justin",
+      "salary": 24.65
     },
     {
-      "name": "Si Woo Kim",
-      "salary": 23.8
+      "name": "Pendrith, Taylor",
+      "salary": 24.58
     },
     {
-      "name": "Taylor Pendrith",
-      "salary": 23.48
+      "name": "Gotterup, Chris",
+      "salary": 24.49
     },
     {
-      "name": "Maverick Mcnealy",
-      "salary": 23.48
+      "name": "Conners, Corey",
+      "salary": 24.41
     },
     {
-      "name": "Sebastian Munoz",
-      "salary": 23.35
+      "name": "Schaper, Jayden",
+      "salary": 23.55
     },
     {
-      "name": "Jason Day",
-      "salary": 23.28
+      "name": "Fowler, Rickie",
+      "salary": 23.44
     },
     {
-      "name": "Brian Harman",
-      "salary": 23.15
+      "name": "Morikawa, Collin",
+      "salary": 23.04
     },
     {
-      "name": "Jordan Spieth",
-      "salary": 23.1
+      "name": "Hojgaard, Rasmus",
+      "salary": 22.64
     },
     {
-      "name": "Daniel Berger",
-      "salary": 22.96
+      "name": "Day, Jason",
+      "salary": 22.59
     },
     {
-      "name": "Sam Stevens",
-      "salary": 22.85
+      "name": "Hatton, Tyrrell",
+      "salary": 22.5
     },
     {
-      "name": "Akshay Bhatia",
-      "salary": 22.71
+      "name": "Bezuidenhout, Christiaan",
+      "salary": 22.33
     },
     {
-      "name": "David Puig",
-      "salary": 22.61
+      "name": "Kitayama, Kurt",
+      "salary": 22.24
     },
     {
-      "name": "Jackson Koivun",
-      "salary": 22.16
+      "name": "Bhatia, Akshay",
+      "salary": 22.24
     },
     {
-      "name": "Alex Noren",
-      "salary": 21.94
+      "name": "Rose, Justin",
+      "salary": 22.15
     },
     {
-      "name": "Billy Horschel",
-      "salary": 21.89
+      "name": "Gerard, Ryan",
+      "salary": 22.1
     },
     {
-      "name": "Rickie Fowler",
-      "salary": 21.87
+      "name": "McCarthy, Denny",
+      "salary": 21.9
     },
     {
-      "name": "Max Greyserman",
+      "name": "Rai, Aaron",
+      "salary": 21.86
+    },
+    {
+      "name": "Olesen, Thorbjorn",
+      "salary": 21.8
+    },
+    {
+      "name": "Puig, David",
       "salary": 21.76
     },
     {
-      "name": "Patrick Reed",
+      "name": "Spieth, Jordan",
+      "salary": 21.75
+    },
+    {
+      "name": "Higgo, Garrick",
+      "salary": 21.68
+    },
+    {
+      "name": "Taylor, Nick",
+      "salary": 21.66
+    },
+    {
+      "name": "Poston, J.T.",
       "salary": 21.58
     },
     {
-      "name": "Lucas Glover",
-      "salary": 21.4
+      "name": "Knapp, Jake",
+      "salary": 20.76
     },
     {
-      "name": "Tony Finau",
-      "salary": 21.31
+      "name": "Parry, John",
+      "salary": 20.72
     },
     {
-      "name": "Wyndham Clark",
-      "salary": 20.81
+      "name": "Kim, Michael",
+      "salary": 20.48
     },
     {
-      "name": "Bud Cauley",
-      "salary": 20.64
+      "name": "McCarty, Matt",
+      "salary": 20.4
     },
     {
-      "name": "Rasmus Hojgaard",
-      "salary": 20.17
+      "name": "Thorbjornsen, Michael",
+      "salary": 20.4
     },
     {
-      "name": "Nick Taylor",
-      "salary": 19.67
+      "name": "Scott, Adam",
+      "salary": 20.36
     },
     {
-      "name": "Ryan Fox",
-      "salary": 19.63
+      "name": "Berger, Daniel",
+      "salary": 20.34
     },
     {
-      "name": "Kevin Yu",
-      "salary": 19.19
+      "name": "Valimaki, Sami",
+      "salary": 20.26
     },
     {
-      "name": "Sungjae Im",
-      "salary": 19.08
+      "name": "Hoey, Rico",
+      "salary": 20.06
     },
     {
-      "name": "Davis Thompson",
-      "salary": 19.07
+      "name": "Neergaard-Petersen, Rasmus",
+      "salary": 19.83
     },
     {
-      "name": "Adam Scott",
-      "salary": 18.98
+      "name": "Ayora, Angel",
+      "salary": 19.8
     },
     {
-      "name": "Jt Poston",
-      "salary": 18.97
+      "name": "Hillier, Daniel",
+      "salary": 19.77
     },
     {
-      "name": "Michael Thorbjornsen",
-      "salary": 18.9
+      "name": "Greyserman, Max",
+      "salary": 19.61
     },
     {
-      "name": "Matt Kuchar",
-      "salary": 18.61
+      "name": "Whaley, Vince",
+      "salary": 19.06
     },
     {
-      "name": "Michael Kim",
+      "name": "Harman, Brian",
+      "salary": 18.95
+    },
+    {
+      "name": "Lee, Min Woo",
+      "salary": 18.91
+    },
+    {
+      "name": "Penge, Marco",
+      "salary": 18.85
+    },
+    {
+      "name": "Niemann, Joaquin",
+      "salary": 18.84
+    },
+    {
+      "name": "Koivun, Jackson",
+      "salary": 18.74
+    },
+    {
+      "name": "Glover, Lucas",
+      "salary": 18.6
+    },
+    {
+      "name": "Thompson, Davis",
+      "salary": 18.53
+    },
+    {
+      "name": "Yu, Kevin",
       "salary": 18.48
     },
     {
-      "name": "Luke Clanton",
-      "salary": 18.33
+      "name": "Ortiz, Carlos",
+      "salary": 18.38
     },
     {
-      "name": "Cameron Tringale",
-      "salary": 18.15
+      "name": "Coody, Pierceson",
+      "salary": 18.34
     },
     {
-      "name": "Keith Mitchell",
-      "salary": 17.92
+      "name": "Wallace, Matt",
+      "salary": 18.23
     },
     {
-      "name": "Thomas Detry",
-      "salary": 17.55
+      "name": "Meissner, Mac",
+      "salary": 18.16
     },
     {
-      "name": "Chris Gotterup",
-      "salary": 17.53
+      "name": "Clark, Wyndham",
+      "salary": 18.06
     },
     {
-      "name": "Ryan Gerard",
-      "salary": 17.52
+      "name": "Kirk, Chris",
+      "salary": 17.88
     },
     {
-      "name": "Kurt Kitayama",
-      "salary": 17.45
+      "name": "McGreevy, Max",
+      "salary": 17.74
     },
     {
-      "name": "Lee Hodges",
-      "salary": 17.45
+      "name": "Kuchar, Matt",
+      "salary": 17.6
     },
     {
-      "name": "Carlos Ortiz",
-      "salary": 17.36
+      "name": "Rodgers, Patrick",
+      "salary": 17.6
     },
     {
-      "name": "Cameron Smith",
-      "salary": 17.29
+      "name": "Munoz, Sebastian",
+      "salary": 17.26
     },
     {
-      "name": "Christiaan Bezuidenhout",
-      "salary": 17.23
+      "name": "Bridgeman, Jacob",
+      "salary": 16.96
     },
     {
-      "name": "Jake Knapp",
-      "salary": 17.05
+      "name": "McKibbin, Tom",
+      "salary": 16.83
     },
     {
-      "name": "Andrew Novak",
-      "salary": 17
+      "name": "Kanaya, Takumi",
+      "salary": 16.67
     },
     {
-      "name": "Andrew Putnam",
-      "salary": 16.99
+      "name": "Stevens, Sam",
+      "salary": 16.51
     },
     {
-      "name": "Sergio Garcia",
-      "salary": 16.81
+      "name": "Echavarria, Nico",
+      "salary": 16.14
     },
     {
-      "name": "Doug Ghim",
-      "salary": 16.71
+      "name": "Cauley, Bud",
+      "salary": 16.12
     },
     {
-      "name": "Jordan Smith",
-      "salary": 16.63
-    },
-    {
-      "name": "Abraham Ancer",
-      "salary": 16.6
-    },
-    {
-      "name": "Beau Hossler",
-      "salary": 16.55
-    },
-    {
-      "name": "Paul Casey",
-      "salary": 16.54
-    },
-    {
-      "name": "Justin Rose",
-      "salary": 16.48
-    },
-    {
-      "name": "Emiliano Grillo",
-      "salary": 16.34
-    },
-    {
-      "name": "Haotong Li",
-      "salary": 16.32
-    },
-    {
-      "name": "Matt Wallace",
+      "name": "Reitan, Kristoffer",
       "salary": 16.08
     },
     {
-      "name": "Rasmus Neergaardpetersen",
+      "name": "Hodges, Lee",
+      "salary": 16.08
+    },
+    {
+      "name": "Hojgaard, Nicolai",
+      "salary": 15.91
+    },
+    {
+      "name": "Power, Seamus",
       "salary": 15.74
     },
     {
-      "name": "Jacob Bridgeman",
-      "salary": 15.63
+      "name": "Novak, Andrew",
+      "salary": 15.65
     },
     {
-      "name": "Thomas Pieters",
-      "salary": 15.61
+      "name": "Detry, Thomas",
+      "salary": 15.62
     },
     {
-      "name": "Min Woo Lee",
-      "salary": 15.21
+      "name": "Tringale, Cameron",
+      "salary": 15.58
     },
     {
-      "name": "Lucas Herbert",
-      "salary": 15.05
+      "name": "Zalatoris, Will",
+      "salary": 15.57
     },
     {
-      "name": "Stephan Jaeger",
-      "salary": 15
+      "name": "Homa, Max",
+      "salary": 15.47
     },
     {
-      "name": "Kevin Roy",
-      "salary": 15
+      "name": "Perez, Victor",
+      "salary": 15.08
     },
     {
-      "name": "Will Zalatoris",
-      "salary": 15
+      "name": "Grillo, Emiliano",
+      "salary": 14.84
     },
     {
-      "name": "Talor Gooch",
-      "salary": 15
+      "name": "Smith, Jordan",
+      "salary": 14.83
     },
     {
-      "name": "Charl Schwartzel",
-      "salary": 15
-    },
-    {
-      "name": "Jhonattan Vegas",
-      "salary": 15
-    },
-    {
-      "name": "Cameron Young",
-      "salary": 15
-    },
-    {
-      "name": "Tom Hoge",
-      "salary": 15
-    },
-    {
-      "name": "Richard Bland",
-      "salary": 15
-    },
-    {
-      "name": "Alex Smalley",
-      "salary": 15
+      "name": "Reed, Patrick",
+      "salary": 14.68
     }
   ]
 }
