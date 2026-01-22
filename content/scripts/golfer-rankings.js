@@ -115,7 +115,7 @@ function convertToSearchableDropdown(selectId, golferData) {
         border: 1px solid var(--bs-border-color, #dee2e6);
         border-top: none;
         border-radius: 0 0 4px 4px;
-        max-height: 200px;
+        max-height: 50vh;
         overflow-y: auto;
         z-index: 1000;
         display: none;
