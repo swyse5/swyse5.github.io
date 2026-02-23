@@ -164,7 +164,7 @@
             <!-- Golfer Salary List Section -->
             <div class="golfer-salaries mb-5">
                 <h4>Golfer Salary List</h4>
-                <p class="text-muted">Upload a CSV file with golfer names and salary values, or enter the data manually. Format: Name, Salary (e.g., "Tiger Woods, 25")</p>
+                <p class="text-muted">Upload a CSV file with golfer names and salary values, or enter the data manually. Format: Name $Salary (e.g., "Tiger Woods $25")</p>
                 
                 <!-- CSV Upload -->
                 <div class="form-group">
@@ -179,9 +179,9 @@
 
                 <!-- Manual Entry -->
                 <div class="form-group">
-                    <label for="salaryData">Manual Entry (CSV Format)</label>
-                    <textarea class="form-control" id="salaryData" rows="15" placeholder='Tiger Woods, 25.50&#10;Rory McIlroy, 22&#10;Jon Rahm, 20.25&#10;Scottie Scheffler, 18.75'></textarea>
-                    <small class="form-text text-muted">Enter one golfer per line: Name, Salary (supports cents, e.g., 25.50)</small>
+                    <label for="salaryData">Manual Entry</label>
+                    <textarea class="form-control" id="salaryData" rows="15" placeholder='Tiger Woods $25.50&#10;Rory McIlroy $22&#10;Jon Rahm $20.25&#10;Scottie Scheffler $18.75'></textarea>
+                    <small class="form-text text-muted">Enter one golfer per line: Name $Salary (e.g., Tiger Woods $25.50)</small>
                 </div>
 
                 <!-- Salary Cap Setting -->

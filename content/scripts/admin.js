@@ -30,7 +30,8 @@ function handleCSVUpload(event) {
     reader.readAsText(file);
 }
 
-// Function to parse CSV data and convert to golfer objects
+// Function to parse golfer data and convert to golfer objects
+// Supports format: "Name $Value" (e.g., "Tiger Woods $25.50")
 function parseCSVData(csvText) {
     const lines = csvText.trim().split('\n');
     const golfers = [];
@@ -39,11 +40,26 @@ function parseCSVData(csvText) {
         const line = lines[i].trim();
         if (!line) continue;
         
-        // Split by comma, but handle quoted names
-        const match = line.match(/^"?([^"]*)"?,\s*(.+)$/) || line.match(/^([^,]+),\s*(.+)$/);
-        if (match) {
-            const name = match[1].trim().replace(/^"|"$/g, '');
-            const salaryStr = match[2].trim().replace(/^\$/, ''); // Remove leading $ if present
+        // Match "Name $Value" format (e.g., "Tiger Woods $25.50")
+        const dollarMatch = line.match(/^(.+?)\s+\$(\d+(?:\.\d+)?)$/);
+        if (dollarMatch) {
+            const name = dollarMatch[1].trim();
+            const salary = parseFloat(dollarMatch[2]);
+            
+            if (name && !isNaN(salary) && salary > 0) {
+                golfers.push({
+                    name: name,
+                    salary: salary
+                });
+            }
+            continue;
+        }
+        
+        // Fallback: also support old CSV format "Name, Value" for backwards compatibility
+        const csvMatch = line.match(/^"?([^"]*)"?,\s*(.+)$/) || line.match(/^([^,]+),\s*(.+)$/);
+        if (csvMatch) {
+            const name = csvMatch[1].trim().replace(/^"|"$/g, '');
+            const salaryStr = csvMatch[2].trim().replace(/^\$/, '');
             const salary = parseFloat(salaryStr);
             
             if (name && !isNaN(salary) && salary > 0) {
@@ -113,9 +129,9 @@ function removeGolferByIndex(indexToRemove) {
         // Remove the golfer at the specified index
         golfers.splice(indexToRemove, 1);
         
-        // Convert back to CSV format
-        const newCsvText = golfers.map(g => `${g.name}, ${formatSalary(g.salary)}`).join('\n');
-        document.getElementById('salaryData').value = newCsvText;
+        // Convert back to "Name $Value" format
+        const newText = golfers.map(g => `${g.name} $${formatSalary(g.salary)}`).join('\n');
+        document.getElementById('salaryData').value = newText;
         
         // Update the display
         parseAndDisplayGolfers();
@@ -229,8 +245,8 @@ async function loadSettings() {
 
         // Update salary data textarea
         if (rankingsData.golfers && Array.isArray(rankingsData.golfers)) {
-            const csvText = rankingsData.golfers.map(g => `${g.name}, ${formatSalary(g.salary)}`).join('\n');
-            document.getElementById('salaryData').value = csvText;
+            const salaryText = rankingsData.golfers.map(g => `${g.name} $${formatSalary(g.salary)}`).join('\n');
+            document.getElementById('salaryData').value = salaryText;
         } else {
             document.getElementById('salaryData').value = '';
         }
