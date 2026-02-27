@@ -1,0 +1,203 @@
+/***********************
+ * ESPN PGA scoreboard -> Google Sheets (per-hole relative-to-par)
+ *
+ * Sheet layout (TARGET tab or active tab):
+ *   A1 = Event name to match (recommended), e.g. "The Genesis Invitational"
+ *
+ * Round blocks on the same tab:
+ *   R1 rows 4-43
+ *   R2 rows 48-87
+ *   R3 rows 92-131
+ *   R4 rows 136-175
+ *
+ * Column B = "First Last"
+ * Columns C-T = Holes 1..18
+ ***********************/
+
+const CFG = {
+  // If your trigger sometimes runs on the wrong tab, set this:
+  // targetSheetName: "Score Input",
+  // If you leave it blank, it will use the active sheet.
+  targetSheetName: "Score Input",
+
+  cellEventName: "A1",
+
+  nameCol: 2,       // B
+  holeStartCol: 3,  // C
+  holeCount: 18,
+
+  triggerMinutes: 15,
+
+  roundBlocks: [
+    { round: 1, startRow: 4,   endRow: 43 },
+    { round: 2, startRow: 48,  endRow: 87 },
+    { round: 3, startRow: 92,  endRow: 131 },
+    { round: 4, startRow: 136, endRow: 175 }
+  ]
+};
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu("Golf Tracker")
+    .addItem("Update Now", "updateAllRoundsFromEspn")
+    .addSeparator()
+    .addItem("Start Auto Update", "startAutoUpdate")
+    .addItem("Stop Auto Update", "stopAutoUpdate")
+    .addToUi();
+}
+
+function startAutoUpdate() {
+  stopAutoUpdate();
+  ScriptApp.newTrigger("updateAllRoundsFromEspn")
+    .timeBased()
+    .everyMinutes(CFG.triggerMinutes)
+    .create();
+}
+
+function stopAutoUpdate() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "updateAllRoundsFromEspn") {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+}
+
+function updateAllRoundsFromEspn() {
+  const ss = SpreadsheetApp.getActive();
+  const sheet = CFG.targetSheetName
+    ? ss.getSheetByName(CFG.targetSheetName)
+    : ss.getActiveSheet();
+
+  if (!sheet) throw new Error(`Sheet not found: "${CFG.targetSheetName}"`);
+
+  const wantedEventName = String(sheet.getRange(CFG.cellEventName).getValue()).trim();
+
+  // 1) Fetch scoreboard (no API key)
+  const scoreboard = fetchJson_("https://site.api.espn.com/apis/site/v2/sports/golf/pga/scoreboard");
+
+  // 2) Pick event: match A1 name if provided, else first event
+  const event = pickEvent_(scoreboard, wantedEventName);
+  if (!event) throw new Error("No events found in ESPN scoreboard response.");
+
+  // 3) Competitors live here: events[0].competitions[0].competitors
+  const competitors = event?.competitions?.[0]?.competitors || [];
+
+  // 4) For each round block, build name -> holes[18] map and write
+  CFG.roundBlocks.forEach(block => {
+    const holesByName = buildHolesByNameFromEspn_(competitors, block.round);
+
+    const rowCount = block.endRow - block.startRow + 1;
+    if (rowCount <= 0) return;
+
+    const names = sheet.getRange(block.startRow, CFG.nameCol, rowCount, 1)
+      .getValues()
+      .map(r => String(r[0] || "").trim());
+
+    const out = names.map(n => {
+      if (!n) return Array(CFG.holeCount).fill("");
+      const holes = holesByName.get(normalizeName_(n));
+      return holes ? holes : Array(CFG.holeCount).fill("");
+    });
+
+    sheet.getRange(block.startRow, CFG.holeStartCol, out.length, CFG.holeCount).setValues(out);
+  });
+
+  sheet.getRange("B1").setValue(`Last updated: ${new Date().toLocaleString()}`);
+}
+
+function fetchJson_(url) {
+  const res = UrlFetchApp.fetch(url, {
+    method: "get",
+    muteHttpExceptions: true,
+    headers: { "Accept": "application/json" }
+  });
+
+  const code = res.getResponseCode();
+  const text = res.getContentText();
+  if (code !== 200) throw new Error(`HTTP ${code}\nURL: ${url}\nBody: ${text.slice(0, 500)}`);
+  return JSON.parse(text);
+}
+
+function pickEvent_(scoreboard, wantedName) {
+  const events = scoreboard?.events || [];
+  if (!events.length) return null;
+
+  // If nothing provided in A1, just use first event
+  if (!wantedName) return events[0];
+
+  const wantedNorm = normalizeEventName_(wantedName);
+
+  // 🔎 Case-insensitive CONTAINS match
+  const match = events.find(e => {
+    const eventName = normalizeEventName_(e.name || e.shortName || "");
+    return eventName.includes(wantedNorm);
+  });
+
+  if (match) return match;
+
+  // Fallback: first event if no match
+  return events[0];
+}
+/**
+ * ESPN structure:
+ * competitor.athlete.displayName
+ * competitor.linescores[roundIndex]  (roundIndex = round-1)
+ * competitor.linescores[roundIndex].linescores = per-hole array (18)
+ * each hole entry has scoreType.displayValue: "-1", "E", "+2", etc.
+ */
+function buildHolesByNameFromEspn_(competitors, roundNumber) {
+  const map = new Map();
+  const roundIndex = roundNumber - 1;
+
+  competitors.forEach(c => {
+    const name = c?.athlete?.displayName || c?.athlete?.fullName || "";
+    if (!name) return;
+
+    const roundObj = Array.isArray(c.linescores) ? c.linescores[roundIndex] : null;
+    const holeObjs = roundObj?.linescores || [];
+
+    const holes = Array(18).fill("");
+
+    // Hole objs have period 1..18 and scoreType.displayValue
+    holeObjs.forEach(h => {
+      const holeNo = Number(h.period);
+      const rel = h?.scoreType?.displayValue; // "-1", "E", "+2"
+      if (holeNo >= 1 && holeNo <= 18) {
+        holes[holeNo - 1] = normalizeRelToPar_(rel);
+      }
+    });
+
+    // Only set if there is any data
+    if (holes.some(v => v !== "")) {
+      map.set(normalizeName_(name), holes);
+    }
+  });
+
+  return map;
+}
+
+function normalizeRelToPar_(v) {
+  if (v == null) return "";
+  const s = String(v).trim();
+  if (!s) return "";
+  if (s.toUpperCase() === "E") return 0;      // ESPN uses "E" for even/par
+  const n = Number(s);
+  return Number.isFinite(n) ? n : "";
+}
+
+function normalizeName_(s) {
+  return String(s || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeEventName_(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
