@@ -71,7 +71,7 @@ function updateAllRoundsFromEspn() {
 
   const competitors = event?.competitions?.[0]?.competitors || [];
 
-  // ✅ NEW: write par row (row 3, C-T) by computing par = strokes - (toPar)
+  // write par row (row 3, C-T) by computing par = strokes - (toPar)
   const pars = computeParsFromCompetitors_(competitors);
   if (pars && pars.length === CFG.holeCount) {
     sheet.getRange(3, CFG.holeStartCol, 1, CFG.holeCount).setValues([pars]);
@@ -106,7 +106,7 @@ function updateAllRoundsFromEspn() {
     // Write hole-by-hole rel-to-par
     sheet.getRange(block.startRow, CFG.holeStartCol, holesOut.length, CFG.holeCount).setValues(holesOut);
 
-    // ✅ NEW: write total in U
+    // write total in U
     sheet.getRange(block.startRow, CFG.totalCol, totalsOut.length, 1).setValues(totalsOut);
   });
 
@@ -137,7 +137,6 @@ function pickEvent_(scoreboard, wantedName) {
 }
 
 /**
- * ✅ NEW:
  * Compute hole pars from any available competitor/hole:
  * hole par = hole strokes (value) - hole score-to-par (scoreType.displayValue)
  *
