@@ -30,8 +30,23 @@ function handleCSVUpload(event) {
     reader.readAsText(file);
 }
 
+// Function to convert "Last, First" name format to "First Last"
+function normalizeNameFormat(name) {
+    // Check if name contains a comma (indicating "Last, First" format)
+    if (name.includes(',')) {
+        const parts = name.split(',');
+        if (parts.length === 2) {
+            const lastName = parts[0].trim();
+            const firstName = parts[1].trim();
+            return `${firstName} ${lastName}`;
+        }
+    }
+    return name;
+}
+
 // Function to parse golfer data and convert to golfer objects
 // Supports format: "Name $Value" (e.g., "Tiger Woods $25.50")
+// Automatically converts "Last, First" names to "First Last"
 function parseCSVData(csvText) {
     const lines = csvText.trim().split('\n');
     const golfers = [];
@@ -40,10 +55,11 @@ function parseCSVData(csvText) {
         const line = lines[i].trim();
         if (!line) continue;
         
-        // Match "Name $Value" format (e.g., "Tiger Woods $25.50")
+        // Match "Name $Value" format (e.g., "Tiger Woods $25.50" or "Woods, Tiger $25.50")
         const dollarMatch = line.match(/^(.+?)\s+\$(\d+(?:\.\d+)?)$/);
         if (dollarMatch) {
-            const name = dollarMatch[1].trim();
+            const rawName = dollarMatch[1].trim();
+            const name = normalizeNameFormat(rawName);
             const salary = parseFloat(dollarMatch[2]);
             
             if (name && !isNaN(salary) && salary > 0) {
@@ -56,9 +72,11 @@ function parseCSVData(csvText) {
         }
         
         // Fallback: also support old CSV format "Name, Value" for backwards compatibility
-        const csvMatch = line.match(/^"?([^"]*)"?,\s*(.+)$/) || line.match(/^([^,]+),\s*(.+)$/);
+        // This is tricky because we need to distinguish between "Last, First, Value" and "First Last, Value"
+        const csvMatch = line.match(/^"?([^"]*)"?,\s*(\d+(?:\.\d+)?)$/);
         if (csvMatch) {
-            const name = csvMatch[1].trim().replace(/^"|"$/g, '');
+            const rawName = csvMatch[1].trim().replace(/^"|"$/g, '');
+            const name = normalizeNameFormat(rawName);
             const salaryStr = csvMatch[2].trim().replace(/^\$/, '');
             const salary = parseFloat(salaryStr);
             
@@ -242,6 +260,15 @@ async function loadSettings() {
         document.getElementById('submissionSubtext').value = settings.submissionSubtext || '';
         document.getElementById('salaryCap').value = settings.salaryCap || 100;
 
+        // Update tournament tab settings
+        document.getElementById('showMastersTab').checked = settings.showMastersTab !== false;
+        document.getElementById('mastersSheetUrl').value = settings.mastersSheetUrl || '';
+        document.getElementById('showPgaTab').checked = settings.showPgaTab !== false;
+        document.getElementById('pgaSheetUrl').value = settings.pgaSheetUrl || '';
+        document.getElementById('showUsOpenTab').checked = settings.showUsOpenTab !== false;
+        document.getElementById('usOpenSheetUrl').value = settings.usOpenSheetUrl || '';
+        document.getElementById('showBritishOpenTab').checked = settings.showBritishOpenTab !== false;
+        document.getElementById('britishOpenSheetUrl').value = settings.britishOpenSheetUrl || '';
 
         // Update salary data textarea
         if (rankingsData.golfers && Array.isArray(rankingsData.golfers)) {
@@ -271,7 +298,16 @@ async function saveSettings(showMessage = false) {
             rankingsDate: document.getElementById('rankingsDate').value,
             rankingsTournament: document.getElementById('tournament').value,
             submissionSubtext: document.getElementById('submissionSubtext').value,
-            salaryCap: parseFloat(document.getElementById('salaryCap').value)
+            salaryCap: parseFloat(document.getElementById('salaryCap').value),
+            // Tournament tab settings
+            showMastersTab: document.getElementById('showMastersTab').checked,
+            mastersSheetUrl: document.getElementById('mastersSheetUrl').value,
+            showPgaTab: document.getElementById('showPgaTab').checked,
+            pgaSheetUrl: document.getElementById('pgaSheetUrl').value,
+            showUsOpenTab: document.getElementById('showUsOpenTab').checked,
+            usOpenSheetUrl: document.getElementById('usOpenSheetUrl').value,
+            showBritishOpenTab: document.getElementById('showBritishOpenTab').checked,
+            britishOpenSheetUrl: document.getElementById('britishOpenSheetUrl').value
         };
 
         // Prepare golfer salary data

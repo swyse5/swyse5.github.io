@@ -511,7 +511,7 @@
           <div class="mt-4">
             <h3>US Open</h3>
             <div class="sheet-container">
-              <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT1hLXa2DMNUW03Lol-2nGCVCBgJUt1j8jE7S-EgHdOjFdOBDAL3ILwFHLTUbR9GQ/pubhtml"></iframe>
+              <iframe id="us-open-iframe" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT1hLXa2DMNUW03Lol-2nGCVCBgJUt1j8jE7S-EgHdOjFdOBDAL3ILwFHLTUbR9GQ/pubhtml"></iframe>
             </div>
           </div>
         </div>
@@ -520,7 +520,7 @@
           <div class="mt-4">
             <h3>PGA Championship</h3>
             <div class="sheet-container">
-              <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTELAWpEzL-p2Ha3FHtcv5M9nZpk7YtTxGnxCArAIX91D5yvX-KUOOqPzVKn71hjQ/pubhtml"></iframe>
+              <iframe id="pga-championship-iframe" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vTELAWpEzL-p2Ha3FHtcv5M9nZpk7YtTxGnxCArAIX91D5yvX-KUOOqPzVKn71hjQ/pubhtml"></iframe>
             </div>
           </div>
         </div>
@@ -529,7 +529,7 @@
           <div class="mt-4">
             <h3>Masters Tournament</h3>
             <div class="sheet-container">
-              <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_DDi9qNl-euVUeEe-gfGyeCoxiW9ZfwT4NYAN1xs53Fe2SnHgYZY6WuZ8nWfJvA/pubhtml"></iframe>
+              <iframe id="masters-iframe" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vT_DDi9qNl-euVUeEe-gfGyeCoxiW9ZfwT4NYAN1xs53Fe2SnHgYZY6WuZ8nWfJvA/pubhtml"></iframe>
             </div>
           </div>
         </div>
@@ -538,7 +538,7 @@
           <div class="mt-4">
             <h3>British Open</h3>
             <div class="sheet-container">
-              <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSigT72mAdzH3P32f6J5zz_6Z5_EIqWxKX0_OdDNGKkP06MI-M2hauC6mSWZxDp_w/pubhtml"></iframe>
+              <iframe id="british-open-iframe" src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSigT72mAdzH3P32f6J5zz_6Z5_EIqWxKX0_OdDNGKkP06MI-M2hauC6mSWZxDp_w/pubhtml"></iframe>
             </div>
           </div>
         </div>
@@ -707,5 +707,69 @@
     <script src="content/scripts/form-handler.js"></script>
     <script src="content/scripts/golfer-rankings.js"></script>
     <script src="content/scripts/league-history.js"></script>
+    <script>
+      // Load and apply tournament tab settings
+      (async function() {
+        try {
+          // Check for local testing settings first
+          let settings;
+          const localSettings = localStorage.getItem('admin_local_settings');
+          
+          if (localSettings) {
+            settings = JSON.parse(localSettings);
+          } else {
+            const response = await fetch('/data/settings.json?' + new Date().getTime());
+            settings = await response.json();
+          }
+
+          // Apply Masters tab settings
+          if (settings.showMastersTab === false) {
+            const mastersTab = document.querySelector('a[href="#masters"]');
+            const mastersPane = document.getElementById('masters');
+            if (mastersTab) mastersTab.closest('.nav-item').style.display = 'none';
+            if (mastersPane) mastersPane.style.display = 'none';
+          } else if (settings.mastersSheetUrl) {
+            const mastersIframe = document.getElementById('masters-iframe');
+            if (mastersIframe) mastersIframe.src = settings.mastersSheetUrl;
+          }
+
+          // Apply PGA Championship tab settings
+          if (settings.showPgaTab === false) {
+            const pgaTab = document.querySelector('a[href="#pga-championship"]');
+            const pgaPane = document.getElementById('pga-championship');
+            if (pgaTab) pgaTab.closest('.nav-item').style.display = 'none';
+            if (pgaPane) pgaPane.style.display = 'none';
+          } else if (settings.pgaSheetUrl) {
+            const pgaIframe = document.getElementById('pga-championship-iframe');
+            if (pgaIframe) pgaIframe.src = settings.pgaSheetUrl;
+          }
+
+          // Apply US Open tab settings
+          if (settings.showUsOpenTab === false) {
+            const usOpenTab = document.querySelector('a[href="#us-open"]');
+            const usOpenPane = document.getElementById('us-open');
+            if (usOpenTab) usOpenTab.closest('.nav-item').style.display = 'none';
+            if (usOpenPane) usOpenPane.style.display = 'none';
+          } else if (settings.usOpenSheetUrl) {
+            const usOpenIframe = document.getElementById('us-open-iframe');
+            if (usOpenIframe) usOpenIframe.src = settings.usOpenSheetUrl;
+          }
+
+          // Apply British Open tab settings
+          if (settings.showBritishOpenTab === false) {
+            const britishOpenTab = document.querySelector('a[href="#british-open"]');
+            const britishOpenPane = document.getElementById('british-open');
+            if (britishOpenTab) britishOpenTab.closest('.nav-item').style.display = 'none';
+            if (britishOpenPane) britishOpenPane.style.display = 'none';
+          } else if (settings.britishOpenSheetUrl) {
+            const britishOpenIframe = document.getElementById('british-open-iframe');
+            if (britishOpenIframe) britishOpenIframe.src = settings.britishOpenSheetUrl;
+          }
+
+        } catch (error) {
+          console.log('Could not load tournament tab settings:', error);
+        }
+      })();
+    </script>
   </body>
 </html>
