@@ -5,7 +5,7 @@
   "rankingsTournament": "Open Championship",
   "submissionSubtext": "Test Time",
   "salaryCap": 100,
-  "showMastersTab": true,
+  "showMastersTab": false,
   "mastersSheetUrl": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5bmLBO2x0n_io8u8vR-NomRWSKslytZRIahBKZtJvJSA-gnhILU4NmVvLoLteH-7UyeJ0e-acC-R0/pubhtml",
   "showPgaTab": false,
   "pgaSheetUrl": "",
