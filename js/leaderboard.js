@@ -706,7 +706,7 @@ const Leaderboard = {
     });
 
     if (!tournaments.length) {
-      return { tournaments: [], standings: [] };
+      return { tournaments: [], standings: [], bogeyPot: 0, eagleLeaders: [], bogeyTracker: [] };
     }
 
     // Get all users who have played
@@ -715,6 +715,13 @@ const Leaderboard = {
     for (const tournament of tournaments) {
       const standings = await this.calculateStandings(tournament.id);
       
+      // Get scores for eagle/bogey calculation
+      const scoresDoc = await firebaseDb.collection('scores').doc(tournament.id).get();
+      const golferScores = scoresDoc.exists ? (scoresDoc.data().golferScores || {}) : {};
+      
+      // Get lineups for this tournament
+      const lineups = await Lineup.getAllLineups(tournament.id);
+      
       standings.forEach(player => {
         if (!playersMap.has(player.userId)) {
           playersMap.set(player.userId, {
@@ -722,11 +729,32 @@ const Leaderboard = {
             displayName: player.displayName,
             tournamentScores: {},
             totalToPar: 0,
-            tournamentsPlayed: 0
+            tournamentsPlayed: 0,
+            totalEagles: 0,
+            totalBogeys: 0,
+            bogeyDetails: [],
+            eagleDetails: []
           });
         }
         
         const playerData = playersMap.get(player.userId);
+        
+        // Calculate eagles and bogeys for this player in this tournament
+        const lineup = lineups.find(l => l.userId === player.userId);
+        if (lineup) {
+          const { eagles, bogeys } = this.calculateEaglesAndBogeys(
+            lineup.golfersRounds12 || [],
+            lineup.golfersRounds34 || [],
+            golferScores,
+            tournament.name
+          );
+          
+          playerData.totalEagles += eagles.count;
+          playerData.totalBogeys += bogeys.count;
+          playerData.eagleDetails.push(...eagles.details);
+          playerData.bogeyDetails.push(...bogeys.details);
+        }
+        
         playerData.tournamentScores[tournament.id] = {
           toPar: player.totalToPar,
           position: player.position,
@@ -756,7 +784,80 @@ const Leaderboard = {
       position++;
     });
 
-    return { tournaments, standings };
+    // Calculate bogey pot total ($5 per bogey)
+    const totalBogeys = standings.reduce((sum, p) => sum + p.totalBogeys, 0);
+    const bogeyPot = totalBogeys * 5;
+
+    // Create eagle leaderboard (sorted by most eagles)
+    const eagleLeaders = [...standings]
+      .filter(p => p.totalEagles > 0)
+      .sort((a, b) => b.totalEagles - a.totalEagles);
+
+    // Create bogey tracker (sorted by most bogeys)
+    const bogeyTracker = [...standings]
+      .filter(p => p.totalBogeys > 0)
+      .sort((a, b) => b.totalBogeys - a.totalBogeys);
+
+    return { tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker };
+  },
+
+  // Calculate eagles and bogeys for a player's best ball scores
+  calculateEaglesAndBogeys(golfersR12, golfersR34, golferScores, tournamentName) {
+    const eagles = { count: 0, details: [] };
+    const bogeys = { count: 0, details: [] };
+    
+    // Process all 4 rounds
+    for (let roundNum = 1; roundNum <= 4; roundNum++) {
+      const roundIndex = roundNum - 1;
+      const golfers = roundNum <= 2 ? golfersR12 : golfersR34;
+      
+      if (!golfers || golfers.length === 0) continue;
+      
+      // Calculate best ball for each hole
+      for (let holeNum = 1; holeNum <= 18; holeNum++) {
+        const holeIndex = holeNum - 1;
+        let bestScore = null;
+        let hasAnyScore = false;
+        
+        golfers.forEach(golferName => {
+          const normalized = Scoring.normalizeName(golferName);
+          const golfer = golferScores[normalized];
+          const hole = golfer?.rounds?.[roundIndex]?.holes?.[holeIndex];
+          
+          if (hole && hole.toPar !== null && hole.toPar !== undefined) {
+            hasAnyScore = true;
+            if (bestScore === null || hole.toPar < bestScore) {
+              bestScore = hole.toPar;
+            }
+          }
+        });
+        
+        if (hasAnyScore && bestScore !== null) {
+          // Eagle or better (-2 or less)
+          if (bestScore <= -2) {
+            eagles.count++;
+            eagles.details.push({
+              tournament: tournamentName,
+              round: roundNum,
+              hole: holeNum,
+              score: bestScore
+            });
+          }
+          // Bogey or worse (+1 or more) - this means ALL golfers bogeyed or worse
+          if (bestScore >= 1) {
+            bogeys.count++;
+            bogeys.details.push({
+              tournament: tournamentName,
+              round: roundNum,
+              hole: holeNum,
+              score: bestScore
+            });
+          }
+        }
+      }
+    }
+    
+    return { eagles, bogeys };
   },
 
   seasonTournaments: [],
@@ -768,7 +869,7 @@ const Leaderboard = {
 
     container.innerHTML = '<div class="loading">Loading season standings...</div>';
 
-    const { tournaments, standings } = await this.calculateSeasonStandings(season);
+    const { tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker } = await this.calculateSeasonStandings(season);
     this.seasonTournaments = tournaments;
     this.seasonStandings = standings;
 
@@ -788,6 +889,61 @@ const Leaderboard = {
         <span><strong>${tournaments.length}</strong> tournament${tournaments.length > 1 ? 's' : ''} played</span>
         <span><strong>${standings.length}</strong> players</span>
       </div>
+
+      <!-- Bogey Pot Banner -->
+      <div class="bogey-pot-banner">
+        <div class="bogey-pot-icon">💰</div>
+        <div class="bogey-pot-info">
+          <div class="bogey-pot-label">Bogey Pot</div>
+          <div class="bogey-pot-amount">$${bogeyPot.toFixed(2)}</div>
+        </div>
+        <div class="bogey-pot-details">
+          <span>${bogeyTracker.reduce((sum, p) => sum + p.totalBogeys, 0)} total bogeys × $5</span>
+        </div>
+      </div>
+
+      <!-- Eagles & Bogeys Section -->
+      <div class="eagles-bogeys-section">
+        <!-- Eagles Leaderboard -->
+        <div class="stat-card eagles-card">
+          <h3>🦅 Eagles Leaderboard</h3>
+          <p class="stat-subtitle">Players compete for the Bogey Pot with most eagles</p>
+          ${eagleLeaders.length === 0 ? `
+            <div class="no-stat-data">No eagles recorded yet</div>
+          ` : `
+            <div class="stat-table">
+              ${eagleLeaders.map((player, index) => `
+                <div class="stat-row ${player.userId === currentUserId ? 'current-user' : ''}">
+                  <span class="stat-rank">${index + 1}</span>
+                  <span class="stat-name">${player.displayName}</span>
+                  <span class="stat-value eagles">${player.totalEagles} 🦅</span>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+
+        <!-- Bogey Tracker -->
+        <div class="stat-card bogeys-card">
+          <h3>💸 Bogey Tracker</h3>
+          <p class="stat-subtitle">$5 per bogey into the pot</p>
+          ${bogeyTracker.length === 0 ? `
+            <div class="no-stat-data">No bogeys recorded yet</div>
+          ` : `
+            <div class="stat-table">
+              ${bogeyTracker.map((player, index) => `
+                <div class="stat-row ${player.userId === currentUserId ? 'current-user' : ''}">
+                  <span class="stat-rank">${index + 1}</span>
+                  <span class="stat-name">${player.displayName}</span>
+                  <span class="stat-value bogeys">${player.totalBogeys} ($${(player.totalBogeys * 5).toFixed(0)})</span>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+
+      <h3 class="section-title">Season Standings</h3>
       <table class="season-standings-table">
         <thead>
           <tr>

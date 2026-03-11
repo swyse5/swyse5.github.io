@@ -1118,6 +1118,181 @@ body {
   font-size: 14px;
 }
 
+/* Bogey Pot Banner */
+.bogey-pot-banner {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+[data-theme="dark"] .bogey-pot-banner {
+  background: linear-gradient(135deg, #4a4528 0%, #5c5323 100%);
+  border-color: #9a7b2c;
+}
+
+.bogey-pot-icon {
+  font-size: 40px;
+}
+
+.bogey-pot-info {
+  flex: 1;
+}
+
+.bogey-pot-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #92400e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+[data-theme="dark"] .bogey-pot-label {
+  color: #f5d485;
+}
+
+.bogey-pot-amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: #78350f;
+  font-family: 'Roboto Slab', serif;
+}
+
+[data-theme="dark"] .bogey-pot-amount {
+  color: #fcd34d;
+}
+
+.bogey-pot-details {
+  font-size: 13px;
+  color: #92400e;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 8px 16px;
+  border-radius: var(--radius);
+}
+
+[data-theme="dark"] .bogey-pot-details {
+  color: #f5d485;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Eagles & Bogeys Section */
+.eagles-bogeys-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.stat-card h3 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 18px;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.stat-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.no-stat-data {
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+  background: var(--background);
+  border-radius: var(--radius);
+}
+
+.stat-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--background);
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.stat-row:hover {
+  background: var(--border-color);
+}
+
+.stat-row.current-user {
+  background: rgba(44, 82, 50, 0.15);
+  border: 1px solid var(--primary-color);
+}
+
+.stat-row.leader {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+}
+
+[data-theme="dark"] .stat-row.leader {
+  background: linear-gradient(135deg, #4a4528 0%, #5c5323 100%);
+  border-color: #9a7b2c;
+}
+
+.stat-rank {
+  font-weight: 700;
+  color: var(--text-secondary);
+  width: 30px;
+  text-align: center;
+}
+
+.stat-row.leader .stat-rank {
+  color: #92400e;
+}
+
+[data-theme="dark"] .stat-row.leader .stat-rank {
+  color: #fcd34d;
+}
+
+.stat-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.stat-value.eagles {
+  color: var(--primary-color);
+}
+
+.stat-value.bogeys {
+  color: var(--danger);
+}
+
+.section-title {
+  font-family: 'Roboto Slab', serif;
+  font-size: 20px;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
 .leaderboard-table {
   width: 100%;
   background: var(--surface);
