@@ -1,0 +1,847 @@
+// Leaderboard Module
+const Leaderboard = {
+  currentTournamentId: null,
+  unsubscribeScores: null,
+  unsubscribeLineups: null,
+  cachedGolferScores: {},
+  cachedPars: null,
+  round1Started: false,
+  round3Started: false,
+
+  // Check if a round has started by looking for any golfer with scores in that round
+  checkRoundStarted(golferScores, roundNumber) {
+    const roundIndex = roundNumber - 1;
+    for (const golferName in golferScores) {
+      const golfer = golferScores[golferName];
+      if (golfer?.rounds?.[roundIndex]) {
+        const round = golfer.rounds[roundIndex];
+        // Check if any holes have been played
+        if (round.holes && round.holes.some(h => h && h.toPar !== null)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  },
+
+  async calculateStandings(tournamentId) {
+    // Get all lineups
+    const lineups = await Lineup.getAllLineups(tournamentId);
+    if (!lineups.length) return [];
+
+    // Get current scores (may not exist if tournament hasn't started)
+    const scoresDoc = await firebaseDb.collection('scores').doc(tournamentId).get();
+    const golferScores = scoresDoc.exists ? (scoresDoc.data().golferScores || {}) : {};
+    const pars = scoresDoc.exists ? scoresDoc.data().pars : null;
+    
+    // Cache for use in expanded views
+    this.cachedGolferScores = golferScores;
+    this.cachedPars = pars;
+    
+    // Determine which rounds have started (for hiding lineups until rounds begin)
+    this.round1Started = this.checkRoundStarted(golferScores, 1);
+    this.round3Started = this.checkRoundStarted(golferScores, 3);
+
+    // Calculate best ball for each player
+    const standings = lineups.map(lineup => {
+      // Use split calculation if separate lineups exist
+      const golfersR12 = lineup.golfersRounds12 || [];
+      const golfersR34 = lineup.golfersRounds34 || [];
+      const hasLineup1 = lineup.hasLineup1 || golfersR12.length > 0;
+      const hasLineup2 = lineup.hasLineup2 || golfersR34.length > 0;
+      const hasSplitLineup = hasLineup1 && hasLineup2;
+      
+      // For best ball calculation, only use lineups that exist
+      // If only R1-2 submitted, use same for all rounds (legacy behavior for scoring)
+      const golfersR34ForScoring = hasLineup2 ? golfersR34 : golfersR12;
+      
+      const bestBall = hasSplitLineup
+        ? Scoring.calculateTotalBestBallSplit(golfersR12, golfersR34, golferScores)
+        : Scoring.calculateTotalBestBall(golfersR12, golferScores);
+      
+      // Get individual golfer round totals for display
+      // Combine golfers from both lineups for display
+      const allGolfers = [...new Set([...golfersR12, ...golfersR34])];
+      const golferDetails = allGolfers.map(golferName => {
+        const normalized = Scoring.normalizeName(golferName);
+        const golfer = golferScores[normalized];
+        const isR12 = golfersR12.includes(golferName);
+        const isR34 = golfersR34.includes(golferName);
+        return {
+          name: golferName,
+          activeRounds: isR12 && isR34 ? 'all' : (isR12 ? '1-2' : '3-4'),
+          rounds: [1, 2, 3, 4].map(roundNum => {
+            if (!golfer || !golfer.rounds || !golfer.rounds[roundNum - 1]) {
+              return { toPar: null, holesPlayed: 0, active: false };
+            }
+            const round = golfer.rounds[roundNum - 1];
+            const holesPlayed = round.holes ? round.holes.filter(h => h && h.toPar !== null).length : 0;
+            const isActive = roundNum <= 2 ? isR12 : isR34;
+            return {
+              toPar: round.totalToPar,
+              holesPlayed,
+              isComplete: round.isComplete,
+              active: isActive
+            };
+          }),
+          totalToPar: golfer ? golfer.rounds?.reduce((sum, r) => sum + (r?.totalToPar || 0), 0) : null
+        };
+      });
+      
+      return {
+        userId: lineup.userId,
+        displayName: lineup.userDisplayName,
+        golfers: lineup.golfers,
+        golfersRounds12: golfersR12,
+        golfersRounds34: golfersR34,
+        hasLineup1,
+        hasLineup2,
+        hasSplitLineup,
+        golferDetails,
+        rounds: bestBall.rounds.map((r, i) => ({
+          roundNumber: i + 1,
+          toPar: r.totalToPar,
+          holesPlayed: r.holesPlayed,
+          isComplete: r.isComplete
+        })),
+        totalToPar: bestBall.totalToPar,
+        totalHolesPlayed: bestBall.totalHolesPlayed,
+        completedRounds: bestBall.completedRounds,
+        thru: this.formatThru(bestBall)
+      };
+    });
+
+    // Sort by total to par (lowest first)
+    standings.sort((a, b) => a.totalToPar - b.totalToPar);
+
+    // Assign positions (handle ties)
+    let position = 1;
+    standings.forEach((player, index) => {
+      if (index > 0 && player.totalToPar === standings[index - 1].totalToPar) {
+        player.position = standings[index - 1].position;
+        player.tied = true;
+        standings[index - 1].tied = true;
+      } else {
+        player.position = position;
+        player.tied = false;
+      }
+      position++;
+    });
+
+    return standings;
+  },
+
+  formatThru(bestBall) {
+    if (bestBall.completedRounds === 4) return 'F';
+    
+    const currentRoundIndex = bestBall.rounds.findIndex(r => !r.isComplete && r.holesPlayed > 0);
+    if (currentRoundIndex === -1) {
+      if (bestBall.completedRounds > 0) {
+        return `R${bestBall.completedRounds}`;
+      }
+      return '-';
+    }
+
+    const currentRound = bestBall.rounds[currentRoundIndex];
+    return `${currentRound.holesPlayed}`;
+  },
+
+  // Current selected round for detailed view
+  selectedRound: 1,
+  currentStandings: [],
+
+  renderLeaderboard(containerId, standings, currentUserId = null) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    this.currentStandings = standings;
+
+    if (!standings.length) {
+      container.innerHTML = '<div class="no-data">No lineups submitted yet</div>';
+      return;
+    }
+
+    // Check if any scores exist
+    const hasScores = standings.some(s => s.totalHolesPlayed > 0);
+    
+    let html = '';
+    if (!hasScores) {
+      html = `
+        <div class="no-data" style="margin-bottom: 20px;">
+          <p><strong>Tournament has not started yet</strong></p>
+          <p style="font-size: 14px; margin-top: 8px;">Scores will appear once play begins. Lineups are locked.</p>
+        </div>
+      `;
+    }
+
+    // Round selector
+    html += `
+      <div class="round-selector">
+        <span class="round-selector-label">View Round:</span>
+        <div class="round-buttons">
+          ${[1, 2, 3, 4].map(r => `
+            <button class="round-btn ${this.selectedRound === r ? 'active' : ''}" data-round="${r}">R${r}</button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    html += `
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th class="pos">Pos</th>
+            <th class="player">Player</th>
+            <th class="round">R1</th>
+            <th class="round">R2</th>
+            <th class="round">R3</th>
+            <th class="round">R4</th>
+            <th class="total">Total</th>
+            <th class="thru">Thru</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${standings.map(player => this.renderLeaderboardRow(player, currentUserId)).join('')}
+        </tbody>
+      </table>
+    `;
+
+    container.innerHTML = html;
+
+    // Add round selector handlers
+    container.querySelectorAll('.round-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.selectedRound = parseInt(btn.dataset.round);
+        container.querySelectorAll('.round-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Re-render expanded details if any are open
+        container.querySelectorAll('.golfer-details.show').forEach(details => {
+          const odUserId = details.previousElementSibling?.dataset?.userId;
+          if (odUserId) {
+            const player = this.currentStandings.find(p => p.userId === odUserId);
+            if (player) {
+              details.querySelector('td').innerHTML = this.renderHoleByHoleDetails(player, this.selectedRound, currentUserId);
+            }
+          }
+        });
+      });
+    });
+
+    // Add click handlers for expandable rows
+    container.querySelectorAll('.leaderboard-row').forEach(row => {
+      row.addEventListener('click', () => {
+        row.classList.toggle('expanded');
+        const details = row.nextElementSibling;
+        if (details?.classList.contains('golfer-details')) {
+          details.classList.toggle('show');
+          // Re-render the details with current round when expanding
+          if (details.classList.contains('show')) {
+            const odUserId = row.dataset.userId;
+            const player = this.currentStandings.find(p => p.userId === odUserId);
+            if (player) {
+              details.querySelector('td').innerHTML = this.renderHoleByHoleDetails(player, this.selectedRound, currentUserId);
+            }
+          }
+        }
+      });
+    });
+  },
+
+  renderLeaderboardRow(player, currentUserId) {
+    const isCurrentUser = player.userId === currentUserId;
+    const positionDisplay = player.tied ? `T${player.position}` : player.position;
+
+    return `
+      <tr class="leaderboard-row ${isCurrentUser ? 'current-user' : ''}" data-user-id="${player.userId}">
+        <td class="pos">${positionDisplay}</td>
+        <td class="player">
+          <span class="player-name">${player.displayName}</span>
+          <i class="expand-icon">▼</i>
+        </td>
+        <td class="round ${this.getScoreClass(player.rounds[0]?.toPar)}">${this.formatRoundScore(player.rounds[0])}</td>
+        <td class="round ${this.getScoreClass(player.rounds[1]?.toPar)}">${this.formatRoundScore(player.rounds[1])}</td>
+        <td class="round ${this.getScoreClass(player.rounds[2]?.toPar)}">${this.formatRoundScore(player.rounds[2])}</td>
+        <td class="round ${this.getScoreClass(player.rounds[3]?.toPar)}">${this.formatRoundScore(player.rounds[3])}</td>
+        <td class="total ${this.getScoreClass(player.totalToPar)}">${Scoring.formatToPar(player.totalToPar)}</td>
+        <td class="thru">${player.thru}</td>
+      </tr>
+      <tr class="golfer-details">
+        <td colspan="8">
+          ${this.renderHoleByHoleDetails(player, this.selectedRound, currentUserId)}
+        </td>
+      </tr>
+    `;
+  },
+
+  renderHoleByHoleDetails(player, roundNumber, currentUserId = null) {
+    const roundIndex = roundNumber - 1;
+    const isRounds12 = roundNumber <= 2;
+    const golfers = (isRounds12 ? player.golfersRounds12 : player.golfersRounds34) || [];
+    const hasLineup = isRounds12 ? player.hasLineup1 : player.hasLineup2;
+    const pars = this.cachedPars || Array(18).fill(null);
+    
+    // Check if this is the current user viewing their own lineup
+    const isOwnLineup = player.userId === currentUserId;
+    
+    // Check if the round has started (lineups become visible once round begins)
+    const roundStarted = isRounds12 ? this.round1Started : this.round3Started;
+    const roundLabel = isRounds12 ? 'Rounds 1-2' : 'Rounds 3-4';
+    
+    // Hide other users' lineups until the round has started
+    if (!isOwnLineup && !roundStarted) {
+      return `
+        <div class="hole-by-hole-container">
+          <h4 class="round-title">Round ${roundNumber}</h4>
+          <div class="lineup-hidden-message">
+            <p><strong>Lineup Hidden</strong></p>
+            <p>This player's ${roundLabel} lineup will be revealed once Round ${isRounds12 ? '1' : '3'} begins.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Handle case where no lineup submitted for this round
+    if (!golfers.length || !hasLineup) {
+      return `
+        <div class="hole-by-hole-container">
+          <h4 class="round-title">Round ${roundNumber}</h4>
+          <div class="no-lineup-message">
+            <p><strong>No lineup submitted for ${roundLabel}</strong></p>
+            <p>This player has not yet submitted a lineup for this round.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Get hole-by-hole data for each golfer
+    const golferHoleData = golfers.map(golferName => {
+      const normalized = Scoring.normalizeName(golferName);
+      const golfer = this.cachedGolferScores[normalized];
+      const roundData = golfer?.rounds?.[roundIndex];
+      return {
+        name: golferName,
+        holes: roundData?.holes || Array(18).fill(null),
+        totalToPar: roundData?.totalToPar ?? null,
+        isComplete: roundData?.isComplete || false
+      };
+    });
+
+    // Helper to safely get toPar from hole
+    const getHoleToPar = (hole) => {
+      if (!hole || hole.toPar === null || hole.toPar === undefined) return null;
+      return hole.toPar;
+    };
+
+    // Calculate best ball for this round
+    const bestBallHoles = Array(18).fill(null);
+    golferHoleData.forEach(g => {
+      g.holes.forEach((hole, i) => {
+        const toPar = getHoleToPar(hole);
+        if (toPar !== null) {
+          if (bestBallHoles[i] === null || toPar < bestBallHoles[i]) {
+            bestBallHoles[i] = toPar;
+          }
+        }
+      });
+    });
+
+    const frontNine = bestBallHoles.slice(0, 9);
+    const backNine = bestBallHoles.slice(9, 18);
+    const frontPars = pars.slice(0, 9);
+    const backPars = pars.slice(9, 18);
+
+    // Check if any scores exist
+    const hasAnyScores = golferHoleData.some(g => g.holes.some(h => getHoleToPar(h) !== null));
+
+    return `
+      <div class="hole-by-hole-container">
+        <h4 class="round-title">Round ${roundNumber} - Hole by Hole</h4>
+        ${player.hasSplitLineup ? `
+          <div class="split-lineup-info">
+            <span class="lineup-badge ${roundNumber <= 2 ? 'r12' : 'r34'}">
+              ${roundNumber <= 2 ? 'Rounds 1-2 Lineup' : 'Rounds 3-4 Lineup'}
+            </span>
+          </div>
+        ` : ''}
+        ${!hasAnyScores ? `
+          <div class="no-scores-message">
+            <p>Scores will appear once Round ${roundNumber} begins.</p>
+          </div>
+        ` : ''}
+        <div class="scorecard-scroll">
+          <table class="hole-scorecard">
+            <thead>
+              <tr>
+                <th class="golfer-col">Golfer</th>
+                ${[1,2,3,4,5,6,7,8,9].map(h => `<th>${h}</th>`).join('')}
+                <th class="subtotal">Out</th>
+                ${[10,11,12,13,14,15,16,17,18].map(h => `<th>${h}</th>`).join('')}
+                <th class="subtotal">In</th>
+                <th class="total-col">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="par-row">
+                <td>Par</td>
+                ${frontPars.map(p => `<td>${p || '-'}</td>`).join('')}
+                <td class="subtotal">${frontPars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
+                ${backPars.map(p => `<td>${p || '-'}</td>`).join('')}
+                <td class="subtotal">${backPars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
+                <td class="total-col">${pars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
+              </tr>
+              ${golferHoleData.map(g => {
+                const gFront = g.holes.slice(0, 9);
+                const gBack = g.holes.slice(9, 18);
+                const frontTotal = gFront.reduce((s, h) => s + (getHoleToPar(h) || 0), 0);
+                const backTotal = gBack.reduce((s, h) => s + (getHoleToPar(h) || 0), 0);
+                return `
+                <tr class="golfer-row">
+                  <td class="golfer-col">${g.name}</td>
+                  ${gFront.map((h, i) => {
+                    const toPar = getHoleToPar(h);
+                    const isBest = toPar !== null && toPar === bestBallHoles[i];
+                    return `<td class="${this.getScoreClass(toPar)} ${isBest ? 'best-score' : ''}">${toPar !== null ? Scoring.formatToPar(toPar) : '-'}</td>`;
+                  }).join('')}
+                  <td class="subtotal ${this.getScoreClass(frontTotal)}">${Scoring.formatToPar(frontTotal)}</td>
+                  ${gBack.map((h, i) => {
+                    const toPar = getHoleToPar(h);
+                    const isBest = toPar !== null && toPar === bestBallHoles[i + 9];
+                    return `<td class="${this.getScoreClass(toPar)} ${isBest ? 'best-score' : ''}">${toPar !== null ? Scoring.formatToPar(toPar) : '-'}</td>`;
+                  }).join('')}
+                  <td class="subtotal ${this.getScoreClass(backTotal)}">${Scoring.formatToPar(backTotal)}</td>
+                  <td class="total-col ${this.getScoreClass(g.totalToPar)}">${g.totalToPar !== null ? Scoring.formatToPar(g.totalToPar) : '-'}</td>
+                </tr>`;
+              }).join('')}
+              <tr class="best-ball-row">
+                <td class="golfer-col"><strong>Best Ball</strong></td>
+                ${frontNine.map(h => `<td class="${this.getScoreClass(h)}"><strong>${h !== null ? Scoring.formatToPar(h) : '-'}</strong></td>`).join('')}
+                <td class="subtotal ${this.getScoreClass(frontNine.reduce((s, h) => s + (h || 0), 0))}"><strong>${Scoring.formatToPar(frontNine.reduce((s, h) => s + (h || 0), 0))}</strong></td>
+                ${backNine.map(h => `<td class="${this.getScoreClass(h)}"><strong>${h !== null ? Scoring.formatToPar(h) : '-'}</strong></td>`).join('')}
+                <td class="subtotal ${this.getScoreClass(backNine.reduce((s, h) => s + (h || 0), 0))}"><strong>${Scoring.formatToPar(backNine.reduce((s, h) => s + (h || 0), 0))}</strong></td>
+                <td class="total-col ${this.getScoreClass(player.rounds?.[roundIndex]?.toPar)}"><strong>${this.formatRoundScore(player.rounds?.[roundIndex])}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  formatGolferRoundScore(round) {
+    if (!round || round.toPar === null || round.toPar === undefined) return '-';
+    if (round.isComplete) return Scoring.formatToPar(round.toPar);
+    if (round.holesPlayed > 0) return `${Scoring.formatToPar(round.toPar)}*`;
+    return '-';
+  },
+
+  formatRoundScore(round) {
+    if (!round || round.holesPlayed === 0) return '-';
+    if (round.isComplete) return Scoring.formatToPar(round.toPar);
+    return `${Scoring.formatToPar(round.toPar)}*`;
+  },
+
+  getScoreClass(toPar) {
+    if (toPar === null || toPar === undefined) return '';
+    if (toPar < 0) return 'under-par';
+    if (toPar > 0) return 'over-par';
+    return 'even-par';
+  },
+
+  startLiveUpdates(tournamentId, containerId) {
+    this.currentTournamentId = tournamentId;
+    this.stopLiveUpdates();
+
+    // Listen for score updates
+    this.unsubscribeScores = firebaseDb.collection('scores').doc(tournamentId)
+      .onSnapshot(async () => {
+        const standings = await this.calculateStandings(tournamentId);
+        this.renderLeaderboard(containerId, standings, Auth.currentUser?.uid);
+      });
+
+    // Listen for lineup changes
+    this.unsubscribeLineups = firebaseDb.collection('lineups')
+      .where('tournamentId', '==', tournamentId)
+      .onSnapshot(async () => {
+        const standings = await this.calculateStandings(tournamentId);
+        this.renderLeaderboard(containerId, standings, Auth.currentUser?.uid);
+      });
+  },
+
+  stopLiveUpdates() {
+    if (this.unsubscribeScores) {
+      this.unsubscribeScores();
+      this.unsubscribeScores = null;
+    }
+    if (this.unsubscribeLineups) {
+      this.unsubscribeLineups();
+      this.unsubscribeLineups = null;
+    }
+  },
+
+  async renderPlayerScorecard(containerId, userId, tournamentId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Load both lineups
+    const lineups = await Lineup.loadUserLineups(tournamentId, userId);
+    const lineup1 = lineups.rounds_1_2;
+    const lineup2 = lineups.rounds_3_4;
+    
+    if (!lineup1 && !lineup2) {
+      container.innerHTML = '<div class="no-data">No lineup found</div>';
+      return;
+    }
+
+    const golfersR12 = lineup1?.golfers || [];
+    const golfersR34 = lineup2?.golfers || [];
+    const hasLineup1 = lineup1 !== null && lineup1 !== undefined && golfersR12.length > 0;
+    const hasLineup2 = lineup2 !== null && lineup2 !== undefined && golfersR34.length > 0;
+
+    const scoresDoc = await firebaseDb.collection('scores').doc(tournamentId).get();
+    const golferScores = scoresDoc.exists ? (scoresDoc.data().golferScores || {}) : {};
+    const pars = scoresDoc.exists ? scoresDoc.data().pars : null;
+    
+    // Check if there are any scores yet
+    const hasScores = Object.keys(golferScores).length > 0;
+    
+    // Calculate best ball using split lineups (only for rounds with lineups)
+    const bestBall = hasLineup1 && hasLineup2
+      ? Scoring.calculateTotalBestBallSplit(golfersR12, golfersR34, golferScores)
+      : Scoring.calculateTotalBestBall(golfersR12, golferScores);
+    
+    if (!hasScores) {
+      container.innerHTML = `
+        <div class="scorecard">
+          <h3>Your Lineups</h3>
+          <div class="lineup-display">
+            <div class="lineup-section">
+              <h4>Rounds 1-2</h4>
+              <div class="golfers-picked">
+                ${hasLineup1 ? golfersR12.map(g => `<span class="golfer-chip">${g}</span>`).join('') : '<span class="no-lineup">No lineup submitted</span>'}
+              </div>
+            </div>
+            <div class="lineup-section">
+              <h4>Rounds 3-4</h4>
+              <div class="golfers-picked">
+                ${hasLineup2 ? golfersR34.map(g => `<span class="golfer-chip">${g}</span>`).join('') : '<span class="no-lineup">No lineup submitted</span>'}
+              </div>
+            </div>
+          </div>
+          <div class="no-data">
+            <p>Scores will appear here once the tournament begins.</p>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">
+              Live scoring updates automatically every 10 minutes during the tournament.
+            </p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const html = `
+      <div class="scorecard">
+        <h3>Your Scorecard</h3>
+        ${bestBall.rounds.map((round, i) => {
+          const roundNumber = i + 1;
+          const isRounds12 = roundNumber <= 2;
+          const golfers = isRounds12 ? golfersR12 : golfersR34;
+          const hasLineupForRound = isRounds12 ? hasLineup1 : hasLineup2;
+          return this.renderRoundScorecard(round, roundNumber, pars, golfers, golferScores, hasLineup1, hasLineup2, hasLineupForRound);
+        }).join('')}
+        <div class="scorecard-total">
+          <strong>Tournament Total:</strong> 
+          <span class="${this.getScoreClass(bestBall.totalToPar)}">${Scoring.formatToPar(bestBall.totalToPar)}</span>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = html;
+  },
+
+  renderRoundScorecard(round, roundNumber, pars, golferNames, golferScores, hasLineup1 = true, hasLineup2 = true, hasLineupForRound = true) {
+    const isRounds12 = roundNumber <= 2;
+    const roundLabel = isRounds12 ? 'Rounds 1-2' : 'Rounds 3-4';
+    
+    // Show lineup badge to indicate which lineup is being used
+    const lineupBadge = `<span class="lineup-badge ${isRounds12 ? 'r12' : 'r34'}">${isRounds12 ? 'R1-2 Lineup' : 'R3-4 Lineup'}</span>`;
+    
+    // If no lineup submitted for this round, show a message
+    if (!hasLineupForRound) {
+      return `
+        <div class="round-scorecard">
+          <div class="round-header">
+            <h4>Round ${roundNumber}</h4>
+            ${lineupBadge}
+          </div>
+          <div class="no-lineup-message">
+            <p><strong>No lineup submitted for ${roundLabel}</strong></p>
+            <p>Submit a lineup for ${roundLabel} to see scores for this round.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    const holes = round.holes;
+    const frontNine = holes.slice(0, 9);
+    const backNine = holes.slice(9, 18);
+    const frontPars = pars ? pars.slice(0, 9) : Array(9).fill(null);
+    const backPars = pars ? pars.slice(9, 18) : Array(9).fill(null);
+
+    return `
+      <div class="round-scorecard">
+        <div class="round-header">
+          <h4>Round ${roundNumber} ${round.isComplete ? '(Complete)' : ''}</h4>
+          ${lineupBadge}
+        </div>
+        <div class="round-golfers">
+          ${(golferNames || []).map(g => `<span class="golfer-chip small">${g}</span>`).join('')}
+        </div>
+        <table class="scorecard-table">
+          <thead>
+            <tr>
+              <th>Hole</th>
+              ${[1,2,3,4,5,6,7,8,9].map(h => `<th>${h}</th>`).join('')}
+              <th>Out</th>
+              ${[10,11,12,13,14,15,16,17,18].map(h => `<th>${h}</th>`).join('')}
+              <th>In</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="par-row">
+              <td>Par</td>
+              ${frontPars.map(p => `<td>${p || '-'}</td>`).join('')}
+              <td>${frontPars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
+              ${backPars.map(p => `<td>${p || '-'}</td>`).join('')}
+              <td>${backPars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
+              <td>${pars ? pars.reduce((s, p) => s + (p || 0), 0) : '-'}</td>
+            </tr>
+            <tr class="best-ball-row">
+              <td>Best Ball</td>
+              ${frontNine.map(h => `<td class="${this.getScoreClass(h)}">${h !== null ? Scoring.formatToPar(h) : '-'}</td>`).join('')}
+              <td class="${this.getScoreClass(frontNine.reduce((s, h) => s + (h || 0), 0))}">${Scoring.formatToPar(frontNine.reduce((s, h) => s + (h || 0), 0))}</td>
+              ${backNine.map(h => `<td class="${this.getScoreClass(h)}">${h !== null ? Scoring.formatToPar(h) : '-'}</td>`).join('')}
+              <td class="${this.getScoreClass(backNine.reduce((s, h) => s + (h || 0), 0))}">${Scoring.formatToPar(backNine.reduce((s, h) => s + (h || 0), 0))}</td>
+              <td class="${this.getScoreClass(round.totalToPar)}">${Scoring.formatToPar(round.totalToPar)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  // Season Standings Methods
+  async calculateSeasonStandings(season = null) {
+    // Get all tournaments
+    const tournamentsSnap = await firebaseDb.collection('tournaments')
+      .orderBy('startDate', 'asc')
+      .get();
+    
+    const tournaments = [];
+    const tournamentAbbrevs = {
+      'Masters': 'MAS',
+      'PGA Championship': 'PGA',
+      'U.S. Open': 'USO',
+      'US Open': 'USO',
+      'The Open': 'BRI',
+      'British Open': 'BRI',
+      'Open Championship': 'BRI'
+    };
+
+    tournamentsSnap.forEach(doc => {
+      const data = doc.data();
+      
+      // Filter by status (completed or in_progress)
+      if (data.status !== 'completed' && data.status !== 'in_progress') return;
+      
+      // Filter by season if specified
+      if (season) {
+        const startDate = data.startDate?.toDate ? data.startDate.toDate() : new Date(data.startDate);
+        const tournamentSeason = startDate.getFullYear();
+        if (tournamentSeason !== season) return;
+      }
+      
+      const abbrev = tournamentAbbrevs[data.name] || data.name.substring(0, 3).toUpperCase();
+      tournaments.push({
+        id: doc.id,
+        name: data.name,
+        abbrev,
+        status: data.status
+      });
+    });
+
+    if (!tournaments.length) {
+      return { tournaments: [], standings: [] };
+    }
+
+    // Get all users who have played
+    const playersMap = new Map();
+
+    for (const tournament of tournaments) {
+      const standings = await this.calculateStandings(tournament.id);
+      
+      standings.forEach(player => {
+        if (!playersMap.has(player.userId)) {
+          playersMap.set(player.userId, {
+            userId: player.userId,
+            displayName: player.displayName,
+            tournamentScores: {},
+            totalToPar: 0,
+            tournamentsPlayed: 0
+          });
+        }
+        
+        const playerData = playersMap.get(player.userId);
+        playerData.tournamentScores[tournament.id] = {
+          toPar: player.totalToPar,
+          position: player.position,
+          tied: player.tied,
+          isComplete: tournament.status === 'completed'
+        };
+        playerData.totalToPar += player.totalToPar;
+        playerData.tournamentsPlayed++;
+      });
+    }
+
+    // Convert to array and sort
+    const standings = Array.from(playersMap.values());
+    standings.sort((a, b) => a.totalToPar - b.totalToPar);
+
+    // Assign positions
+    let position = 1;
+    standings.forEach((player, index) => {
+      if (index > 0 && player.totalToPar === standings[index - 1].totalToPar) {
+        player.position = standings[index - 1].position;
+        player.tied = true;
+        standings[index - 1].tied = true;
+      } else {
+        player.position = position;
+        player.tied = false;
+      }
+      position++;
+    });
+
+    return { tournaments, standings };
+  },
+
+  seasonTournaments: [],
+  seasonStandings: [],
+
+  async renderSeasonStandings(containerId, currentUserId = null, season = null) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = '<div class="loading">Loading season standings...</div>';
+
+    const { tournaments, standings } = await this.calculateSeasonStandings(season);
+    this.seasonTournaments = tournaments;
+    this.seasonStandings = standings;
+
+    if (!tournaments.length) {
+      const seasonText = season ? `the ${season} season` : 'this season';
+      container.innerHTML = `<div class="no-data">No completed or in-progress tournaments yet for ${seasonText}.</div>`;
+      return;
+    }
+
+    if (!standings.length) {
+      container.innerHTML = '<div class="no-data">No lineups submitted yet.</div>';
+      return;
+    }
+
+    const html = `
+      <div class="season-info">
+        <span><strong>${tournaments.length}</strong> tournament${tournaments.length > 1 ? 's' : ''} played</span>
+        <span><strong>${standings.length}</strong> players</span>
+      </div>
+      <table class="season-standings-table">
+        <thead>
+          <tr>
+            <th class="pos">Pos</th>
+            <th class="player">Player</th>
+            ${tournaments.map(t => `<th class="tournament" title="${t.name}">${t.abbrev}</th>`).join('')}
+            <th class="total">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${standings.map(player => this.renderSeasonRow(player, tournaments, currentUserId)).join('')}
+        </tbody>
+      </table>
+    `;
+
+    container.innerHTML = html;
+
+    // Add click handlers for expandable rows
+    container.querySelectorAll('.season-row').forEach(row => {
+      row.addEventListener('click', () => {
+        row.classList.toggle('expanded');
+        const details = row.nextElementSibling;
+        if (details?.classList.contains('season-details')) {
+          details.classList.toggle('show');
+        }
+      });
+    });
+  },
+
+  renderSeasonRow(player, tournaments, currentUserId) {
+    const isCurrentUser = player.userId === currentUserId;
+    const positionDisplay = player.tied ? `T${player.position}` : player.position;
+
+    // Build tournament details
+    const tournamentDetailsHtml = tournaments.map(t => {
+      const score = player.tournamentScores[t.id];
+      if (!score) {
+        return `
+          <div class="tournament-detail-card no-entry">
+            <div class="tournament-detail-name">${t.name}</div>
+            <div class="tournament-detail-score">Did not enter</div>
+          </div>
+        `;
+      }
+      const posDisplay = score.tied ? `T${score.position}` : score.position;
+      return `
+        <div class="tournament-detail-card">
+          <div class="tournament-detail-name">${t.name}</div>
+          <div class="tournament-detail-position">${posDisplay}${getOrdinalSuffix(score.position)} place</div>
+          <div class="tournament-detail-score ${this.getScoreClass(score.toPar)}">
+            ${Scoring.formatToPar(score.toPar)}
+            ${score.isComplete ? '' : ' (in progress)'}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <tr class="season-row ${isCurrentUser ? 'current-user' : ''}" data-user-id="${player.userId}">
+        <td class="pos">${positionDisplay}</td>
+        <td class="player">
+          <span class="player-name">${player.displayName}</span>
+          <i class="expand-icon">▼</i>
+        </td>
+        ${tournaments.map(t => {
+          const score = player.tournamentScores[t.id];
+          if (!score) return '<td>-</td>';
+          const scoreClass = this.getScoreClass(score.toPar);
+          const displayScore = Scoring.formatToPar(score.toPar);
+          const indicator = score.isComplete ? '' : '*';
+          return `<td class="${scoreClass}">${displayScore}${indicator}</td>`;
+        }).join('')}
+        <td class="season-total ${this.getScoreClass(player.totalToPar)}">${Scoring.formatToPar(player.totalToPar)}</td>
+      </tr>
+      <tr class="season-details">
+        <td colspan="${tournaments.length + 3}">
+          <div class="tournament-details-grid">
+            ${tournamentDetailsHtml}
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+};
+
+// Helper function for ordinal suffix
+function getOrdinalSuffix(n) {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+}

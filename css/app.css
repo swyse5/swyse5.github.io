@@ -1,0 +1,1416 @@
+/* CSS Variables */
+:root {
+  --primary-color: #2c5232;
+  --primary-dark: #1e3a22;
+  --primary-light: #4a7c52;
+  --accent-color: #d4af37;
+  --background: #f5f5f5;
+  --surface: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --success: #28a745;
+  --warning: #ffc107;
+  --danger: #dc3545;
+  --under-par: #c41e3a;
+  --over-par: #1e90ff;
+  --even-par: #333333;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+/* Layout */
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Header */
+.app-header {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.logo h1 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 1.5rem;
+  color: var(--primary-color);
+}
+
+.main-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-link {
+  padding: 8px 16px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-weight: 500;
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--primary-color);
+  background: rgba(44, 82, 50, 0.1);
+}
+
+.nav-link.active {
+  color: var(--primary-color);
+  background: rgba(44, 82, 50, 0.15);
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.btn-outline:hover {
+  background: var(--background);
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 16px;
+}
+
+/* Tournament Banner */
+.tournament-banner {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.tournament-banner h2 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 2rem;
+  margin-bottom: 8px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-lineup_open {
+  background: var(--success);
+}
+
+.status-in_progress {
+  background: var(--warning);
+  color: #333;
+}
+
+.status-completed {
+  background: var(--text-secondary);
+}
+
+/* Main Content */
+.app-main {
+  flex: 1;
+  padding: 30px 0;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+/* Welcome Card */
+.welcome-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  margin-bottom: 30px;
+}
+
+.welcome-card h2 {
+  font-family: 'Roboto Slab', serif;
+  margin-bottom: 16px;
+}
+
+.welcome-card p {
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto 30px;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.action-card {
+  background: var(--background);
+  border-radius: var(--radius);
+  padding: 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+}
+
+.action-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.action-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.action-card h3 {
+  margin-bottom: 4px;
+  color: var(--primary-color);
+}
+
+.action-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Rules Section */
+.rules-section {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  box-shadow: var(--shadow);
+}
+
+.rules-section h3 {
+  font-family: 'Roboto Slab', serif;
+  margin-bottom: 16px;
+  color: var(--primary-color);
+}
+
+.rules-section ul {
+  list-style: none;
+  padding: 0;
+}
+
+.rules-section li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.rules-section li:last-child {
+  border-bottom: none;
+}
+
+/* Lineup Builder */
+.lineup-builder {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  box-shadow: var(--shadow);
+}
+
+.lineup-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.lineup-tab {
+  flex: 1;
+  padding: 14px 20px;
+  border: 2px solid var(--border-color);
+  background: var(--background);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.lineup-tab:hover {
+  border-color: var(--primary-light);
+}
+
+.lineup-tab.active {
+  border-color: var(--primary-color);
+  background: rgba(44, 82, 50, 0.1);
+  color: var(--primary-color);
+}
+
+.tab-status {
+  font-size: 13px;
+  padding: 2px 8px;
+  background: var(--surface);
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.lineup-tab.active .tab-status {
+  background: var(--primary-color);
+  color: white;
+}
+
+.lineup-info-banner {
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid var(--accent-color);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.lineup-info-banner p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.lineup-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.salary-cap-display {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.cap-item {
+  text-align: center;
+}
+
+.cap-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.cap-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.progress {
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  height: 100%;
+  transition: width 0.3s, background-color 0.3s;
+}
+
+.bg-success { background: var(--success); }
+.bg-warning { background: var(--warning); }
+.bg-danger { background: var(--danger); }
+
+.budget-warning {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+
+.lineup-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.selected-golfers-section h3,
+.golfer-pool-section h3 {
+  margin-bottom: 16px;
+  font-family: 'Roboto Slab', serif;
+}
+
+/* Golfer Slots */
+.golfer-slot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--background);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  border: 2px dashed var(--border-color);
+}
+
+.golfer-slot.filled {
+  border-style: solid;
+  border-color: var(--primary-color);
+  background: white;
+}
+
+.slot-number {
+  width: 28px;
+  height: 28px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.slot-empty {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.golfer-slot .golfer-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.golfer-slot .golfer-salary {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.remove-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: var(--danger);
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Golfer Pool */
+#golfer-search {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  width: 100%;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+#golfer-pool {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.golfer-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.golfer-item:hover {
+  background: var(--background);
+}
+
+.golfer-item.selected {
+  background: rgba(44, 82, 50, 0.1);
+  border-color: var(--primary-color);
+}
+
+.golfer-item.cannot-afford {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.golfer-item .golfer-name {
+  font-weight: 500;
+}
+
+.golfer-item .golfer-salary {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Leaderboard */
+.leaderboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.leaderboard-header h2 {
+  margin: 0;
+}
+
+.leaderboard-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.leaderboard-toggle {
+  display: flex;
+  background: var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Tournament Selector */
+.tournament-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.tournament-selector-container label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.tournament-selector {
+  padding: 10px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--surface);
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.tournament-selector:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.season-indicator {
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  background: var(--background);
+  border-radius: var(--radius);
+}
+
+.season-indicator a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.season-indicator a:hover {
+  text-decoration: underline;
+}
+
+.toggle-btn {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.toggle-btn:hover:not(.active) {
+  background: rgba(44, 82, 50, 0.1);
+  color: var(--primary-color);
+}
+
+.leaderboard-view {
+  display: none;
+}
+
+.leaderboard-view.active {
+  display: block;
+}
+
+/* Season Standings */
+.season-standings-table {
+  width: 100%;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border-collapse: collapse;
+}
+
+.season-standings-table th {
+  background: var(--accent-color);
+  color: var(--text-primary);
+  padding: 14px 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.season-standings-table th.pos { width: 50px; }
+.season-standings-table th.player { text-align: left; }
+.season-standings-table th.tournament { width: 80px; }
+.season-standings-table th.total { width: 80px; }
+
+.season-standings-table td {
+  padding: 14px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.season-standings-table td.player { text-align: left; }
+
+.season-standings-table tbody tr:hover {
+  background: var(--background);
+}
+
+.season-standings-table .current-user {
+  background: rgba(44, 82, 50, 0.1);
+}
+
+.tournament-abbrev {
+  font-weight: 600;
+}
+
+.season-total {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* Round Selector */
+.round-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.round-selector-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.round-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.round-btn {
+  padding: 8px 16px;
+  border: 2px solid var(--border-color);
+  background: var(--surface);
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.round-btn:hover {
+  border-color: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.round-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+/* Hole-by-Hole Scorecard */
+.hole-by-hole-container {
+  padding: 8px;
+}
+
+.hole-by-hole-container .round-title {
+  margin-bottom: 12px;
+  color: var(--primary-color);
+  font-size: 16px;
+}
+
+.no-scores-message {
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid var(--accent-color);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.no-scores-message p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.no-lineup-message {
+  background: var(--background);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+
+.no-lineup-message p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.no-lineup-message p:first-child {
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.lineup-hidden-message {
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid var(--accent-color);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+
+.lineup-hidden-message p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.lineup-hidden-message p:first-child {
+  margin-bottom: 8px;
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.scorecard-scroll {
+  overflow-x: auto;
+  margin: 0 -8px;
+  padding: 0 8px;
+}
+
+.hole-scorecard {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.hole-scorecard th,
+.hole-scorecard td {
+  padding: 8px 6px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.hole-scorecard th {
+  background: var(--primary-color);
+  color: white;
+  font-weight: 500;
+}
+
+.hole-scorecard .golfer-col {
+  text-align: left;
+  min-width: 120px;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hole-scorecard .subtotal {
+  background: rgba(0, 0, 0, 0.05);
+  font-weight: 600;
+}
+
+.hole-scorecard .total-col {
+  background: rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.hole-scorecard .par-row td {
+  background: var(--background);
+  font-weight: 500;
+}
+
+.hole-scorecard .golfer-row td {
+  background: var(--surface);
+}
+
+.hole-scorecard .best-ball-row td {
+  background: rgba(44, 82, 50, 0.1);
+  border-top: 2px solid var(--primary-color);
+}
+
+.hole-scorecard .best-score {
+  background: rgba(44, 82, 50, 0.2) !important;
+  font-weight: 700;
+}
+
+/* Season Details */
+.season-row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.season-row:hover {
+  background: var(--background);
+}
+
+.season-row .expand-icon {
+  font-size: 10px;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+  margin-left: 8px;
+}
+
+.season-row.expanded .expand-icon {
+  transform: rotate(180deg);
+}
+
+.season-standings-table td.player {
+  text-align: left;
+}
+
+.season-standings-table .player-name {
+  display: inline;
+}
+
+.season-details {
+  display: none;
+}
+
+.season-details.show {
+  display: table-row;
+}
+
+.season-details td {
+  padding: 16px;
+  background: var(--background);
+}
+
+.tournament-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.tournament-detail-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.tournament-detail-card.no-entry {
+  border-left-color: var(--border-color);
+  opacity: 0.6;
+}
+
+.tournament-detail-name {
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 8px;
+}
+
+.tournament-detail-position {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.tournament-detail-score {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.season-info {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.season-info span {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.leaderboard-table {
+  width: 100%;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border-collapse: collapse;
+}
+
+.leaderboard-table th {
+  background: var(--primary-color);
+  color: white;
+  padding: 14px 12px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.leaderboard-table th.pos { width: 50px; }
+.leaderboard-table th.player { text-align: left; }
+.leaderboard-table th.round { width: 60px; }
+.leaderboard-table th.total { width: 70px; }
+.leaderboard-table th.thru { width: 60px; }
+
+.leaderboard-row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.leaderboard-row:hover {
+  background: var(--background);
+}
+
+.leaderboard-row.current-user {
+  background: rgba(44, 82, 50, 0.1);
+}
+
+.leaderboard-row td {
+  padding: 14px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.leaderboard-row td.player {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.expand-icon {
+  font-size: 10px;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+}
+
+.leaderboard-row.expanded .expand-icon {
+  transform: rotate(180deg);
+}
+
+.golfer-details {
+  display: none;
+}
+
+.golfer-details.show {
+  display: table-row;
+}
+
+.golfer-details td {
+  padding: 12px;
+  background: var(--background);
+}
+
+.golfer-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Golfer Scores Table (expanded view) */
+.golfer-scores-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.golfer-scores-table th,
+.golfer-scores-table td {
+  padding: 10px 12px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.golfer-scores-table th {
+  background: var(--primary-light);
+  color: white;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.golfer-scores-table th:first-child,
+.golfer-scores-table td:first-child {
+  text-align: left;
+}
+
+.golfer-scores-table .golfer-name-cell {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.golfer-scores-table tbody tr:hover {
+  background: rgba(44, 82, 50, 0.05);
+}
+
+.golfer-scores-table .best-ball-summary {
+  background: rgba(44, 82, 50, 0.1);
+  border-top: 2px solid var(--primary-color);
+}
+
+.golfer-scores-table .best-ball-summary td {
+  border-bottom: none;
+}
+
+.golfer-scores-table .inactive-round {
+  opacity: 0.4;
+}
+
+.rounds-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--accent-color);
+  color: var(--text-primary);
+  border-radius: 10px;
+  margin-left: 6px;
+  font-weight: 500;
+}
+
+.split-lineup-info {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 0;
+}
+
+.lineup-badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-weight: 500;
+}
+
+.lineup-badge.r12 {
+  background: rgba(44, 82, 50, 0.15);
+  color: var(--primary-color);
+}
+
+.lineup-badge.r34 {
+  background: rgba(212, 175, 55, 0.2);
+  color: #8b7a2f;
+}
+
+.golfer-chip {
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+/* Score Colors */
+.under-par { color: var(--under-par); font-weight: 600; }
+.over-par { color: var(--over-par); font-weight: 600; }
+.even-par { color: var(--even-par); }
+
+/* Scorecard */
+.scorecard {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+  box-shadow: var(--shadow);
+}
+
+.scorecard h3 {
+  font-family: 'Roboto Slab', serif;
+  margin-bottom: 20px;
+}
+
+.scorecard-header {
+  margin-bottom: 24px;
+}
+
+.golfers-picked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.round-scorecard {
+  margin-bottom: 30px;
+}
+
+.round-scorecard .round-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.round-scorecard h4 {
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.round-golfers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.golfer-chip.small {
+  font-size: 11px;
+  padding: 3px 10px;
+}
+
+/* Lineup Display (pre-tournament) */
+.lineup-display {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.lineup-section {
+  background: var(--background);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.lineup-section h4 {
+  margin: 0 0 12px 0;
+  color: var(--primary-color);
+  font-size: 14px;
+}
+
+.lineup-section .golfers-picked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.no-lineup {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.scorecard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.scorecard-table th,
+.scorecard-table td {
+  padding: 8px 6px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.scorecard-table th {
+  background: var(--primary-color);
+  color: white;
+  font-weight: 500;
+}
+
+.scorecard-table th:first-child {
+  text-align: left;
+  width: 80px;
+}
+
+.par-row td {
+  background: var(--background);
+  font-weight: 500;
+}
+
+.best-ball-row td {
+  font-weight: 600;
+}
+
+.scorecard-total {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--background);
+  border-radius: var(--radius);
+  font-size: 1.2rem;
+}
+
+/* History */
+.history-list {
+  display: grid;
+  gap: 16px;
+}
+
+.history-item {
+  background: var(--surface);
+  padding: 20px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-item h4 {
+  margin-bottom: 4px;
+}
+
+.history-item p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 30px;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--background);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--text-primary);
+  color: white;
+  padding: 14px 24px;
+  border-radius: var(--radius);
+  opacity: 0;
+  transition: all 0.3s;
+  z-index: 1001;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast.success { background: var(--success); }
+.toast.warning { background: var(--warning); color: #333; }
+.toast.error { background: var(--danger); }
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+}
+
+.no-data {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border-radius: var(--radius);
+}
+
+/* Footer */
+.app-footer {
+  background: var(--text-primary);
+  color: white;
+  text-align: center;
+  padding: 20px;
+  margin-top: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .main-nav {
+    order: 3;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-link {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+
+  .tournament-banner h2 {
+    font-size: 1.5rem;
+  }
+
+  .salary-cap-display {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .lineup-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .leaderboard-table {
+    font-size: 12px;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 10px 6px;
+  }
+
+  .scorecard-table {
+    font-size: 11px;
+  }
+}
