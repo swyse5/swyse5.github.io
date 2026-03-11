@@ -226,16 +226,21 @@ const Lineup = {
         const golfer = selectedGolfers[i];
         const salary = this.getGolferSalary(golfer);
         slot.classList.add('filled');
+        
+        // Only show remove button if onRemove callback is provided (not locked)
+        const removeButton = onRemove ? `<button class="remove-btn" data-index="${i}">&times;</button>` : '';
         slot.innerHTML = `
           <span class="slot-number">${i + 1}</span>
           <span class="golfer-name">${golfer}</span>
           <span class="golfer-salary">$${this.formatSalary(salary)}</span>
-          <button class="remove-btn" data-index="${i}">&times;</button>
+          ${removeButton}
         `;
-        slot.querySelector('.remove-btn').addEventListener('click', (e) => {
-          e.stopPropagation();
-          onRemove(i);
-        });
+        if (onRemove) {
+          slot.querySelector('.remove-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            onRemove(i);
+          });
+        }
       } else {
         slot.innerHTML = `
           <span class="slot-number">${i + 1}</span>

@@ -5,8 +5,36 @@ const Leaderboard = {
   unsubscribeLineups: null,
   cachedGolferScores: {},
   cachedPars: null,
+  cachedLastUpdated: null,
   round1Started: false,
   round3Started: false,
+
+  formatLastUpdated(timestamp) {
+    if (!timestamp) return '';
+    
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    
+    // Format in user's local timezone
+    const options = {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short'
+    };
+    
+    return `Last updated: ${date.toLocaleString(undefined, options)}`;
+  },
+
+  updateLastUpdatedDisplay(elementId) {
+    const element = document.getElementById(elementId);
+    if (element && this.cachedLastUpdated) {
+      element.textContent = this.formatLastUpdated(this.cachedLastUpdated);
+    } else if (element) {
+      element.textContent = '';
+    }
+  },
 
   // Check if a round has started by looking for any golfer with scores in that round
   checkRoundStarted(golferScores, roundNumber) {
@@ -31,12 +59,14 @@ const Leaderboard = {
 
     // Get current scores (may not exist if tournament hasn't started)
     const scoresDoc = await firebaseDb.collection('scores').doc(tournamentId).get();
-    const golferScores = scoresDoc.exists ? (scoresDoc.data().golferScores || {}) : {};
-    const pars = scoresDoc.exists ? scoresDoc.data().pars : null;
+    const scoresData = scoresDoc.exists ? scoresDoc.data() : {};
+    const golferScores = scoresData.golferScores || {};
+    const pars = scoresData.pars || null;
     
     // Cache for use in expanded views
     this.cachedGolferScores = golferScores;
     this.cachedPars = pars;
+    this.cachedLastUpdated = scoresData.lastUpdated || null;
     
     // Determine which rounds have started (for hiding lineups until rounds begin)
     this.round1Started = this.checkRoundStarted(golferScores, 1);
@@ -499,8 +529,12 @@ const Leaderboard = {
     const hasLineup2 = lineup2 !== null && lineup2 !== undefined && golfersR34.length > 0;
 
     const scoresDoc = await firebaseDb.collection('scores').doc(tournamentId).get();
-    const golferScores = scoresDoc.exists ? (scoresDoc.data().golferScores || {}) : {};
-    const pars = scoresDoc.exists ? scoresDoc.data().pars : null;
+    const scoresData = scoresDoc.exists ? scoresDoc.data() : {};
+    const golferScores = scoresData.golferScores || {};
+    const pars = scoresData.pars || null;
+    
+    // Cache the last updated timestamp for display
+    this.cachedLastUpdated = scoresData.lastUpdated || null;
     
     // Check if there are any scores yet
     const hasScores = Object.keys(golferScores).length > 0;

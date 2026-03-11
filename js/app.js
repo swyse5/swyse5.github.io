@@ -7,6 +7,9 @@ const App = {
   currentSeason: null,
 
   async init() {
+    // Initialize theme
+    this.initTheme();
+    
     // Initialize authentication
     Auth.init();
     
@@ -25,6 +28,26 @@ const App = {
     // Show initial view based on URL hash
     this.handleHashChange();
     window.addEventListener('hashchange', () => this.handleHashChange());
+  },
+
+  initTheme() {
+    // Load saved theme preference
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Set up toggle button
+    const toggleBtn = document.getElementById('theme-toggle');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => this.toggleTheme());
+    }
+  },
+
+  toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
   },
 
   getSeasonFromUrl() {
@@ -90,14 +113,36 @@ const App = {
         this.activeTournament = { id: doc.id, ...doc.data() };
         await Lineup.loadTournament(this.activeTournament.id);
         
-        // Start score updates if tournament is in progress
-        if (this.activeTournament.status === 'in_progress') {
+        // Initialize chat for the active tournament
+        Chat.init(this.activeTournament.id);
+        
+        // Auto-start scoring if tournament has started (based on date) or is in_progress
+        const tournamentStartDate = this.activeTournament.startDate?.toDate 
+          ? this.activeTournament.startDate.toDate() 
+          : new Date(this.activeTournament.startDate);
+        const tournamentEndDate = this.activeTournament.endDate?.toDate
+          ? this.activeTournament.endDate.toDate()
+          : new Date(this.activeTournament.endDate);
+        const now = new Date();
+        
+        // Add a day buffer to end date (tournaments often end late)
+        const endDateWithBuffer = new Date(tournamentEndDate);
+        endDateWithBuffer.setDate(endDateWithBuffer.getDate() + 1);
+        
+        const tournamentHasStarted = now >= tournamentStartDate;
+        const tournamentHasEnded = now > endDateWithBuffer;
+        
+        // Start auto-update if: tournament dates indicate it's active, OR status is in_progress
+        if ((tournamentHasStarted && !tournamentHasEnded) || this.activeTournament.status === 'in_progress') {
           Scoring.startAutoUpdate(
             this.activeTournament.id, 
             this.activeTournament.espnEventName,
             10 // Update every 10 minutes
           );
         }
+      } else {
+        // No active tournament - initialize general chat
+        Chat.init(null);
       }
 
       this.updateTournamentDisplay();
@@ -194,6 +239,43 @@ const App = {
   currentLineupType: 'rounds_1_2',
   selectedGolfersR12: [],
   selectedGolfersR34: [],
+  round1Started: false,
+  round3Started: false,
+
+  // Check if a round has started by looking for any golfer with scores
+  async checkRoundStatus(tournamentId) {
+    try {
+      const scoresDoc = await firebaseDb.collection('scores').doc(tournamentId).get();
+      if (!scoresDoc.exists) {
+        this.round1Started = false;
+        this.round3Started = false;
+        return;
+      }
+
+      const golferScores = scoresDoc.data().golferScores || {};
+      
+      this.round1Started = this.hasRoundStarted(golferScores, 1);
+      this.round3Started = this.hasRoundStarted(golferScores, 3);
+    } catch (error) {
+      console.error('Error checking round status:', error);
+      this.round1Started = false;
+      this.round3Started = false;
+    }
+  },
+
+  hasRoundStarted(golferScores, roundNumber) {
+    const roundIndex = roundNumber - 1;
+    for (const golferName in golferScores) {
+      const golfer = golferScores[golferName];
+      if (golfer?.rounds?.[roundIndex]) {
+        const round = golfer.rounds[roundIndex];
+        if (round.holes && round.holes.some(h => h && h.toPar !== null)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  },
 
   async loadLineupView() {
     if (!this.activeTournament) {
@@ -202,15 +284,24 @@ const App = {
       return;
     }
 
-    if (this.activeTournament.status !== 'lineup_open') {
-      document.getElementById('lineup-content').innerHTML = 
-        '<div class="no-data">Lineup submission is closed for this tournament</div>';
-      return;
-    }
-
     if (!Auth.currentUser) {
       document.getElementById('lineup-content').innerHTML = 
         '<div class="no-data">Please sign in to submit your lineup</div>';
+      return;
+    }
+
+    // Check round status for locking
+    await this.checkRoundStatus(this.activeTournament.id);
+
+    // If both rounds have started, lineups are fully locked
+    if (this.round1Started && this.round3Started) {
+      document.getElementById('lineup-content').innerHTML = `
+        <div class="no-data">
+          <p><strong>Lineups are locked</strong></p>
+          <p style="margin-top: 8px;">The tournament has started. View your scorecard to see your picks.</p>
+          <a href="#scorecard" class="btn btn-primary" style="margin-top: 16px;">View Scorecard</a>
+        </div>
+      `;
       return;
     }
 
@@ -222,7 +313,13 @@ const App = {
 
     this.selectedGolfersR12 = lineups.rounds_1_2?.golfers || [];
     this.selectedGolfersR34 = lineups.rounds_3_4?.golfers || [];
-    this.currentLineupType = 'rounds_1_2';
+    
+    // Default to first unlocked lineup type
+    if (this.round1Started && !this.round3Started) {
+      this.currentLineupType = 'rounds_3_4';
+    } else {
+      this.currentLineupType = 'rounds_1_2';
+    }
 
     // Render the lineup builder
     this.renderLineupBuilder();
@@ -234,22 +331,38 @@ const App = {
       ? this.selectedGolfersR12 
       : this.selectedGolfersR34;
 
+    // Check if current lineup type is locked
+    const isR12Locked = this.round1Started;
+    const isR34Locked = this.round3Started;
+    const isCurrentLocked = this.currentLineupType === 'rounds_1_2' ? isR12Locked : isR34Locked;
+
     content.innerHTML = `
       <div class="lineup-builder">
         <div class="lineup-tabs">
-          <button class="lineup-tab ${this.currentLineupType === 'rounds_1_2' ? 'active' : ''}" data-lineup="rounds_1_2">
+          <button class="lineup-tab ${this.currentLineupType === 'rounds_1_2' ? 'active' : ''} ${isR12Locked ? 'locked' : ''}" 
+                  data-lineup="rounds_1_2" ${isR12Locked && this.currentLineupType !== 'rounds_1_2' ? 'disabled' : ''}>
             Rounds 1-2
+            ${isR12Locked ? '<span class="lock-icon">🔒</span>' : ''}
             <span class="tab-status">${this.selectedGolfersR12.length}/4</span>
           </button>
-          <button class="lineup-tab ${this.currentLineupType === 'rounds_3_4' ? 'active' : ''}" data-lineup="rounds_3_4">
+          <button class="lineup-tab ${this.currentLineupType === 'rounds_3_4' ? 'active' : ''} ${isR34Locked ? 'locked' : ''}" 
+                  data-lineup="rounds_3_4" ${isR34Locked && this.currentLineupType !== 'rounds_3_4' ? 'disabled' : ''}>
             Rounds 3-4
+            ${isR34Locked ? '<span class="lock-icon">🔒</span>' : ''}
             <span class="tab-status">${this.selectedGolfersR34.length}/4</span>
           </button>
         </div>
 
-        <div class="lineup-info-banner">
-          <p><strong>Note:</strong> You can use different golfers for rounds 1-2 vs rounds 3-4, or use the same lineup for both.</p>
-        </div>
+        ${isCurrentLocked ? `
+          <div class="lineup-locked-banner">
+            <p><strong>🔒 This lineup is locked</strong></p>
+            <p>Round ${this.currentLineupType === 'rounds_1_2' ? '1' : '3'} has started. You can no longer edit this lineup.</p>
+          </div>
+        ` : `
+          <div class="lineup-info-banner">
+            <p><strong>Note:</strong> You can use different golfers for rounds 1-2 vs rounds 3-4, or use the same lineup for both.</p>
+          </div>
+        `}
 
         <div class="salary-cap-display">
           <div class="cap-item">
@@ -280,27 +393,31 @@ const App = {
           <div class="selected-golfers-section">
             <h3>${this.currentLineupType === 'rounds_1_2' ? 'Rounds 1-2 Lineup' : 'Rounds 3-4 Lineup'}</h3>
             <div id="selected-golfers"></div>
-            <div class="lineup-actions">
-              <button id="submit-lineup-btn" class="btn btn-primary btn-lg" disabled>
-                Save ${this.currentLineupType === 'rounds_1_2' ? 'R1-2' : 'R3-4'} Lineup
-              </button>
-              ${this.currentLineupType === 'rounds_1_2' ? `
-                <button id="copy-to-r34-btn" class="btn btn-outline" ${this.selectedGolfersR12.length !== 4 ? 'disabled' : ''}>
-                  Copy to R3-4 →
+            ${!isCurrentLocked ? `
+              <div class="lineup-actions">
+                <button id="submit-lineup-btn" class="btn btn-primary btn-lg" disabled>
+                  Save ${this.currentLineupType === 'rounds_1_2' ? 'R1-2' : 'R3-4'} Lineup
                 </button>
-              ` : `
-                <button id="copy-from-r12-btn" class="btn btn-outline" ${this.selectedGolfersR12.length !== 4 ? 'disabled' : ''}>
-                  ← Copy from R1-2
-                </button>
-              `}
-            </div>
+                ${this.currentLineupType === 'rounds_1_2' ? `
+                  <button id="copy-to-r34-btn" class="btn btn-outline" ${this.selectedGolfersR12.length !== 4 || isR34Locked ? 'disabled' : ''}>
+                    Copy to R3-4 →
+                  </button>
+                ` : `
+                  <button id="copy-from-r12-btn" class="btn btn-outline" ${this.selectedGolfersR12.length !== 4 ? 'disabled' : ''}>
+                    ← Copy from R1-2
+                  </button>
+                `}
+              </div>
+            ` : ''}
           </div>
 
-          <div class="golfer-pool-section">
-            <h3>Available Golfers</h3>
-            <input type="text" id="golfer-search" class="form-control" placeholder="Search golfers...">
-            <div id="golfer-pool"></div>
-          </div>
+          ${!isCurrentLocked ? `
+            <div class="golfer-pool-section">
+              <h3>Available Golfers</h3>
+              <input type="text" id="golfer-search" class="form-control" placeholder="Search golfers...">
+              <div id="golfer-pool"></div>
+            </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -308,80 +425,90 @@ const App = {
     // Tab switching
     document.querySelectorAll('.lineup-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        this.currentLineupType = tab.dataset.lineup;
+        const newType = tab.dataset.lineup;
+        const isLocked = newType === 'rounds_1_2' ? isR12Locked : isR34Locked;
+        // Allow viewing locked lineups, but not switching away if current is the only unlocked one
+        this.currentLineupType = newType;
         this.renderLineupBuilder();
       });
     });
 
-    // Copy lineup buttons
-    document.getElementById('copy-to-r34-btn')?.addEventListener('click', () => {
-      this.selectedGolfersR34 = [...this.selectedGolfersR12];
-      this.currentLineupType = 'rounds_3_4';
-      this.renderLineupBuilder();
-      this.showToast('Lineup copied to Rounds 3-4', 'success');
-    });
+    // Only set up editing functionality if not locked
+    if (!isCurrentLocked) {
+      // Copy lineup buttons
+      document.getElementById('copy-to-r34-btn')?.addEventListener('click', () => {
+        if (isR34Locked) {
+          this.showToast('R3-4 lineup is locked', 'warning');
+          return;
+        }
+        this.selectedGolfersR34 = [...this.selectedGolfersR12];
+        this.currentLineupType = 'rounds_3_4';
+        this.renderLineupBuilder();
+        this.showToast('Lineup copied to Rounds 3-4', 'success');
+      });
 
-    document.getElementById('copy-from-r12-btn')?.addEventListener('click', () => {
-      this.selectedGolfersR34 = [...this.selectedGolfersR12];
-      this.renderLineupBuilder();
-      this.showToast('Lineup copied from Rounds 1-2', 'success');
-    });
+      document.getElementById('copy-from-r12-btn')?.addEventListener('click', () => {
+        this.selectedGolfersR34 = [...this.selectedGolfersR12];
+        this.renderLineupBuilder();
+        this.showToast('Lineup copied from Rounds 1-2', 'success');
+      });
 
-    // Render golfer selector
-    Lineup.renderGolferSelector('golfer-pool', (golfer) => {
-      const currentGolfers = this.currentLineupType === 'rounds_1_2' 
-        ? this.selectedGolfersR12 
-        : this.selectedGolfersR34;
+      // Render golfer selector
+      Lineup.renderGolferSelector('golfer-pool', (golfer) => {
+        const currentGolfers = this.currentLineupType === 'rounds_1_2' 
+          ? this.selectedGolfersR12 
+          : this.selectedGolfersR34;
 
-      if (currentGolfers.length >= 4) {
-        this.showToast('You already have 4 golfers selected', 'warning');
-        return;
-      }
-      if (currentGolfers.includes(golfer.name)) {
-        this.showToast('Golfer already selected', 'warning');
-        return;
-      }
-      if (!Lineup.canAfford(golfer.name, currentGolfers)) {
-        this.showToast('Cannot afford this golfer', 'warning');
-        return;
-      }
-      currentGolfers.push(golfer.name);
-      this.updateLineupDisplay();
-    });
+        if (currentGolfers.length >= 4) {
+          this.showToast('You already have 4 golfers selected', 'warning');
+          return;
+        }
+        if (currentGolfers.includes(golfer.name)) {
+          this.showToast('Golfer already selected', 'warning');
+          return;
+        }
+        if (!Lineup.canAfford(golfer.name, currentGolfers)) {
+          this.showToast('Cannot afford this golfer', 'warning');
+          return;
+        }
+        currentGolfers.push(golfer.name);
+        this.updateLineupDisplay();
+      });
 
-    // Render selected golfers
+      // Search functionality
+      document.getElementById('golfer-search')?.addEventListener('input', (e) => {
+        const search = e.target.value.toLowerCase();
+        document.querySelectorAll('#golfer-pool .golfer-item').forEach(item => {
+          const name = item.dataset.name.toLowerCase();
+          item.style.display = name.includes(search) ? '' : 'none';
+        });
+      });
+
+      // Submit button
+      document.getElementById('submit-lineup-btn')?.addEventListener('click', async () => {
+        const currentGolfers = this.currentLineupType === 'rounds_1_2' 
+          ? this.selectedGolfersR12 
+          : this.selectedGolfersR34;
+
+        try {
+          await Lineup.saveLineup(
+            this.activeTournament.id,
+            Auth.currentUser.uid,
+            Auth.currentUser.displayName || Auth.currentUser.email,
+            currentGolfers,
+            this.currentLineupType
+          );
+          this.showToast(`${this.currentLineupType === 'rounds_1_2' ? 'Rounds 1-2' : 'Rounds 3-4'} lineup saved!`, 'success');
+          // Re-render to update tab status
+          this.renderLineupBuilder();
+        } catch (error) {
+          this.showToast(error.message, 'error');
+        }
+      });
+    }
+
+    // Render selected golfers (always, for viewing)
     this.updateLineupDisplay();
-
-    // Search functionality
-    document.getElementById('golfer-search').addEventListener('input', (e) => {
-      const search = e.target.value.toLowerCase();
-      document.querySelectorAll('#golfer-pool .golfer-item').forEach(item => {
-        const name = item.dataset.name.toLowerCase();
-        item.style.display = name.includes(search) ? '' : 'none';
-      });
-    });
-
-    // Submit button
-    document.getElementById('submit-lineup-btn').addEventListener('click', async () => {
-      const currentGolfers = this.currentLineupType === 'rounds_1_2' 
-        ? this.selectedGolfersR12 
-        : this.selectedGolfersR34;
-
-      try {
-        await Lineup.saveLineup(
-          this.activeTournament.id,
-          Auth.currentUser.uid,
-          Auth.currentUser.displayName || Auth.currentUser.email,
-          currentGolfers,
-          this.currentLineupType
-        );
-        this.showToast(`${this.currentLineupType === 'rounds_1_2' ? 'Rounds 1-2' : 'Rounds 3-4'} lineup saved!`, 'success');
-        // Re-render to update tab status
-        this.renderLineupBuilder();
-      } catch (error) {
-        this.showToast(error.message, 'error');
-      }
-    });
   },
 
   updateLineupDisplay() {
@@ -389,7 +516,12 @@ const App = {
       ? this.selectedGolfersR12 
       : this.selectedGolfersR34;
 
-    Lineup.renderSelectedGolfers('selected-golfers', currentGolfers, (index) => {
+    const isCurrentLocked = this.currentLineupType === 'rounds_1_2' 
+      ? this.round1Started 
+      : this.round3Started;
+
+    // If locked, don't allow removal (pass null callback)
+    Lineup.renderSelectedGolfers('selected-golfers', currentGolfers, isCurrentLocked ? null : (index) => {
       currentGolfers.splice(index, 1);
       this.updateLineupDisplay();
     });
@@ -531,6 +663,9 @@ const App = {
     
     const standings = await Leaderboard.calculateStandings(tournamentId);
     Leaderboard.renderLeaderboard('leaderboard-content', standings, Auth.currentUser?.uid);
+    
+    // Update last updated timestamp
+    Leaderboard.updateLastUpdatedDisplay('leaderboard-last-updated');
   },
 
   setupLeaderboardToggle() {
@@ -563,6 +698,7 @@ const App = {
     if (!this.activeTournament || !Auth.currentUser) {
       document.getElementById('scorecard-content').innerHTML = 
         '<div class="no-data">Please sign in to view your scorecard</div>';
+      document.getElementById('scorecard-last-updated').textContent = '';
       return;
     }
 
@@ -571,6 +707,9 @@ const App = {
       Auth.currentUser.uid, 
       this.activeTournament.id
     );
+    
+    // Update last updated timestamp
+    Leaderboard.updateLastUpdatedDisplay('scorecard-last-updated');
   },
 
   async loadHistoryView() {

@@ -238,6 +238,16 @@ const Scoring = {
       golferScores
     }, { merge: true });
 
+    // Check for eagles and send alerts to chat
+    if (typeof Chat !== 'undefined' && Chat.checkForEagles) {
+      try {
+        const lineups = await Lineup.getAllLineups(tournamentId);
+        await Chat.checkForEagles(tournamentId, golferScores, lineups);
+      } catch (error) {
+        console.error('Error checking for eagles:', error);
+      }
+    }
+
     return { pars, golferScores, event };
   },
 
