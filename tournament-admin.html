@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tournament Admin - Majors Best Ball</title>
+  <link rel="icon" type="image/png" href="content/images/favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    .admin-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .admin-section {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow);
+    }
+    .admin-section h2 {
+      font-family: 'Roboto Slab', serif;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--primary-color);
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .form-control {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 14px;
+    }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+    select.form-control {
+      cursor: pointer;
+    }
+    textarea.form-control {
+      min-height: 200px;
+      font-family: monospace;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .tournament-list {
+      display: grid;
+      gap: 16px;
+    }
+    .tournament-card {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tournament-card.active {
+      border-color: var(--primary-color);
+      background: rgba(44, 82, 50, 0.05);
+    }
+    .tournament-info h4 {
+      margin-bottom: 4px;
+    }
+    .tournament-info p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin: 0;
+    }
+    .tournament-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .alert {
+      padding: 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+    }
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .golfer-preview {
+      max-height: 300px;
+      overflow-y: auto;
+      background: var(--background);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .golfer-preview-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .scoring-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .scoring-status {
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+    }
+    .scoring-active {
+      background: #d4edda;
+      color: #155724;
+    }
+    .scoring-inactive {
+      background: var(--background);
+      color: var(--text-secondary);
+    }
+    .validation-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .validation-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--background);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+    }
+    .validation-item.not-in-espn {
+      border-color: var(--danger);
+      background: rgba(220, 53, 69, 0.05);
+    }
+    .validation-item.not-in-admin {
+      border-color: var(--primary-color);
+      background: rgba(44, 82, 50, 0.05);
+    }
+    .validation-item .golfer-name {
+      font-weight: 500;
+    }
+    .validation-item .golfer-salary {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-left: 12px;
+    }
+    .validation-item .btn {
+      flex-shrink: 0;
+    }
+    .validation-item.processing {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <div class="admin-header">
+      <div>
+        <h1>Tournament Admin</h1>
+        <a href="app.html" class="btn btn-outline btn-sm">← Back to App</a>
+      </div>
+      <div id="admin-user-info">
+        <span id="admin-user-name"></span>
+        <button id="admin-sign-out" class="btn btn-outline btn-sm">Sign Out</button>
+      </div>
+    </div>
+
+    <div id="admin-content" style="display: none;">
+      <!-- Create Tournament -->
+      <div class="admin-section">
+        <h2>Create New Tournament</h2>
+        <div id="create-alert"></div>
+        <form id="create-tournament-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tournament-name">Tournament Name</label>
+              <input type="text" id="tournament-name" class="form-control" placeholder="e.g., Masters 2026" required>
+            </div>
+            <div class="form-group">
+              <label for="espn-event-name">ESPN Event Name (for scoring)</label>
+              <input type="text" id="espn-event-name" class="form-control" placeholder="e.g., masters, pga championship">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="start-date">Start Date</label>
+              <input type="date" id="start-date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="end-date">End Date</label>
+              <input type="date" id="end-date" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="salary-cap">Salary Cap ($)</label>
+              <input type="number" id="salary-cap" class="form-control" value="100" min="1" step="1" required>
+            </div>
+            <div class="form-group">
+              <label for="tournament-status">Initial Status</label>
+              <select id="tournament-status" class="form-control">
+                <option value="upcoming">Upcoming (Hidden)</option>
+                <option value="lineup_open">Lineup Open</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="golfer-field">Golfer Field (Name $Salary, one per line)</label>
+            <textarea id="golfer-field" class="form-control" placeholder="Scottie Scheffler $30&#10;Rory McIlroy $28&#10;Jon Rahm $26&#10;..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Preview (sorted by salary)</label>
+            <div id="golfer-preview" class="golfer-preview">
+              <p style="color: var(--text-secondary);">Enter golfers above to see preview</p>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg">Create Tournament</button>
+        </form>
+      </div>
+
+      <!-- Manage Tournaments -->
+      <div class="admin-section">
+        <h2>Manage Tournaments</h2>
+        <div id="tournament-list" class="tournament-list">
+          <div class="loading">Loading tournaments...</div>
+        </div>
+      </div>
+
+      <!-- Live Scoring Control -->
+      <div class="admin-section">
+        <h2>Live Scoring</h2>
+        <p>Control automatic score updates from ESPN.</p>
+        <div class="scoring-controls">
+          <select id="scoring-tournament" class="form-control" style="max-width: 300px;">
+            <option value="">Select tournament...</option>
+          </select>
+          <button id="start-scoring" class="btn btn-primary">Start Auto-Update</button>
+          <button id="stop-scoring" class="btn btn-outline">Stop</button>
+          <button id="manual-update" class="btn btn-outline">Update Now</button>
+        </div>
+        <div id="scoring-status" class="scoring-status scoring-inactive" style="margin-top: 16px;">
+          Auto-update: Inactive
+        </div>
+        <div id="last-update" style="margin-top: 8px; color: var(--text-secondary); font-size: 14px;"></div>
+      </div>
+
+      <!-- Manage User Lineups -->
+      <div class="admin-section">
+        <h2>Manage User Lineups</h2>
+        <p>View and edit any user's lineup for a tournament.</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="lineup-tournament-select">Tournament</label>
+            <select id="lineup-tournament-select" class="form-control">
+              <option value="">Select tournament...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="lineup-user-select">User</label>
+            <select id="lineup-user-select" class="form-control" disabled>
+              <option value="">Select user...</option>
+            </select>
+          </div>
+        </div>
+        <div id="admin-lineup-editor" style="display: none;">
+          <h3 id="editing-user-name" style="margin-bottom: 16px;"></h3>
+          
+          <div class="form-group">
+            <label>Select Lineup to Edit</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <button id="edit-r12-btn" class="btn btn-primary">Rounds 1-2</button>
+              <button id="edit-r34-btn" class="btn btn-outline">Rounds 3-4</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label id="admin-lineup-label">Current Lineup (Rounds 1-2)</label>
+            <div id="admin-current-lineup" class="golfer-preview" style="min-height: auto; margin-bottom: 16px;"></div>
+          </div>
+          <div class="form-group">
+            <label>Edit Lineup (select 4 golfers)</label>
+            <div id="admin-golfer-pool" class="golfer-preview" style="max-height: 400px;"></div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 16px;">
+            <button id="save-admin-lineup" class="btn btn-primary">Save Lineup</button>
+            <button id="cancel-admin-lineup" class="btn btn-outline">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validate Golfer Field -->
+      <div class="admin-section">
+        <h2>Validate Golfer Field</h2>
+        <p>Compare your tournament golfer list with the ESPN field to find discrepancies.</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="validate-tournament-select">Tournament</label>
+            <select id="validate-tournament-select" class="form-control">
+              <option value="">Select tournament...</option>
+            </select>
+          </div>
+          <div class="form-group" style="display: flex; align-items: flex-end;">
+            <button id="validate-field-btn" class="btn btn-primary" disabled>Validate Against ESPN</button>
+          </div>
+        </div>
+        <div id="validation-status" style="margin-bottom: 16px; color: var(--text-secondary);"></div>
+        <div id="validation-results" style="display: none;">
+          <div id="not-in-espn-section" style="margin-bottom: 24px;">
+            <h3 style="color: var(--danger); margin-bottom: 12px;">
+              <span>⚠️ Not in ESPN Field</span>
+              <span id="not-in-espn-count" style="font-size: 14px; font-weight: normal;"></span>
+            </h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+              These golfers are in your list but not playing in the ESPN tournament. Consider removing them.
+            </p>
+            <div id="not-in-espn-list" class="validation-list"></div>
+          </div>
+          <div id="not-in-admin-section">
+            <h3 style="color: var(--primary-color); margin-bottom: 12px;">
+              <span>➕ Missing from Your List</span>
+              <span id="not-in-admin-count" style="font-size: 14px; font-weight: normal;"></span>
+            </h3>
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+              These golfers are in the ESPN field but not in your list. Add them with a default $15.00 salary.
+            </p>
+            <div id="not-in-admin-list" class="validation-list"></div>
+          </div>
+          <div id="validation-all-good" style="display: none; padding: 20px; background: rgba(44, 82, 50, 0.1); border-radius: var(--radius); text-align: center;">
+            <p style="color: var(--primary-color); font-weight: 500; margin: 0;">✓ All golfers match! Your field is in sync with ESPN.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Users -->
+      <div class="admin-section">
+        <h2>Admin Users</h2>
+        <p>Add email addresses of users who should have admin access.</p>
+        <div class="form-group">
+          <textarea id="admin-emails" class="form-control" style="min-height: 100px;" placeholder="admin@example.com&#10;another@example.com"></textarea>
+        </div>
+        <button id="save-admins" class="btn btn-primary">Save Admin List</button>
+      </div>
+    </div>
+
+    <div id="access-denied" style="display: none;">
+      <div class="admin-section">
+        <h2>Access Denied</h2>
+        <p>You don't have admin privileges. Please sign in with an admin account.</p>
+        <button id="admin-sign-in" class="btn btn-primary">Sign in with Google</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/scoring.js"></script>
+  
+  <script>
+    // Tournament Admin Logic
+    const TournamentAdmin = {
+      currentUser: null,
+      isAdmin: false,
+
+      // Format salary to always show 2 decimal places
+      formatSalary(value) {
+        return Number(value).toFixed(2);
+      },
+
+      async init() {
+        firebaseAuth.onAuthStateChanged(async (user) => {
+          this.currentUser = user;
+          if (user) {
+            await this.checkAdminStatus(user.email);
+            this.updateUI();
+          } else {
+            this.isAdmin = false;
+            this.updateUI();
+          }
+        });
+
+        this.setupEventListeners();
+      },
+
+      async checkAdminStatus(email) {
+        try {
+          const doc = await firebaseDb.collection('config').doc('admins').get();
+          if (doc.exists) {
+            const adminEmails = doc.data().emails || [];
+            this.isAdmin = adminEmails.includes(email?.toLowerCase());
+          } else {
+            // If no admin config exists, first user becomes admin
+            console.log('No admin config found. Setting up first admin:', email);
+            try {
+              await firebaseDb.collection('config').doc('admins').set({
+                emails: [email.toLowerCase()]
+              });
+              this.isAdmin = true;
+              console.log('Successfully set up first admin');
+            } catch (writeError) {
+              console.error('Could not write admin config. You may need to set up Firestore rules first.');
+              console.error('Error:', writeError);
+              // Show setup instructions
+              this.showSetupInstructions(email);
+              this.isAdmin = false;
+            }
+          }
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          console.error('Make sure Firestore is enabled in your Firebase project.');
+          this.isAdmin = false;
+        }
+      },
+
+      showSetupInstructions(email) {
+        const accessDenied = document.getElementById('access-denied');
+        accessDenied.innerHTML = `
+          <div class="admin-section">
+            <h2>First-Time Setup Required</h2>
+            <p>Firestore needs to be configured to allow the initial admin setup.</p>
+            <h3>Quick Fix:</h3>
+            <ol>
+              <li>Go to <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a></li>
+              <li>Select your project → Firestore Database → Rules</li>
+              <li>Temporarily replace the rules with:</li>
+            </ol>
+            <pre style="background: #f5f5f5; padding: 16px; border-radius: 8px; overflow-x: auto;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</pre>
+            <ol start="4">
+              <li>Click "Publish"</li>
+              <li>Refresh this page and sign in again</li>
+              <li>After you're set up as admin, update to the secure rules from SETUP.md</li>
+            </ol>
+            <p style="margin-top: 20px;"><strong>Your email to add as admin:</strong> ${email}</p>
+            <button onclick="location.reload()" class="btn btn-primary">Refresh Page</button>
+          </div>
+        `;
+      },
+
+      updateUI() {
+        const adminContent = document.getElementById('admin-content');
+        const accessDenied = document.getElementById('access-denied');
+        const userInfo = document.getElementById('admin-user-info');
+        const userName = document.getElementById('admin-user-name');
+
+        if (this.currentUser && this.isAdmin) {
+          adminContent.style.display = 'block';
+          accessDenied.style.display = 'none';
+          userInfo.style.display = 'flex';
+          userName.textContent = this.currentUser.displayName || this.currentUser.email;
+          this.loadTournaments();
+          this.loadAdminEmails();
+        } else if (this.currentUser) {
+          adminContent.style.display = 'none';
+          accessDenied.style.display = 'block';
+          userInfo.style.display = 'flex';
+          userName.textContent = this.currentUser.displayName || this.currentUser.email;
+        } else {
+          adminContent.style.display = 'none';
+          accessDenied.style.display = 'block';
+          userInfo.style.display = 'none';
+        }
+      },
+
+      setupEventListeners() {
+        // Sign in/out
+        document.getElementById('admin-sign-in')?.addEventListener('click', () => {
+          firebaseAuth.signInWithPopup(googleProvider);
+        });
+        document.getElementById('admin-sign-out')?.addEventListener('click', () => {
+          firebaseAuth.signOut();
+        });
+
+        // Create tournament form
+        document.getElementById('create-tournament-form')?.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.createTournament();
+        });
+
+        // Golfer field preview
+        document.getElementById('golfer-field')?.addEventListener('input', (e) => {
+          this.updateGolferPreview(e.target.value);
+        });
+
+        // Scoring controls
+        document.getElementById('start-scoring')?.addEventListener('click', () => this.startScoring());
+        document.getElementById('stop-scoring')?.addEventListener('click', () => this.stopScoring());
+        document.getElementById('manual-update')?.addEventListener('click', () => this.manualUpdate());
+
+        // Save admins
+        document.getElementById('save-admins')?.addEventListener('click', () => this.saveAdmins());
+
+        // Validate golfer field
+        document.getElementById('validate-tournament-select')?.addEventListener('change', (e) => {
+          document.getElementById('validate-field-btn').disabled = !e.target.value;
+          document.getElementById('validation-results').style.display = 'none';
+          document.getElementById('validation-status').textContent = '';
+        });
+        document.getElementById('validate-field-btn')?.addEventListener('click', () => this.validateGolferField());
+
+        // Lineup management
+        document.getElementById('lineup-tournament-select')?.addEventListener('change', (e) => {
+          this.loadLineupsForTournament(e.target.value);
+        });
+        document.getElementById('lineup-user-select')?.addEventListener('change', (e) => {
+          this.loadUserLineupForAdmin(e.target.value);
+        });
+        document.getElementById('save-admin-lineup')?.addEventListener('click', () => this.saveAdminLineup());
+        document.getElementById('cancel-admin-lineup')?.addEventListener('click', () => this.cancelAdminLineup());
+      },
+
+      parseGolferField(text) {
+        const lines = text.trim().split('\n');
+        const golfers = [];
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+
+          // Match "Name $Value" format
+          const match = trimmed.match(/^(.+?)\s+\$(\d+(?:\.\d+)?)$/);
+          if (match) {
+            let name = match[1].trim();
+            // Convert "Last, First" to "First Last"
+            if (name.includes(',')) {
+              const parts = name.split(',');
+              if (parts.length === 2) {
+                name = `${parts[1].trim()} ${parts[0].trim()}`;
+              }
+            }
+            const salary = parseFloat(match[2]);
+            if (name && !isNaN(salary) && salary > 0) {
+              golfers.push({ name, salary });
+            }
+          }
+        }
+
+        return golfers.sort((a, b) => b.salary - a.salary);
+      },
+
+      updateGolferPreview(text) {
+        const preview = document.getElementById('golfer-preview');
+        const golfers = this.parseGolferField(text);
+
+        if (golfers.length === 0) {
+          preview.innerHTML = '<p style="color: var(--text-secondary);">Enter golfers above to see preview</p>';
+          return;
+        }
+
+        preview.innerHTML = golfers.map(g => `
+          <div class="golfer-preview-item">
+            <span>${g.name}</span>
+            <span>$${this.formatSalary(g.salary)}</span>
+          </div>
+        `).join('');
+      },
+
+      async createTournament() {
+        const alertDiv = document.getElementById('create-alert');
+        
+        try {
+          const name = document.getElementById('tournament-name').value.trim();
+          const espnEventName = document.getElementById('espn-event-name').value.trim();
+          const startDate = new Date(document.getElementById('start-date').value);
+          const endDate = new Date(document.getElementById('end-date').value);
+          const salaryCap = parseFloat(document.getElementById('salary-cap').value);
+          const status = document.getElementById('tournament-status').value;
+          const golferFieldText = document.getElementById('golfer-field').value;
+          const golferField = this.parseGolferField(golferFieldText);
+
+          if (!name || !startDate || !endDate || golferField.length === 0) {
+            throw new Error('Please fill in all required fields');
+          }
+
+          await firebaseDb.collection('tournaments').add({
+            name,
+            espnEventName,
+            startDate: firebase.firestore.Timestamp.fromDate(startDate),
+            endDate: firebase.firestore.Timestamp.fromDate(endDate),
+            salaryCap,
+            status,
+            golferField,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdBy: this.currentUser.uid
+          });
+
+          alertDiv.innerHTML = '<div class="alert alert-success">Tournament created successfully!</div>';
+          document.getElementById('create-tournament-form').reset();
+          document.getElementById('golfer-preview').innerHTML = '<p style="color: var(--text-secondary);">Enter golfers above to see preview</p>';
+          this.loadTournaments();
+
+        } catch (error) {
+          alertDiv.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`;
+        }
+      },
+
+      async loadTournaments() {
+        const listDiv = document.getElementById('tournament-list');
+        const scoringSelect = document.getElementById('scoring-tournament');
+        const lineupTournamentSelect = document.getElementById('lineup-tournament-select');
+        
+        try {
+          const snapshot = await firebaseDb.collection('tournaments')
+            .orderBy('startDate', 'desc')
+            .limit(20)
+            .get();
+
+          const tournaments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          if (tournaments.length === 0) {
+            listDiv.innerHTML = '<p style="color: var(--text-secondary);">No tournaments yet</p>';
+            return;
+          }
+
+          listDiv.innerHTML = tournaments.map(t => `
+            <div class="tournament-card ${t.status === 'in_progress' || t.status === 'lineup_open' ? 'active' : ''}">
+              <div class="tournament-info">
+                <h4>${t.name}</h4>
+                <p>Status: ${t.status} | Golfers: ${t.golferField?.length || 0} | Cap: $${this.formatSalary(t.salaryCap)}</p>
+              </div>
+              <div class="tournament-actions">
+                <select class="form-control btn-sm" onchange="TournamentAdmin.updateStatus('${t.id}', this.value)" style="width: auto;">
+                  <option value="upcoming" ${t.status === 'upcoming' ? 'selected' : ''}>Upcoming</option>
+                  <option value="lineup_open" ${t.status === 'lineup_open' ? 'selected' : ''}>Lineup Open</option>
+                  <option value="in_progress" ${t.status === 'in_progress' ? 'selected' : ''}>In Progress</option>
+                  <option value="completed" ${t.status === 'completed' ? 'selected' : ''}>Completed</option>
+                </select>
+                <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.deleteTournament('${t.id}')">Delete</button>
+              </div>
+            </div>
+          `).join('');
+
+          // Update scoring select
+          scoringSelect.innerHTML = '<option value="">Select tournament...</option>' +
+            tournaments
+              .filter(t => t.status === 'in_progress' || t.status === 'lineup_open')
+              .map(t => `<option value="${t.id}" data-espn="${t.espnEventName}">${t.name}</option>`)
+              .join('');
+
+          // Update lineup tournament select (all tournaments)
+          lineupTournamentSelect.innerHTML = '<option value="">Select tournament...</option>' +
+            tournaments.map(t => `<option value="${t.id}">${t.name} (${t.status})</option>`).join('');
+
+          // Update validate tournament select (tournaments with ESPN event name)
+          const validateTournamentSelect = document.getElementById('validate-tournament-select');
+          validateTournamentSelect.innerHTML = '<option value="">Select tournament...</option>' +
+            tournaments
+              .filter(t => t.espnEventName)
+              .map(t => `<option value="${t.id}" data-espn="${t.espnEventName}">${t.name}</option>`)
+              .join('');
+
+        } catch (error) {
+          listDiv.innerHTML = `<p style="color: var(--danger);">Error loading tournaments: ${error.message}</p>`;
+        }
+      },
+
+      async updateStatus(tournamentId, newStatus) {
+        try {
+          await firebaseDb.collection('tournaments').doc(tournamentId).update({
+            status: newStatus
+          });
+          this.loadTournaments();
+        } catch (error) {
+          alert('Error updating status: ' + error.message);
+        }
+      },
+
+      async deleteTournament(tournamentId) {
+        if (!confirm('Are you sure you want to delete this tournament?')) return;
+        
+        try {
+          await firebaseDb.collection('tournaments').doc(tournamentId).delete();
+          this.loadTournaments();
+        } catch (error) {
+          alert('Error deleting tournament: ' + error.message);
+        }
+      },
+
+      async startScoring() {
+        const select = document.getElementById('scoring-tournament');
+        const tournamentId = select.value;
+        const espnEventName = select.options[select.selectedIndex]?.dataset?.espn;
+
+        if (!tournamentId) {
+          alert('Please select a tournament');
+          return;
+        }
+
+        Scoring.startAutoUpdate(tournamentId, espnEventName, 10);
+        document.getElementById('scoring-status').className = 'scoring-status scoring-active';
+        document.getElementById('scoring-status').textContent = 'Auto-update: Active (every 10 minutes)';
+      },
+
+      stopScoring() {
+        Scoring.stopAutoUpdate();
+        document.getElementById('scoring-status').className = 'scoring-status scoring-inactive';
+        document.getElementById('scoring-status').textContent = 'Auto-update: Inactive';
+      },
+
+      async manualUpdate() {
+        const select = document.getElementById('scoring-tournament');
+        const tournamentId = select.value;
+        const espnEventName = select.options[select.selectedIndex]?.dataset?.espn;
+
+        if (!tournamentId) {
+          alert('Please select a tournament');
+          return;
+        }
+
+        document.getElementById('last-update').textContent = 'Updating...';
+        
+        try {
+          await Scoring.updateScores(tournamentId, espnEventName);
+          document.getElementById('last-update').textContent = `Last updated: ${new Date().toLocaleString()}`;
+        } catch (error) {
+          document.getElementById('last-update').textContent = `Error: ${error.message}`;
+        }
+      },
+
+      async loadAdminEmails() {
+        try {
+          const doc = await firebaseDb.collection('config').doc('admins').get();
+          if (doc.exists) {
+            const emails = doc.data().emails || [];
+            document.getElementById('admin-emails').value = emails.join('\n');
+          }
+        } catch (error) {
+          console.error('Error loading admin emails:', error);
+        }
+      },
+
+      async saveAdmins() {
+        const text = document.getElementById('admin-emails').value;
+        const emails = text.split('\n')
+          .map(e => e.trim().toLowerCase())
+          .filter(e => e.includes('@'));
+
+        try {
+          await firebaseDb.collection('config').doc('admins').set({ emails });
+          alert('Admin list saved!');
+        } catch (error) {
+          alert('Error saving admins: ' + error.message);
+        }
+      },
+
+      // Golfer Field Validation
+      validationTournamentId: null,
+      validationTournamentData: null,
+
+      async validateGolferField() {
+        const select = document.getElementById('validate-tournament-select');
+        const tournamentId = select.value;
+        const espnEventName = select.options[select.selectedIndex]?.dataset?.espn;
+        const statusDiv = document.getElementById('validation-status');
+        const resultsDiv = document.getElementById('validation-results');
+
+        if (!tournamentId) {
+          alert('Please select a tournament');
+          return;
+        }
+
+        statusDiv.textContent = 'Fetching ESPN data...';
+        resultsDiv.style.display = 'none';
+
+        try {
+          // Load tournament data from Firebase
+          const tournamentDoc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
+          if (!tournamentDoc.exists) {
+            throw new Error('Tournament not found');
+          }
+          this.validationTournamentId = tournamentId;
+          this.validationTournamentData = tournamentDoc.data();
+          const adminGolfers = this.validationTournamentData.golferField || [];
+
+          // Fetch ESPN data
+          const scoreboard = await Scoring.fetchScoreboard();
+          if (!scoreboard) {
+            throw new Error('Could not fetch ESPN data');
+          }
+
+          const event = Scoring.findEvent(scoreboard, espnEventName);
+          if (!event) {
+            throw new Error('ESPN event not found. Make sure the tournament is currently active.');
+          }
+
+          // Get competitors from ESPN
+          const competitions = event.competitions || [];
+          const espnGolfers = [];
+          competitions.forEach(comp => {
+            (comp.competitors || []).forEach(c => {
+              const name = c?.athlete?.displayName || c?.athlete?.fullName || '';
+              if (name) {
+                espnGolfers.push({
+                  name: name,
+                  normalizedName: Scoring.normalizeName(name)
+                });
+              }
+            });
+          });
+
+          // Normalize admin golfer names for comparison
+          const adminGolfersNormalized = adminGolfers.map(g => ({
+            ...g,
+            normalizedName: Scoring.normalizeName(g.name)
+          }));
+
+          // Find discrepancies
+          const notInEspn = adminGolfersNormalized.filter(ag => 
+            !espnGolfers.some(eg => eg.normalizedName === ag.normalizedName)
+          );
+
+          const notInAdmin = espnGolfers.filter(eg => 
+            !adminGolfersNormalized.some(ag => ag.normalizedName === eg.normalizedName)
+          );
+
+          // Display results
+          statusDiv.textContent = `Found ${espnGolfers.length} golfers in ESPN field, ${adminGolfers.length} in your list.`;
+          this.renderValidationResults(notInEspn, notInAdmin);
+
+        } catch (error) {
+          statusDiv.textContent = `Error: ${error.message}`;
+          console.error('Validation error:', error);
+        }
+      },
+
+      renderValidationResults(notInEspn, notInAdmin) {
+        const resultsDiv = document.getElementById('validation-results');
+        const notInEspnSection = document.getElementById('not-in-espn-section');
+        const notInAdminSection = document.getElementById('not-in-admin-section');
+        const allGoodDiv = document.getElementById('validation-all-good');
+        
+        resultsDiv.style.display = 'block';
+
+        // If both are empty, show all good message
+        if (notInEspn.length === 0 && notInAdmin.length === 0) {
+          notInEspnSection.style.display = 'none';
+          notInAdminSection.style.display = 'none';
+          allGoodDiv.style.display = 'block';
+          return;
+        }
+
+        allGoodDiv.style.display = 'none';
+
+        // Not in ESPN section
+        if (notInEspn.length > 0) {
+          notInEspnSection.style.display = 'block';
+          document.getElementById('not-in-espn-count').textContent = `(${notInEspn.length} golfer${notInEspn.length > 1 ? 's' : ''})`;
+          document.getElementById('not-in-espn-list').innerHTML = notInEspn.map(g => `
+            <div class="validation-item not-in-espn" data-name="${g.name}">
+              <div>
+                <span class="golfer-name">${g.name}</span>
+                <span class="golfer-salary">$${this.formatSalary(g.salary)}</span>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeGolferFromField('${g.name.replace(/'/g, "\\'")}')">Remove</button>
+            </div>
+          `).join('');
+        } else {
+          notInEspnSection.style.display = 'none';
+        }
+
+        // Not in Admin section
+        if (notInAdmin.length > 0) {
+          notInAdminSection.style.display = 'block';
+          document.getElementById('not-in-admin-count').textContent = `(${notInAdmin.length} golfer${notInAdmin.length > 1 ? 's' : ''})`;
+          document.getElementById('not-in-admin-list').innerHTML = notInAdmin.map(g => `
+            <div class="validation-item not-in-admin" data-name="${g.name}">
+              <div>
+                <span class="golfer-name">${g.name}</span>
+                <span class="golfer-salary">Default: $15.00</span>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="TournamentAdmin.addGolferToField('${g.name.replace(/'/g, "\\'")}', 15)">Add ($15.00)</button>
+            </div>
+          `).join('');
+        } else {
+          notInAdminSection.style.display = 'none';
+        }
+      },
+
+      async removeGolferFromField(golferName) {
+        if (!this.validationTournamentId || !this.validationTournamentData) {
+          alert('No tournament selected');
+          return;
+        }
+
+        const item = document.querySelector(`.validation-item[data-name="${golferName}"]`);
+        if (item) item.classList.add('processing');
+
+        try {
+          const updatedField = this.validationTournamentData.golferField.filter(
+            g => g.name !== golferName
+          );
+
+          await firebaseDb.collection('tournaments').doc(this.validationTournamentId).update({
+            golferField: updatedField
+          });
+
+          // Update local data
+          this.validationTournamentData.golferField = updatedField;
+
+          // Remove item from DOM
+          if (item) item.remove();
+
+          // Check if section is now empty
+          const remainingInEspn = document.querySelectorAll('#not-in-espn-list .validation-item');
+          if (remainingInEspn.length === 0) {
+            document.getElementById('not-in-espn-section').style.display = 'none';
+          }
+          document.getElementById('not-in-espn-count').textContent = `(${remainingInEspn.length} golfer${remainingInEspn.length !== 1 ? 's' : ''})`;
+
+          // Check if all good
+          const remainingInAdmin = document.querySelectorAll('#not-in-admin-list .validation-item');
+          if (remainingInEspn.length === 0 && remainingInAdmin.length === 0) {
+            document.getElementById('validation-all-good').style.display = 'block';
+          }
+
+          // Refresh tournament list to show updated count
+          this.loadTournaments();
+
+        } catch (error) {
+          alert('Error removing golfer: ' + error.message);
+          if (item) item.classList.remove('processing');
+        }
+      },
+
+      async addGolferToField(golferName, salary = 15) {
+        if (!this.validationTournamentId || !this.validationTournamentData) {
+          alert('No tournament selected');
+          return;
+        }
+
+        const item = document.querySelector(`.validation-item[data-name="${golferName}"]`);
+        if (item) item.classList.add('processing');
+
+        try {
+          const updatedField = [
+            ...this.validationTournamentData.golferField,
+            { name: golferName, salary: salary }
+          ].sort((a, b) => b.salary - a.salary);
+
+          await firebaseDb.collection('tournaments').doc(this.validationTournamentId).update({
+            golferField: updatedField
+          });
+
+          // Update local data
+          this.validationTournamentData.golferField = updatedField;
+
+          // Remove item from DOM
+          if (item) item.remove();
+
+          // Check if section is now empty
+          const remainingInAdmin = document.querySelectorAll('#not-in-admin-list .validation-item');
+          if (remainingInAdmin.length === 0) {
+            document.getElementById('not-in-admin-section').style.display = 'none';
+          }
+          document.getElementById('not-in-admin-count').textContent = `(${remainingInAdmin.length} golfer${remainingInAdmin.length !== 1 ? 's' : ''})`;
+
+          // Check if all good
+          const remainingInEspn = document.querySelectorAll('#not-in-espn-list .validation-item');
+          if (remainingInEspn.length === 0 && remainingInAdmin.length === 0) {
+            document.getElementById('validation-all-good').style.display = 'block';
+          }
+
+          // Refresh tournament list to show updated count
+          this.loadTournaments();
+
+        } catch (error) {
+          alert('Error adding golfer: ' + error.message);
+          if (item) item.classList.remove('processing');
+        }
+      },
+
+      // Lineup Management
+      selectedTournamentForLineup: null,
+      selectedUserForLineup: null,
+      adminSelectedGolfers: [],
+      tournamentGolferField: [],
+      currentAdminLineupType: 'rounds_1_2',
+      userLineupsCache: {},
+
+      async loadLineupsForTournament(tournamentId) {
+        if (!tournamentId) {
+          document.getElementById('lineup-user-select').disabled = true;
+          document.getElementById('lineup-user-select').innerHTML = '<option value="">Select user...</option>';
+          document.getElementById('admin-lineup-editor').style.display = 'none';
+          return;
+        }
+
+        this.selectedTournamentForLineup = tournamentId;
+
+        // Load tournament data
+        const tournamentDoc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
+        if (tournamentDoc.exists) {
+          this.tournamentGolferField = tournamentDoc.data().golferField || [];
+        }
+
+        // Load all lineups for this tournament
+        const lineupsSnapshot = await firebaseDb.collection('lineups')
+          .where('tournamentId', '==', tournamentId)
+          .get();
+
+        // Group by user
+        const usersMap = new Map();
+        lineupsSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          const userId = data.userId;
+          if (!usersMap.has(userId)) {
+            usersMap.set(userId, {
+              userId,
+              displayName: data.userDisplayName,
+              lineups: {}
+            });
+          }
+          const lineupType = data.lineupType || 'rounds_1_2';
+          usersMap.get(userId).lineups[lineupType] = { id: doc.id, ...data };
+        });
+
+        this.userLineupsCache = Object.fromEntries(usersMap);
+
+        const userSelect = document.getElementById('lineup-user-select');
+        userSelect.disabled = false;
+        userSelect.innerHTML = '<option value="">Select user...</option>' +
+          Array.from(usersMap.values()).map(u => 
+            `<option value="${u.userId}">${u.displayName}</option>`
+          ).join('');
+
+        document.getElementById('admin-lineup-editor').style.display = 'none';
+      },
+
+      async loadUserLineupForAdmin(userId) {
+        if (!userId) {
+          document.getElementById('admin-lineup-editor').style.display = 'none';
+          return;
+        }
+
+        this.selectedUserForLineup = userId;
+        this.currentAdminLineupType = 'rounds_1_2';
+
+        const userSelect = document.getElementById('lineup-user-select');
+        const userName = userSelect.options[userSelect.selectedIndex].text;
+        document.getElementById('editing-user-name').textContent = `Editing lineup for: ${userName}`;
+
+        this.loadAdminLineupType('rounds_1_2');
+        document.getElementById('admin-lineup-editor').style.display = 'block';
+        
+        // Setup tab buttons
+        document.getElementById('edit-r12-btn').onclick = () => this.loadAdminLineupType('rounds_1_2');
+        document.getElementById('edit-r34-btn').onclick = () => this.loadAdminLineupType('rounds_3_4');
+      },
+
+      loadAdminLineupType(lineupType) {
+        this.currentAdminLineupType = lineupType;
+        
+        // Update button styles
+        document.getElementById('edit-r12-btn').className = lineupType === 'rounds_1_2' ? 'btn btn-primary' : 'btn btn-outline';
+        document.getElementById('edit-r34-btn').className = lineupType === 'rounds_3_4' ? 'btn btn-primary' : 'btn btn-outline';
+        
+        // Update label
+        document.getElementById('admin-lineup-label').textContent = 
+          `Current Lineup (${lineupType === 'rounds_1_2' ? 'Rounds 1-2' : 'Rounds 3-4'})`;
+
+        // Load golfers for this lineup type
+        const userData = this.userLineupsCache[this.selectedUserForLineup];
+        const lineup = userData?.lineups[lineupType];
+        this.adminSelectedGolfers = lineup?.golfers ? [...lineup.golfers] : [];
+
+        this.renderAdminLineupEditor();
+      },
+
+      renderAdminLineupEditor() {
+        // Render current selection
+        const currentDiv = document.getElementById('admin-current-lineup');
+        if (this.adminSelectedGolfers.length === 0) {
+          currentDiv.innerHTML = '<p style="color: var(--text-secondary);">No golfers selected</p>';
+        } else {
+          currentDiv.innerHTML = this.adminSelectedGolfers.map((g, i) => `
+            <div class="golfer-preview-item">
+              <span>${i + 1}. ${g}</span>
+              <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeAdminGolfer(${i})" style="padding: 2px 8px;">✕</button>
+            </div>
+          `).join('');
+        }
+
+        // Render golfer pool
+        const poolDiv = document.getElementById('admin-golfer-pool');
+        poolDiv.innerHTML = this.tournamentGolferField.map(g => {
+          const isSelected = this.adminSelectedGolfers.includes(g.name);
+          return `
+            <div class="golfer-preview-item" style="cursor: pointer; ${isSelected ? 'background: rgba(44, 82, 50, 0.1);' : ''}" 
+                 onclick="TournamentAdmin.toggleAdminGolfer('${g.name.replace(/'/g, "\\'")}')">
+              <span>${isSelected ? '✓ ' : ''}${g.name}</span>
+              <span>$${this.formatSalary(g.salary)}</span>
+            </div>
+          `;
+        }).join('');
+      },
+
+      toggleAdminGolfer(golferName) {
+        const index = this.adminSelectedGolfers.indexOf(golferName);
+        if (index > -1) {
+          this.adminSelectedGolfers.splice(index, 1);
+        } else if (this.adminSelectedGolfers.length < 4) {
+          this.adminSelectedGolfers.push(golferName);
+        } else {
+          alert('Maximum 4 golfers allowed');
+          return;
+        }
+        this.renderAdminLineupEditor();
+      },
+
+      removeAdminGolfer(index) {
+        this.adminSelectedGolfers.splice(index, 1);
+        this.renderAdminLineupEditor();
+      },
+
+      async saveAdminLineup() {
+        if (this.adminSelectedGolfers.length !== 4) {
+          alert('Please select exactly 4 golfers');
+          return;
+        }
+
+        const userData = this.userLineupsCache[this.selectedUserForLineup];
+        const existingLineup = userData?.lineups[this.currentAdminLineupType];
+
+        try {
+          // Calculate total salary
+          const totalSalary = this.adminSelectedGolfers.reduce((sum, name) => {
+            const golfer = this.tournamentGolferField.find(g => g.name === name);
+            return sum + (golfer ? golfer.salary : 0);
+          }, 0);
+
+          const lineupData = {
+            tournamentId: this.selectedTournamentForLineup,
+            userId: this.selectedUserForLineup,
+            userDisplayName: userData.displayName,
+            golfers: this.adminSelectedGolfers,
+            totalSalary,
+            lineupType: this.currentAdminLineupType,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedBy: this.currentUser.uid
+          };
+
+          if (existingLineup?.id) {
+            await firebaseDb.collection('lineups').doc(existingLineup.id).update(lineupData);
+          } else {
+            lineupData.submittedAt = firebase.firestore.FieldValue.serverTimestamp();
+            const docRef = await firebaseDb.collection('lineups').add(lineupData);
+            // Update cache
+            if (!userData.lineups) userData.lineups = {};
+            userData.lineups[this.currentAdminLineupType] = { id: docRef.id, ...lineupData };
+          }
+
+          alert(`${this.currentAdminLineupType === 'rounds_1_2' ? 'Rounds 1-2' : 'Rounds 3-4'} lineup saved!`);
+        } catch (error) {
+          alert('Error saving lineup: ' + error.message);
+        }
+      },
+
+      cancelAdminLineup() {
+        document.getElementById('admin-lineup-editor').style.display = 'none';
+        document.getElementById('lineup-user-select').value = '';
+        this.adminSelectedGolfers = [];
+      }
+    };
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => TournamentAdmin.init());
+  </script>
+</body>
+</html>
