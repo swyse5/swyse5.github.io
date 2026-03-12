@@ -72,17 +72,14 @@ const Auth = {
   },
 
   updateUI(isSignedIn) {
-    const signInBtn = document.getElementById('sign-in-btn');
-    const signOutBtn = document.getElementById('sign-out-btn');
-    const userInfo = document.getElementById('user-info');
     const userAvatar = document.getElementById('user-avatar');
     const userName = document.getElementById('user-name');
     const adminLink = document.getElementById('admin-link');
 
     if (isSignedIn && this.currentUser) {
-      if (signInBtn) signInBtn.style.display = 'none';
-      if (signOutBtn) signOutBtn.style.display = 'block';
-      if (userInfo) userInfo.style.display = 'flex';
+      // Add signed-in class to body - CSS handles show/hide
+      document.body.classList.add('signed-in');
+      
       if (userAvatar) {
         userAvatar.src = this.currentUser.photoURL || 'https://via.placeholder.com/32';
       }
@@ -93,9 +90,8 @@ const Auth = {
         adminLink.style.display = this.isAdmin ? 'block' : 'none';
       }
     } else {
-      if (signInBtn) signInBtn.style.display = 'block';
-      if (signOutBtn) signOutBtn.style.display = 'none';
-      if (userInfo) userInfo.style.display = 'none';
+      // Remove signed-in class from body
+      document.body.classList.remove('signed-in');
       if (adminLink) adminLink.style.display = 'none';
     }
   },
