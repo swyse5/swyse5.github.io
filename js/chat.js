@@ -125,6 +125,25 @@ const Chat = {
 
     this.cleanup();
 
+    // Check if user is authenticated
+    const user = firebaseAuth.currentUser;
+    if (!user) {
+      // Show login required message
+      const container = document.getElementById('chat-messages');
+      if (container) {
+        container.innerHTML = `
+          <div class="chat-empty">
+            <p>💬</p>
+            <p><strong>Sign in to chat</strong></p>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+              You must be logged in to read and participate in chat.
+            </p>
+          </div>
+        `;
+      }
+      return;
+    }
+
     this.unsubscribe = firebaseDb.collection('chats')
       .doc(this.currentTournamentId)
       .collection('messages')
@@ -172,28 +191,19 @@ const Chat = {
         }
       }, error => {
         console.error('Chat subscription error:', error);
+        const container = document.getElementById('chat-messages');
         if (error.code === 'permission-denied') {
-          const container = document.getElementById('chat-messages');
           if (container) {
             container.innerHTML = `
               <div class="chat-empty">
-                <p style="color: var(--danger);">⚠️ Chat not configured</p>
-                <p style="font-size: 12px; color: var(--text-secondary);">
-                  Add Firestore rules for the chats collection.<br>
-                  Check the browser console for details.
+                <p>💬</p>
+                <p><strong>Sign in to chat</strong></p>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+                  You must be logged in to read and participate in chat.
                 </p>
               </div>
             `;
           }
-          console.log(`
-Add these rules to your Firestore security rules in the Firebase Console:
-
-match /chats/{tournamentId}/messages/{messageId} {
-  allow read: if request.auth != null;
-  allow create: if request.auth != null;
-  allow update: if request.auth != null;
-}
-          `);
         }
       });
   },

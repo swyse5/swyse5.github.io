@@ -8,18 +8,18 @@ const Auth = {
     firebaseAuth.onAuthStateChanged(async (user) => {
       this.currentUser = user;
       if (user) {
+        await this.loadAdminEmails();
         await this.checkAdminStatus(user.email);
         await this.ensureUserDocument(user);
         this.updateUI(true);
         App.onUserSignedIn(user);
       } else {
         this.isAdmin = false;
+        this.adminEmails = [];
         this.updateUI(false);
         App.onUserSignedOut();
       }
     });
-
-    this.loadAdminEmails();
   },
 
   async loadAdminEmails() {
