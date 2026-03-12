@@ -158,9 +158,26 @@ body {
 }
 
 #user-info {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 10px;
+}
+
+/* Auth state classes */
+.auth-show-signed-out {
+  display: flex !important;
+}
+
+.auth-show-signed-in {
+  display: none !important;
+}
+
+body.signed-in .auth-show-signed-out {
+  display: none !important;
+}
+
+body.signed-in .auth-show-signed-in {
+  display: flex !important;
 }
 
 .user-avatar {
