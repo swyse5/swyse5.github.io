@@ -228,9 +228,6 @@ const App = {
       case 'leaderboard':
         this.loadLeaderboardView();
         break;
-      case 'scorecard':
-        this.loadScorecardView();
-        break;
       case 'history':
         this.loadHistoryView();
         break;
@@ -299,19 +296,7 @@ const App = {
     // Check round status for locking
     await this.checkRoundStatus(this.activeTournament.id);
 
-    // If both rounds have started, lineups are fully locked
-    if (this.round1Started && this.round3Started) {
-      document.getElementById('lineup-content').innerHTML = `
-        <div class="no-data">
-          <p><strong>Lineups are locked</strong></p>
-          <p style="margin-top: 8px;">The tournament has started. View your scorecard to see your picks.</p>
-          <a href="#scorecard" class="btn btn-primary" style="margin-top: 16px;">View Scorecard</a>
-        </div>
-      `;
-      return;
-    }
-
-    // Load existing lineups
+    // Load existing lineups (always load, even if locked)
     const lineups = await Lineup.loadUserLineups(
       this.activeTournament.id, 
       Auth.currentUser.uid
@@ -341,25 +326,32 @@ const App = {
     const isR12Locked = this.round1Started;
     const isR34Locked = this.round3Started;
     const isCurrentLocked = this.currentLineupType === 'rounds_1_2' ? isR12Locked : isR34Locked;
+    const allLocked = isR12Locked && isR34Locked;
 
     content.innerHTML = `
       <div class="lineup-builder">
         <div class="lineup-tabs">
           <button class="lineup-tab ${this.currentLineupType === 'rounds_1_2' ? 'active' : ''} ${isR12Locked ? 'locked' : ''}" 
-                  data-lineup="rounds_1_2" ${isR12Locked && this.currentLineupType !== 'rounds_1_2' ? 'disabled' : ''}>
+                  data-lineup="rounds_1_2">
             Rounds 1-2
             ${isR12Locked ? '<span class="lock-icon">🔒</span>' : ''}
             <span class="tab-status">${this.selectedGolfersR12.length}/4</span>
           </button>
           <button class="lineup-tab ${this.currentLineupType === 'rounds_3_4' ? 'active' : ''} ${isR34Locked ? 'locked' : ''}" 
-                  data-lineup="rounds_3_4" ${isR34Locked && this.currentLineupType !== 'rounds_3_4' ? 'disabled' : ''}>
+                  data-lineup="rounds_3_4">
             Rounds 3-4
             ${isR34Locked ? '<span class="lock-icon">🔒</span>' : ''}
             <span class="tab-status">${this.selectedGolfersR34.length}/4</span>
           </button>
         </div>
 
-        ${isCurrentLocked ? `
+        ${allLocked ? `
+          <div class="lineup-locked-banner">
+            <p><strong>🔒 All lineups are locked</strong></p>
+            <p>The tournament is in progress. View your selections below.</p>
+            <a href="#leaderboard" class="btn btn-outline" style="margin-top: 12px;">View Leaderboard →</a>
+          </div>
+        ` : isCurrentLocked ? `
           <div class="lineup-locked-banner">
             <p><strong>🔒 This lineup is locked</strong></p>
             <p>Round ${this.currentLineupType === 'rounds_1_2' ? '1' : '3'} has started. You can no longer edit this lineup.</p>
@@ -384,7 +376,7 @@ const App = {
             <span class="cap-value">$<span id="total-remaining">${Lineup.formatSalary(Lineup.salaryCap)}</span></span>
           </div>
           <div class="cap-item">
-            <span class="cap-label">Avg/Pick</span>
+            <span class="cap-label">Per Slot Left</span>
             <span class="cap-value">$<span id="avg-per-pick">25.00</span></span>
           </div>
         </div>
@@ -402,15 +394,15 @@ const App = {
             ${!isCurrentLocked ? `
               <div class="lineup-actions">
                 <button id="submit-lineup-btn" class="btn btn-primary btn-lg" disabled>
-                  Save ${this.currentLineupType === 'rounds_1_2' ? 'R1-2' : 'R3-4'} Lineup
+                  Save ${this.currentLineupType === 'rounds_1_2' ? 'R1-2' : 'R3-4'}
                 </button>
                 ${this.currentLineupType === 'rounds_1_2' ? `
                   <button id="copy-to-r34-btn" class="btn btn-outline" ${this.selectedGolfersR12.length !== 4 || isR34Locked ? 'disabled' : ''}>
-                    Copy to R3-4 →
+                    Copy to R3-4
                   </button>
                 ` : `
                   <button id="copy-from-r12-btn" class="btn btn-outline" ${this.selectedGolfersR12.length !== 4 ? 'disabled' : ''}>
-                    ← Copy from R1-2
+                    Copy R1-2
                   </button>
                 `}
               </div>
@@ -698,24 +690,6 @@ const App = {
       // Load season standings for current season
       await Leaderboard.renderSeasonStandings('season-leaderboard-content', Auth.currentUser?.uid, this.currentSeason);
     });
-  },
-
-  async loadScorecardView() {
-    if (!this.activeTournament || !Auth.currentUser) {
-      document.getElementById('scorecard-content').innerHTML = 
-        '<div class="no-data">Please sign in to view your scorecard</div>';
-      document.getElementById('scorecard-last-updated').textContent = '';
-      return;
-    }
-
-    await Leaderboard.renderPlayerScorecard(
-      'scorecard-content', 
-      Auth.currentUser.uid, 
-      this.activeTournament.id
-    );
-    
-    // Update last updated timestamp
-    Leaderboard.updateLastUpdatedDisplay('scorecard-last-updated');
   },
 
   async loadHistoryView() {

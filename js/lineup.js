@@ -249,6 +249,7 @@ const Lineup = {
     if (!container) return;
 
     container.innerHTML = '';
+    const isLocked = onRemove === null;
 
     for (let i = 0; i < 4; i++) {
       const slot = document.createElement('div');
@@ -258,6 +259,7 @@ const Lineup = {
         const golfer = selectedGolfers[i];
         const salary = this.getGolferSalary(golfer);
         slot.classList.add('filled');
+        if (isLocked) slot.classList.add('locked');
         
         // Only show remove button if onRemove callback is provided (not locked)
         const removeButton = onRemove ? `<button class="remove-btn" data-index="${i}">&times;</button>` : '';
@@ -274,9 +276,10 @@ const Lineup = {
           });
         }
       } else {
+        slot.classList.add('empty');
         slot.innerHTML = `
           <span class="slot-number">${i + 1}</span>
-          <span class="slot-empty">Select a golfer</span>
+          <span class="slot-empty">${isLocked ? 'No golfer selected' : 'Select a golfer'}</span>
         `;
       }
 

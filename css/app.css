@@ -623,6 +623,19 @@ body.signed-in .auth-show-signed-in {
   background: white;
 }
 
+.golfer-slot.filled.locked {
+  border-color: var(--text-secondary);
+  background: var(--background);
+}
+
+.golfer-slot.filled.locked .slot-number {
+  background: var(--text-secondary);
+}
+
+.golfer-slot.empty {
+  opacity: 0.6;
+}
+
 .slot-number {
   width: 28px;
   height: 28px;
@@ -1760,51 +1773,254 @@ body.signed-in .auth-show-signed-in {
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    padding: 12px 16px;
   }
 
   .main-nav {
     order: 3;
     flex-wrap: wrap;
     justify-content: center;
+    gap: 4px;
   }
 
   .nav-link {
-    padding: 6px 12px;
-    font-size: 14px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .user-section {
+    gap: 8px;
+  }
+
+  .tournament-banner {
+    padding: 16px 12px;
   }
 
   .tournament-banner h2 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+  }
+
+  .container {
+    padding: 0 12px;
+  }
+
+  .view h2 {
+    font-size: 1.4rem;
+    margin-bottom: 16px;
   }
 
   .salary-cap-display {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 12px;
   }
 
   .lineup-columns {
     grid-template-columns: 1fr;
   }
 
+  .lineup-actions {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .lineup-actions .btn {
+    padding: 10px 12px;
+    font-size: 13px;
+    flex: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .lineup-actions .btn-lg {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Leaderboard Table Mobile */
   .leaderboard-table {
-    font-size: 12px;
+    font-size: 11px;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .leaderboard-table th,
   .leaderboard-table td {
-    padding: 10px 6px;
+    padding: 8px 4px;
+    white-space: nowrap;
   }
 
-  .scorecard-table {
+  .leaderboard-table th.player,
+  .leaderboard-table td.player {
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 1;
+    min-width: 100px;
+  }
+
+  .leaderboard-table th.player {
+    background: var(--accent-color);
+  }
+
+  .player-name {
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  /* Season Standings Mobile */
+  .season-standings-table {
     font-size: 11px;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
+  .season-standings-table th,
+  .season-standings-table td {
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+
+  .season-standings-table th.player,
+  .season-standings-table td.player {
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 1;
+  }
+
+  .season-standings-table th.player {
+    background: var(--accent-color);
+  }
+
+  .season-standings-table th.tournament {
+    min-width: 70px;
+    max-width: 70px;
+    font-size: 10px;
+  }
+
+  /* Hole-by-hole Scorecard Mobile */
+  .hole-scorecard {
+    font-size: 10px;
+  }
+
+  .hole-scorecard th,
+  .hole-scorecard td {
+    padding: 4px 2px;
+    min-width: 22px;
+  }
+
+  .hole-scorecard .golfer-col {
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 1;
+    min-width: 70px;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .scorecard-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -12px;
+    padding: 0 12px;
+  }
+
+  /* Round selector mobile */
+  .round-selector {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .round-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* View toggle mobile */
+  .view-toggle {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .view-toggle-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  /* Tournament selector mobile */
+  .tournament-selector-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .tournament-selector {
+    width: 100%;
+  }
+
+  /* Season info mobile */
+  .season-info {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  /* Bogey pot banner mobile */
+  .bogey-pot-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  /* Eagles/Bogeys section mobile */
+  .eagles-bogeys-section {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  /* Golfer details in expanded row */
+  .golfer-details-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .golfer-card {
+    padding: 10px;
+  }
+
+  /* Action cards mobile */
+  .action-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .action-card {
+    padding: 16px;
+  }
+
+  /* Chat panel mobile */
   .chat-panel {
     width: 100%;
     right: 0;
     bottom: 0;
     top: auto;
-    height: 60vh;
+    height: 70vh;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 
@@ -1813,6 +2029,63 @@ body.signed-in .auth-show-signed-in {
     right: 16px;
     width: 50px;
     height: 50px;
+  }
+
+  /* Last updated text mobile */
+  .last-updated {
+    font-size: 11px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .nav-link {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .lineup-actions .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .lineup-actions .btn-lg {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .leaderboard-table {
+    font-size: 10px;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 6px 3px;
+  }
+
+  .player-name {
+    max-width: 60px;
+  }
+
+  .hole-scorecard {
+    font-size: 9px;
+  }
+
+  .hole-scorecard th,
+  .hole-scorecard td {
+    padding: 3px 1px;
+    min-width: 18px;
+  }
+
+  .hole-scorecard .golfer-col {
+    min-width: 55px;
+    max-width: 55px;
+    font-size: 9px;
+  }
+
+  .season-standings-table th.tournament {
+    min-width: 55px;
+    max-width: 55px;
   }
 }
 
