@@ -772,12 +772,21 @@ const App = {
 
   onUserSignedIn(user) {
     console.log('User signed in:', user.displayName);
+    // Re-subscribe to chat now that user is authenticated
+    if (typeof Chat !== 'undefined') {
+      Chat.subscribeToMessages();
+    }
     // Refresh current view
     this.onViewLoad(this.currentView);
   },
 
   onUserSignedOut() {
     console.log('User signed out');
+    // Cleanup chat subscription
+    if (typeof Chat !== 'undefined') {
+      Chat.cleanup();
+      Chat.subscribeToMessages(); // This will show the "sign in" message
+    }
     // Refresh current view
     this.onViewLoad(this.currentView);
   },
