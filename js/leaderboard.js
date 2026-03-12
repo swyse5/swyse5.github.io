@@ -1110,8 +1110,24 @@ const Leaderboard = {
         <span><strong>${standings.length}</strong> players</span>
       </div>
 
+      <!-- Season Standings Table (moved to top) -->
+      <h3 class="section-title">Season Standings</h3>
+      <table class="season-standings-table">
+        <thead>
+          <tr>
+            <th class="pos">Pos</th>
+            <th class="player">Player</th>
+            ${tournaments.map(t => `<th class="tournament" title="${t.name}">${t.name}</th>`).join('')}
+            <th class="season-total">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${standings.map(player => this.renderSeasonRow(player, tournaments, currentUserId)).join('')}
+        </tbody>
+      </table>
+
       <!-- Bogey Pot Banner -->
-      <div class="bogey-pot-banner">
+      <div class="bogey-pot-banner" style="margin-top: 30px;">
         <div class="bogey-pot-icon">💰</div>
         <div class="bogey-pot-info">
           <div class="bogey-pot-label">Bogey Pot</div>
@@ -1162,21 +1178,6 @@ const Leaderboard = {
           `}
         </div>
       </div>
-
-      <h3 class="section-title">Season Standings</h3>
-      <table class="season-standings-table">
-        <thead>
-          <tr>
-            <th class="pos">Pos</th>
-            <th class="player">Player</th>
-            ${tournaments.map(t => `<th class="tournament" title="${t.name}">${t.name}</th>`).join('')}
-            <th class="season-total">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${standings.map(player => this.renderSeasonRow(player, tournaments, currentUserId)).join('')}
-        </tbody>
-      </table>
     `;
   },
 
