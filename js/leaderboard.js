@@ -74,49 +74,93 @@ const Leaderboard = {
 
     // Calculate best ball for each player
     const standings = lineups.map(lineup => {
-      // Use split calculation if separate lineups exist
+      // Get per-round golfer lineups (with individual round overrides applied)
+      const golfersR1 = lineup.golfersRound1 || [];
+      const golfersR2 = lineup.golfersRound2 || [];
+      const golfersR3 = lineup.golfersRound3 || [];
+      const golfersR4 = lineup.golfersRound4 || [];
+      
+      // Keep group-level references for backwards compatibility
       const golfersR12 = lineup.golfersRounds12 || [];
       const golfersR34 = lineup.golfersRounds34 || [];
       const hasLineup1 = lineup.hasLineup1 || golfersR12.length > 0;
       const hasLineup2 = lineup.hasLineup2 || golfersR34.length > 0;
-      const hasSplitLineup = hasLineup1 && hasLineup2;
+      const hasSplitLineup = hasLineup1 || hasLineup2;
       
-      // For best ball calculation, only use lineups that exist
-      // If only R1-2 submitted, use same for all rounds (legacy behavior for scoring)
-      const golfersR34ForScoring = hasLineup2 ? golfersR34 : golfersR12;
-      
-      const bestBall = hasSplitLineup
-        ? Scoring.calculateTotalBestBallSplit(golfersR12, golfersR34, golferScores)
-        : Scoring.calculateTotalBestBall(golfersR12, golferScores);
+      // Use per-round calculation for scoring (individual overrides already applied in getAllLineups)
+      const golfersPerRound = [golfersR1, golfersR2, golfersR3, golfersR4];
+      const bestBall = Scoring.calculateTotalBestBallByRound(golfersPerRound, golferScores);
       
       // Get individual golfer round totals for display
-      // Combine golfers from both lineups for display
-      const allGolfers = [...new Set([...golfersR12, ...golfersR34])];
+      // Combine golfers from all rounds for display
+      const allGolfers = [...new Set([...golfersR1, ...golfersR2, ...golfersR3, ...golfersR4])];
       const golferDetails = allGolfers.map(golferName => {
         const normalized = Scoring.normalizeName(golferName);
         const golfer = golferScores[normalized];
-        const isR12 = golfersR12.includes(golferName);
-        const isR34 = golfersR34.includes(golferName);
+        
+        // Check which rounds this golfer is active in
+        const isActiveInRound = [
+          golfersR1.includes(golferName),
+          golfersR2.includes(golferName),
+          golfersR3.includes(golferName),
+          golfersR4.includes(golferName)
+        ];
+        
+        // Determine active rounds label
+        let activeRounds = 'all';
+        const activeRoundNums = isActiveInRound.map((active, i) => active ? i + 1 : null).filter(r => r !== null);
+        if (activeRoundNums.length < 4) {
+          activeRounds = activeRoundNums.join(', ');
+        }
+        
         return {
           name: golferName,
-          activeRounds: isR12 && isR34 ? 'all' : (isR12 ? '1-2' : '3-4'),
+          activeRounds,
+          isActiveInRound,
           rounds: [1, 2, 3, 4].map(roundNum => {
             if (!golfer || !golfer.rounds || !golfer.rounds[roundNum - 1]) {
-              return { toPar: null, holesPlayed: 0, active: false };
+              return { toPar: null, holesPlayed: 0, active: isActiveInRound[roundNum - 1] };
             }
             const round = golfer.rounds[roundNum - 1];
             const holesPlayed = round.holes ? round.holes.filter(h => h && h.toPar !== null).length : 0;
-            const isActive = roundNum <= 2 ? isR12 : isR34;
             return {
               toPar: round.totalToPar,
               holesPlayed,
               isComplete: round.isComplete,
-              active: isActive
+              active: isActiveInRound[roundNum - 1]
             };
           }),
           totalToPar: golfer ? golfer.rounds?.reduce((sum, r) => sum + (r?.totalToPar || 0), 0) : null
         };
       });
+      
+      // Calculate total holes remaining for all golfers in lineup
+      let holesRemaining = 0;
+      golfersPerRound.forEach((roundGolfers, roundIndex) => {
+        roundGolfers.forEach(golferName => {
+          const normalized = Scoring.normalizeName(golferName);
+          const golfer = golferScores[normalized];
+          const round = golfer?.rounds?.[roundIndex];
+          
+          if (!round || !round.holes) {
+            // No data for this round, count as 18 holes remaining
+            holesRemaining += 18;
+          } else if (round.isComplete) {
+            // Round complete, 0 holes remaining for this round
+            holesRemaining += 0;
+          } else {
+            // Count holes not yet played
+            const holesPlayed = round.holes.filter(h => h && h.toPar !== null).length;
+            holesRemaining += (18 - holesPlayed);
+          }
+        });
+      });
+      
+      // Calculate real-time eagles and bogeys for this player
+      const { eagles, bogeys } = this.calculateRealTimeEaglesAndBogeys(
+        golfersPerRound,
+        golferScores
+      );
       
       return {
         userId: lineup.userId,
@@ -124,8 +168,16 @@ const Leaderboard = {
         golfers: lineup.golfers,
         golfersRounds12: golfersR12,
         golfersRounds34: golfersR34,
+        golfersRound1: golfersR1,
+        golfersRound2: golfersR2,
+        golfersRound3: golfersR3,
+        golfersRound4: golfersR4,
         hasLineup1,
         hasLineup2,
+        hasIndividualRound1: lineup.hasIndividualRound1,
+        hasIndividualRound2: lineup.hasIndividualRound2,
+        hasIndividualRound3: lineup.hasIndividualRound3,
+        hasIndividualRound4: lineup.hasIndividualRound4,
         hasSplitLineup,
         golferDetails,
         rounds: bestBall.rounds.map((r, i) => ({
@@ -137,7 +189,9 @@ const Leaderboard = {
         totalToPar: bestBall.totalToPar,
         totalHolesPlayed: bestBall.totalHolesPlayed,
         completedRounds: bestBall.completedRounds,
-        thru: this.formatThru(bestBall)
+        holesRemaining: holesRemaining,
+        eagles: eagles,
+        bogeys: bogeys
       };
     });
 
@@ -161,19 +215,83 @@ const Leaderboard = {
     return standings;
   },
 
-  formatThru(bestBall) {
-    if (bestBall.completedRounds === 4) return 'F';
+  // Calculate real-time eagles and bogeys for a player
+  // Eagles: best ball score of -2 or better (counted immediately when any golfer achieves it)
+  // Bogeys: best ball score of +1 or worse (counted when ALL non-withdrawn golfers have finished the hole)
+  // Golfers who haven't started still block bogey counting (they might still play)
+  // Only withdrawn golfers are excluded from blocking
+  calculateRealTimeEaglesAndBogeys(golfersPerRound, golferScores) {
+    let eagles = 0;
+    let bogeys = 0;
     
-    const currentRoundIndex = bestBall.rounds.findIndex(r => !r.isComplete && r.holesPlayed > 0);
-    if (currentRoundIndex === -1) {
-      if (bestBall.completedRounds > 0) {
-        return `R${bestBall.completedRounds}`;
+    // Process all 4 rounds
+    for (let roundNum = 1; roundNum <= 4; roundNum++) {
+      const roundIndex = roundNum - 1;
+      const golfers = golfersPerRound[roundIndex] || [];
+      
+      if (golfers.length === 0) continue;
+      
+      // Get withdrawn golfers - these are excluded from bogey blocking
+      const withdrawnGolfers = golfers.filter(golferName => 
+        Scoring.isGolferWithdrawnForRound(golferScores, golferName, roundNum)
+      );
+      
+      // Relevant golfers = all lineup golfers MINUS withdrawn ones
+      // This includes golfers who haven't started yet (they still block bogey counting)
+      const relevantGolfers = golfers.filter(golferName => 
+        !Scoring.isGolferWithdrawnForRound(golferScores, golferName, roundNum)
+      );
+      
+      // If all golfers withdrew, skip this round
+      if (relevantGolfers.length === 0) continue;
+      
+      // Check each hole
+      for (let holeNum = 1; holeNum <= 18; holeNum++) {
+        const holeIndex = holeNum - 1;
+        let bestScore = null;
+        let allRelevantGolfersCompletedHole = true;
+        let anyGolferHasScore = false;
+        
+        // Check all golfers in lineup for best score
+        golfers.forEach(golferName => {
+          const normalized = Scoring.normalizeName(golferName);
+          const golfer = golferScores[normalized];
+          const hole = golfer?.rounds?.[roundIndex]?.holes?.[holeIndex];
+          
+          if (hole && hole.toPar !== null && hole.toPar !== undefined) {
+            anyGolferHasScore = true;
+            if (bestScore === null || hole.toPar < bestScore) {
+              bestScore = hole.toPar;
+            }
+          }
+        });
+        
+        // Check if all RELEVANT (non-withdrawn) golfers have completed this hole
+        // This includes golfers who haven't started - they block bogey counting
+        relevantGolfers.forEach(golferName => {
+          const normalized = Scoring.normalizeName(golferName);
+          const golfer = golferScores[normalized];
+          const hole = golfer?.rounds?.[roundIndex]?.holes?.[holeIndex];
+          
+          if (!hole || hole.toPar === null || hole.toPar === undefined) {
+            allRelevantGolfersCompletedHole = false;
+          }
+        });
+        
+        // Count eagles immediately when best ball is -2 or better
+        if (anyGolferHasScore && bestScore !== null && bestScore <= -2) {
+          eagles++;
+        }
+        
+        // Count bogeys ONLY when ALL non-withdrawn golfers have completed the hole
+        // Golfers who haven't started yet will block this (they might still play and get a better score)
+        if (allRelevantGolfersCompletedHole && bestScore !== null && bestScore >= 1) {
+          bogeys++;
+        }
       }
-      return '-';
     }
-
-    const currentRound = bestBall.rounds[currentRoundIndex];
-    return `${currentRound.holesPlayed}`;
+    
+    return { eagles, bogeys };
   },
 
   // Current selected round for detailed view
@@ -227,7 +345,7 @@ const Leaderboard = {
             <th class="round">R3</th>
             <th class="round">R4</th>
             <th class="total">Total</th>
-            <th class="thru">Thru</th>
+            <th class="holes-remaining">Remaining</th>
           </tr>
         </thead>
         <tbody>
@@ -294,7 +412,7 @@ const Leaderboard = {
         <td class="round ${this.getScoreClass(player.rounds[2]?.toPar)}">${this.formatRoundScore(player.rounds[2])}</td>
         <td class="round ${this.getScoreClass(player.rounds[3]?.toPar)}">${this.formatRoundScore(player.rounds[3])}</td>
         <td class="total ${this.getScoreClass(player.totalToPar)}">${Scoring.formatToPar(player.totalToPar)}</td>
-        <td class="thru">${player.thru}</td>
+        <td class="holes-remaining">${player.holesRemaining}</td>
       </tr>
       <tr class="golfer-details">
         <td colspan="8">
@@ -307,8 +425,16 @@ const Leaderboard = {
   renderHoleByHoleDetails(player, roundNumber, currentUserId = null) {
     const roundIndex = roundNumber - 1;
     const isRounds12 = roundNumber <= 2;
-    const golfers = (isRounds12 ? player.golfersRounds12 : player.golfersRounds34) || [];
-    const hasLineup = isRounds12 ? player.hasLineup1 : player.hasLineup2;
+    
+    // Use individual round lineup if available, otherwise fall back to group lineup
+    const roundKey = `golfersRound${roundNumber}`;
+    const golfers = player[roundKey] || (isRounds12 ? player.golfersRounds12 : player.golfersRounds34) || [];
+    
+    // Check for lineup existence - individual round or group
+    const hasIndividualRound = player[`hasIndividualRound${roundNumber}`];
+    const hasGroupLineup = isRounds12 ? player.hasLineup1 : player.hasLineup2;
+    const hasLineup = golfers.length > 0 && (hasIndividualRound || hasGroupLineup);
+    
     const pars = this.cachedPars || Array(18).fill(null);
     
     // Check if this is the current user viewing their own lineup
@@ -337,7 +463,7 @@ const Leaderboard = {
         <div class="hole-by-hole-container">
           <h4 class="round-title">Round ${roundNumber}</h4>
           <div class="no-lineup-message">
-            <p><strong>No lineup submitted for ${roundLabel}</strong></p>
+            <p><strong>No lineup submitted for Round ${roundNumber}</strong></p>
             <p>This player has not yet submitted a lineup for this round.</p>
           </div>
         </div>
@@ -386,14 +512,6 @@ const Leaderboard = {
 
     return `
       <div class="hole-by-hole-container">
-        <h4 class="round-title">Round ${roundNumber} - Hole by Hole</h4>
-        ${player.hasSplitLineup ? `
-          <div class="split-lineup-info">
-            <span class="lineup-badge ${roundNumber <= 2 ? 'r12' : 'r34'}">
-              ${roundNumber <= 2 ? 'Rounds 1-2 Lineup' : 'Rounds 3-4 Lineup'}
-            </span>
-          </div>
-        ` : ''}
         ${!hasAnyScores ? `
           <div class="no-scores-message">
             <p>Scores will appear once Round ${roundNumber} begins.</p>
@@ -460,15 +578,13 @@ const Leaderboard = {
 
   formatGolferRoundScore(round) {
     if (!round || round.toPar === null || round.toPar === undefined) return '-';
-    if (round.isComplete) return Scoring.formatToPar(round.toPar);
-    if (round.holesPlayed > 0) return `${Scoring.formatToPar(round.toPar)}*`;
+    if (round.holesPlayed > 0) return Scoring.formatToPar(round.toPar);
     return '-';
   },
 
   formatRoundScore(round) {
     if (!round || round.holesPlayed === 0) return '-';
-    if (round.isComplete) return Scoring.formatToPar(round.toPar);
-    return `${Scoring.formatToPar(round.toPar)}*`;
+    return Scoring.formatToPar(round.toPar);
   },
 
   getScoreClass(toPar) {
@@ -686,8 +802,9 @@ const Leaderboard = {
     tournamentsSnap.forEach(doc => {
       const data = doc.data();
       
-      // Filter by status (completed or in_progress)
-      if (data.status !== 'completed' && data.status !== 'in_progress') return;
+      // Filter by status (active tournaments: lineup_open, in_progress, or completed)
+      const activeStatuses = ['lineup_open', 'in_progress', 'completed'];
+      if (!activeStatuses.includes(data.status)) return;
       
       // Filter by season if specified
       if (season) {
@@ -739,21 +856,9 @@ const Leaderboard = {
         
         const playerData = playersMap.get(player.userId);
         
-        // Calculate eagles and bogeys for this player in this tournament
-        const lineup = lineups.find(l => l.userId === player.userId);
-        if (lineup) {
-          const { eagles, bogeys } = this.calculateEaglesAndBogeys(
-            lineup.golfersRounds12 || [],
-            lineup.golfersRounds34 || [],
-            golferScores,
-            tournament.name
-          );
-          
-          playerData.totalEagles += eagles.count;
-          playerData.totalBogeys += bogeys.count;
-          playerData.eagleDetails.push(...eagles.details);
-          playerData.bogeyDetails.push(...bogeys.details);
-        }
+        // Use real-time eagles/bogeys from calculateStandings (already calculated with proper rules)
+        playerData.totalEagles += player.eagles || 0;
+        playerData.totalBogeys += player.bogeys || 0;
         
         playerData.tournamentScores[tournament.id] = {
           toPar: player.totalToPar,
@@ -802,6 +907,8 @@ const Leaderboard = {
   },
 
   // Calculate eagles and bogeys for a player's best ball scores
+  // Handles golfers who withdrew - only withdrawn golfers are excluded from blocking bogeys
+  // Golfers who haven't started still block bogey counting
   calculateEaglesAndBogeys(golfersR12, golfersR34, golferScores, tournamentName) {
     const eagles = { count: 0, details: [] };
     const bogeys = { count: 0, details: [] };
@@ -813,12 +920,23 @@ const Leaderboard = {
       
       if (!golfers || golfers.length === 0) continue;
       
+      // Relevant golfers = all lineup golfers MINUS withdrawn ones
+      // Golfers who haven't started yet still block bogey counting
+      const relevantGolfers = golfers.filter(golferName => 
+        !Scoring.isGolferWithdrawnForRound(golferScores, golferName, roundNum)
+      );
+      
+      // If all golfers withdrew, skip this round
+      if (relevantGolfers.length === 0) continue;
+      
       // Calculate best ball for each hole
       for (let holeNum = 1; holeNum <= 18; holeNum++) {
         const holeIndex = holeNum - 1;
         let bestScore = null;
         let hasAnyScore = false;
+        let allRelevantGolfersCompletedHole = true;
         
+        // Check all golfers in lineup for best score
         golfers.forEach(golferName => {
           const normalized = Scoring.normalizeName(golferName);
           const golfer = golferScores[normalized];
@@ -832,27 +950,39 @@ const Leaderboard = {
           }
         });
         
-        if (hasAnyScore && bestScore !== null) {
-          // Eagle or better (-2 or less)
-          if (bestScore <= -2) {
-            eagles.count++;
-            eagles.details.push({
-              tournament: tournamentName,
-              round: roundNum,
-              hole: holeNum,
-              score: bestScore
-            });
+        // Check if all RELEVANT (non-withdrawn) golfers have completed this hole
+        // This includes golfers who haven't started - they block bogey counting
+        relevantGolfers.forEach(golferName => {
+          const normalized = Scoring.normalizeName(golferName);
+          const golfer = golferScores[normalized];
+          const hole = golfer?.rounds?.[roundIndex]?.holes?.[holeIndex];
+          
+          if (!hole || hole.toPar === null || hole.toPar === undefined) {
+            allRelevantGolfersCompletedHole = false;
           }
-          // Bogey or worse (+1 or more) - this means ALL golfers bogeyed or worse
-          if (bestScore >= 1) {
-            bogeys.count++;
-            bogeys.details.push({
-              tournament: tournamentName,
-              round: roundNum,
-              hole: holeNum,
-              score: bestScore
-            });
-          }
+        });
+        
+        // Eagle: count immediately when best ball is -2 or better
+        if (hasAnyScore && bestScore !== null && bestScore <= -2) {
+          eagles.count++;
+          eagles.details.push({
+            tournament: tournamentName,
+            round: roundNum,
+            hole: holeNum,
+            score: bestScore
+          });
+        }
+        
+        // Bogey: only count when ALL non-withdrawn golfers have completed the hole
+        // Golfers who haven't started yet will block this
+        if (allRelevantGolfersCompletedHole && bestScore !== null && bestScore >= 1) {
+          bogeys.count++;
+          bogeys.details.push({
+            tournament: tournamentName,
+            round: roundNum,
+            hole: holeNum,
+            score: bestScore
+          });
         }
       }
     }
@@ -862,10 +992,19 @@ const Leaderboard = {
 
   seasonTournaments: [],
   seasonStandings: [],
+  unsubscribeSeasonScores: null,
+  seasonContainerId: null,
+  seasonCurrentUserId: null,
+  seasonValue: null,
 
   async renderSeasonStandings(containerId, currentUserId = null, season = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    // Store for live updates
+    this.seasonContainerId = containerId;
+    this.seasonCurrentUserId = currentUserId;
+    this.seasonValue = season;
 
     container.innerHTML = '<div class="loading">Loading season standings...</div>';
 
@@ -884,7 +1023,88 @@ const Leaderboard = {
       return;
     }
 
-    const html = `
+    const html = this.buildSeasonStandingsHTML(tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker, currentUserId);
+    container.innerHTML = html;
+
+    // Add click handlers for expandable rows
+    container.querySelectorAll('.season-row').forEach(row => {
+      row.addEventListener('click', () => {
+        row.classList.toggle('expanded');
+        const details = row.nextElementSibling;
+        if (details?.classList.contains('season-details')) {
+          details.classList.toggle('show');
+        }
+      });
+    });
+
+    // Subscribe to live updates for in-progress tournaments (only if not already subscribed)
+    this.subscribeToSeasonUpdates(tournaments);
+  },
+
+  seasonSubscribedTournamentId: null,
+
+  subscribeToSeasonUpdates(tournaments) {
+    // Find active tournaments (lineup_open or in_progress)
+    const activeTournaments = tournaments.filter(t => t.status === 'in_progress' || t.status === 'lineup_open');
+    if (activeTournaments.length === 0) {
+      this.stopSeasonLiveUpdates();
+      return;
+    }
+
+    // Get the active tournament
+    const activeTournament = activeTournaments[0];
+    
+    // Don't re-subscribe if we're already subscribed to this tournament
+    if (this.seasonSubscribedTournamentId === activeTournament.id && this.unsubscribeSeasonScores) {
+      return;
+    }
+
+    // Unsubscribe from previous listener if different tournament
+    if (this.unsubscribeSeasonScores) {
+      this.unsubscribeSeasonScores();
+      this.unsubscribeSeasonScores = null;
+    }
+
+    this.seasonSubscribedTournamentId = activeTournament.id;
+    
+    this.unsubscribeSeasonScores = firebaseDb.collection('scores').doc(activeTournament.id)
+      .onSnapshot(async () => {
+        // Re-render season standings without re-subscribing
+        if (this.seasonContainerId) {
+          await this.refreshSeasonStandings();
+        }
+      });
+  },
+
+  async refreshSeasonStandings() {
+    const container = document.getElementById(this.seasonContainerId);
+    if (!container) return;
+
+    const { tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker } = await this.calculateSeasonStandings(this.seasonValue);
+    this.seasonTournaments = tournaments;
+    this.seasonStandings = standings;
+
+    if (!tournaments.length || !standings.length) return;
+
+    // Re-render the HTML
+    const currentUserId = this.seasonCurrentUserId;
+    const html = this.buildSeasonStandingsHTML(tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker, currentUserId);
+    container.innerHTML = html;
+
+    // Re-add click handlers
+    container.querySelectorAll('.season-row').forEach(row => {
+      row.addEventListener('click', () => {
+        row.classList.toggle('expanded');
+        const details = row.nextElementSibling;
+        if (details?.classList.contains('season-details')) {
+          details.classList.toggle('show');
+        }
+      });
+    });
+  },
+
+  buildSeasonStandingsHTML(tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker, currentUserId) {
+    return `
       <div class="season-info">
         <span><strong>${tournaments.length}</strong> tournament${tournaments.length > 1 ? 's' : ''} played</span>
         <span><strong>${standings.length}</strong> players</span>
@@ -949,8 +1169,8 @@ const Leaderboard = {
           <tr>
             <th class="pos">Pos</th>
             <th class="player">Player</th>
-            ${tournaments.map(t => `<th class="tournament" title="${t.name}">${t.abbrev}</th>`).join('')}
-            <th class="total">Total</th>
+            ${tournaments.map(t => `<th class="tournament" title="${t.name}">${t.name}</th>`).join('')}
+            <th class="season-total">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -958,19 +1178,14 @@ const Leaderboard = {
         </tbody>
       </table>
     `;
+  },
 
-    container.innerHTML = html;
-
-    // Add click handlers for expandable rows
-    container.querySelectorAll('.season-row').forEach(row => {
-      row.addEventListener('click', () => {
-        row.classList.toggle('expanded');
-        const details = row.nextElementSibling;
-        if (details?.classList.contains('season-details')) {
-          details.classList.toggle('show');
-        }
-      });
-    });
+  stopSeasonLiveUpdates() {
+    if (this.unsubscribeSeasonScores) {
+      this.unsubscribeSeasonScores();
+      this.unsubscribeSeasonScores = null;
+    }
+    this.seasonSubscribedTournamentId = null;
   },
 
   renderSeasonRow(player, tournaments, currentUserId) {
@@ -1013,8 +1228,7 @@ const Leaderboard = {
           if (!score) return '<td>-</td>';
           const scoreClass = this.getScoreClass(score.toPar);
           const displayScore = Scoring.formatToPar(score.toPar);
-          const indicator = score.isComplete ? '' : '*';
-          return `<td class="${scoreClass}">${displayScore}${indicator}</td>`;
+          return `<td class="${scoreClass}">${displayScore}</td>`;
         }).join('')}
         <td class="season-total ${this.getScoreClass(player.totalToPar)}">${Scoring.formatToPar(player.totalToPar)}</td>
       </tr>

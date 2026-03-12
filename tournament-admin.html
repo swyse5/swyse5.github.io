@@ -295,23 +295,52 @@
           <h3 id="editing-user-name" style="margin-bottom: 16px;"></h3>
           
           <div class="form-group">
-            <label>Select Lineup to Edit</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-              <button id="edit-r12-btn" class="btn btn-primary">Rounds 1-2</button>
-              <button id="edit-r34-btn" class="btn btn-outline">Rounds 3-4</button>
+            <label>Select Round to Edit</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+              <button id="edit-r1-btn" class="btn btn-primary round-edit-btn" data-round="1">Round 1</button>
+              <button id="edit-r2-btn" class="btn btn-outline round-edit-btn" data-round="2">Round 2</button>
+              <button id="edit-r3-btn" class="btn btn-outline round-edit-btn" data-round="3">Round 3</button>
+              <button id="edit-r4-btn" class="btn btn-outline round-edit-btn" data-round="4">Round 4</button>
             </div>
+            <p style="font-size: 12px; color: var(--text-secondary);">
+              Tip: Individual round overrides take priority. If not set, falls back to R1-2 or R3-4 lineup.
+            </p>
           </div>
 
           <div class="form-group">
-            <label id="admin-lineup-label">Current Lineup (Rounds 1-2)</label>
+            <label id="admin-lineup-label">Current Lineup (Round 1)</label>
             <div id="admin-current-lineup" class="golfer-preview" style="min-height: auto; margin-bottom: 16px;"></div>
+            <div id="admin-lineup-source" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;"></div>
           </div>
+          
+          <!-- Salary Calculator -->
+          <div class="salary-calculator" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <span style="font-weight: 500;">Total Salary:</span>
+                <span id="admin-total-salary" style="font-size: 18px; font-weight: 600; margin-left: 8px;">$0.00</span>
+              </div>
+              <div>
+                <span style="color: var(--text-secondary);">Remaining:</span>
+                <span id="admin-remaining-salary" style="font-weight: 500; margin-left: 8px;">$100.00</span>
+              </div>
+              <div>
+                <span style="color: var(--text-secondary);">Cap:</span>
+                <span style="margin-left: 8px;">$100.00</span>
+              </div>
+            </div>
+            <div id="admin-salary-bar" style="height: 8px; background: var(--border-color); border-radius: 4px; margin-top: 12px; overflow: hidden;">
+              <div id="admin-salary-fill" style="height: 100%; width: 0%; background: var(--primary-color); transition: width 0.3s;"></div>
+            </div>
+          </div>
+          
           <div class="form-group">
             <label>Edit Lineup (select 4 golfers)</label>
             <div id="admin-golfer-pool" class="golfer-preview" style="max-height: 400px;"></div>
           </div>
-          <div style="display: flex; gap: 12px; margin-top: 16px;">
-            <button id="save-admin-lineup" class="btn btn-primary">Save Lineup</button>
+          <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+            <button id="save-admin-lineup" class="btn btn-primary">Save Round Lineup</button>
+            <button id="clear-round-lineup" class="btn btn-outline" style="color: var(--danger); border-color: var(--danger); display: none;">Clear Round Override</button>
             <button id="cancel-admin-lineup" class="btn btn-outline">Cancel</button>
           </div>
         </div>
@@ -1064,6 +1093,8 @@ service cloud.firestore {
         document.getElementById('admin-lineup-editor').style.display = 'none';
       },
 
+      currentAdminRound: 1,
+
       async loadUserLineupForAdmin(userId) {
         if (!userId) {
           document.getElementById('admin-lineup-editor').style.display = 'none';
@@ -1071,52 +1102,88 @@ service cloud.firestore {
         }
 
         this.selectedUserForLineup = userId;
-        this.currentAdminLineupType = 'rounds_1_2';
+        this.currentAdminRound = 1;
 
         const userSelect = document.getElementById('lineup-user-select');
         const userName = userSelect.options[userSelect.selectedIndex].text;
         document.getElementById('editing-user-name').textContent = `Editing lineup for: ${userName}`;
 
-        this.loadAdminLineupType('rounds_1_2');
+        // Setup round buttons
+        document.querySelectorAll('.round-edit-btn').forEach(btn => {
+          btn.onclick = () => this.loadAdminRound(parseInt(btn.dataset.round));
+        });
+
+        // Setup clear button
+        document.getElementById('clear-round-lineup').onclick = () => this.clearRoundOverride();
+
+        this.loadAdminRound(1);
         document.getElementById('admin-lineup-editor').style.display = 'block';
-        
-        // Setup tab buttons
-        document.getElementById('edit-r12-btn').onclick = () => this.loadAdminLineupType('rounds_1_2');
-        document.getElementById('edit-r34-btn').onclick = () => this.loadAdminLineupType('rounds_3_4');
       },
 
-      loadAdminLineupType(lineupType) {
-        this.currentAdminLineupType = lineupType;
+      loadAdminRound(roundNumber) {
+        this.currentAdminRound = roundNumber;
         
         // Update button styles
-        document.getElementById('edit-r12-btn').className = lineupType === 'rounds_1_2' ? 'btn btn-primary' : 'btn btn-outline';
-        document.getElementById('edit-r34-btn').className = lineupType === 'rounds_3_4' ? 'btn btn-primary' : 'btn btn-outline';
+        document.querySelectorAll('.round-edit-btn').forEach(btn => {
+          const btnRound = parseInt(btn.dataset.round);
+          btn.className = btnRound === roundNumber ? 'btn btn-primary round-edit-btn' : 'btn btn-outline round-edit-btn';
+        });
         
-        // Update label
-        document.getElementById('admin-lineup-label').textContent = 
-          `Current Lineup (${lineupType === 'rounds_1_2' ? 'Rounds 1-2' : 'Rounds 3-4'})`;
-
-        // Load golfers for this lineup type
+        // Get user data
         const userData = this.userLineupsCache[this.selectedUserForLineup];
-        const lineup = userData?.lineups[lineupType];
-        this.adminSelectedGolfers = lineup?.golfers ? [...lineup.golfers] : [];
+        
+        // Check for individual round lineup first
+        const individualLineupType = `round_${roundNumber}`;
+        const individualLineup = userData?.lineups[individualLineupType];
+        
+        // Fallback to group lineup (rounds_1_2 or rounds_3_4)
+        const groupLineupType = roundNumber <= 2 ? 'rounds_1_2' : 'rounds_3_4';
+        const groupLineup = userData?.lineups[groupLineupType];
+        
+        // Determine which lineup to show and its source
+        let lineupSource = '';
+        if (individualLineup?.golfers?.length > 0) {
+          this.adminSelectedGolfers = [...individualLineup.golfers];
+          lineupSource = `<span style="color: var(--primary-color);">✓ Individual Round ${roundNumber} lineup set</span>`;
+        } else if (groupLineup?.golfers?.length > 0) {
+          this.adminSelectedGolfers = [...groupLineup.golfers];
+          lineupSource = `Using ${roundNumber <= 2 ? 'Rounds 1-2' : 'Rounds 3-4'} lineup (no individual override)`;
+        } else {
+          this.adminSelectedGolfers = [];
+          lineupSource = 'No lineup set';
+        }
+        
+        // Update label and source
+        document.getElementById('admin-lineup-label').textContent = `Current Lineup (Round ${roundNumber})`;
+        document.getElementById('admin-lineup-source').innerHTML = lineupSource;
+        
+        // Show/hide clear button based on whether individual lineup exists
+        const clearBtn = document.getElementById('clear-round-lineup');
+        clearBtn.style.display = individualLineup?.golfers?.length > 0 ? 'inline-flex' : 'none';
 
         this.renderAdminLineupEditor();
       },
 
       renderAdminLineupEditor() {
-        // Render current selection
+        // Render current selection with salary
         const currentDiv = document.getElementById('admin-current-lineup');
         if (this.adminSelectedGolfers.length === 0) {
           currentDiv.innerHTML = '<p style="color: var(--text-secondary);">No golfers selected</p>';
         } else {
-          currentDiv.innerHTML = this.adminSelectedGolfers.map((g, i) => `
-            <div class="golfer-preview-item">
-              <span>${i + 1}. ${g}</span>
-              <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeAdminGolfer(${i})" style="padding: 2px 8px;">✕</button>
-            </div>
-          `).join('');
+          currentDiv.innerHTML = this.adminSelectedGolfers.map((g, i) => {
+            const golfer = this.tournamentGolferField.find(gf => gf.name === g);
+            const salary = golfer ? golfer.salary : 0;
+            return `
+              <div class="golfer-preview-item">
+                <span>${i + 1}. ${g} <span style="color: var(--text-secondary); font-size: 12px;">($${this.formatSalary(salary)})</span></span>
+                <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeAdminGolfer(${i})" style="padding: 2px 8px;">✕</button>
+              </div>
+            `;
+          }).join('');
         }
+        
+        // Update salary calculator
+        this.updateAdminSalaryDisplay();
 
         // Render golfer pool
         const poolDiv = document.getElementById('admin-golfer-pool');
@@ -1130,6 +1197,31 @@ service cloud.firestore {
             </div>
           `;
         }).join('');
+      },
+
+      updateAdminSalaryDisplay() {
+        const salaryCap = 100;
+        const totalSalary = this.adminSelectedGolfers.reduce((sum, name) => {
+          const golfer = this.tournamentGolferField.find(g => g.name === name);
+          return sum + (golfer ? golfer.salary : 0);
+        }, 0);
+        
+        const remaining = salaryCap - totalSalary;
+        const percentage = Math.min((totalSalary / salaryCap) * 100, 100);
+        
+        const totalEl = document.getElementById('admin-total-salary');
+        const remainingEl = document.getElementById('admin-remaining-salary');
+        const fillEl = document.getElementById('admin-salary-fill');
+        
+        if (totalEl) totalEl.textContent = `$${this.formatSalary(totalSalary)}`;
+        if (remainingEl) {
+          remainingEl.textContent = `$${this.formatSalary(remaining)}`;
+          remainingEl.style.color = remaining < 0 ? 'var(--danger)' : 'var(--text-color)';
+        }
+        if (fillEl) {
+          fillEl.style.width = `${percentage}%`;
+          fillEl.style.background = remaining < 0 ? 'var(--danger)' : 'var(--primary-color)';
+        }
       },
 
       toggleAdminGolfer(golferName) {
@@ -1157,7 +1249,8 @@ service cloud.firestore {
         }
 
         const userData = this.userLineupsCache[this.selectedUserForLineup];
-        const existingLineup = userData?.lineups[this.currentAdminLineupType];
+        const lineupType = `round_${this.currentAdminRound}`;
+        const existingLineup = userData?.lineups[lineupType];
 
         try {
           // Calculate total salary
@@ -1172,7 +1265,7 @@ service cloud.firestore {
             userDisplayName: userData.displayName,
             golfers: this.adminSelectedGolfers,
             totalSalary,
-            lineupType: this.currentAdminLineupType,
+            lineupType: lineupType,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedBy: this.currentUser.uid
           };
@@ -1184,12 +1277,44 @@ service cloud.firestore {
             const docRef = await firebaseDb.collection('lineups').add(lineupData);
             // Update cache
             if (!userData.lineups) userData.lineups = {};
-            userData.lineups[this.currentAdminLineupType] = { id: docRef.id, ...lineupData };
+            userData.lineups[lineupType] = { id: docRef.id, ...lineupData };
           }
 
-          alert(`${this.currentAdminLineupType === 'rounds_1_2' ? 'Rounds 1-2' : 'Rounds 3-4'} lineup saved!`);
+          alert(`Round ${this.currentAdminRound} lineup saved!`);
+          
+          // Refresh to show updated source
+          this.loadAdminRound(this.currentAdminRound);
         } catch (error) {
           alert('Error saving lineup: ' + error.message);
+        }
+      },
+
+      async clearRoundOverride() {
+        const userData = this.userLineupsCache[this.selectedUserForLineup];
+        const lineupType = `round_${this.currentAdminRound}`;
+        const existingLineup = userData?.lineups[lineupType];
+
+        if (!existingLineup?.id) {
+          alert('No individual round lineup to clear');
+          return;
+        }
+
+        if (!confirm(`Are you sure you want to remove the Round ${this.currentAdminRound} override? The lineup will fall back to the ${this.currentAdminRound <= 2 ? 'Rounds 1-2' : 'Rounds 3-4'} lineup.`)) {
+          return;
+        }
+
+        try {
+          await firebaseDb.collection('lineups').doc(existingLineup.id).delete();
+          
+          // Update cache
+          delete userData.lineups[lineupType];
+          
+          alert(`Round ${this.currentAdminRound} override removed`);
+          
+          // Refresh to show fallback lineup
+          this.loadAdminRound(this.currentAdminRound);
+        } catch (error) {
+          alert('Error clearing lineup: ' + error.message);
         }
       },
 

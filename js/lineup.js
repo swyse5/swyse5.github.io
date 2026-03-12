@@ -164,26 +164,58 @@ const Lineup = {
             userId,
             userDisplayName: data.userDisplayName,
             rounds_1_2: null,
-            rounds_3_4: null
+            rounds_3_4: null,
+            round_1: null,
+            round_2: null,
+            round_3: null,
+            round_4: null
           });
         }
         
         userLineups.get(userId)[lineupType] = data;
       });
 
-      // Convert to array and extract golfers for each half
-      // Don't fall back to R1-2 lineup for R3-4 - only show what's actually submitted
-      return Array.from(userLineups.values()).map(user => ({
-        userId: user.userId,
-        userDisplayName: user.userDisplayName,
-        golfersRounds12: user.rounds_1_2?.golfers || [],
-        golfersRounds34: user.rounds_3_4?.golfers || [],
-        golfers: user.rounds_1_2?.golfers || [],
-        lineup1: user.rounds_1_2,
-        lineup2: user.rounds_3_4,
-        hasLineup1: user.rounds_1_2 !== null,
-        hasLineup2: user.rounds_3_4 !== null
-      }));
+      // Convert to array and extract golfers for each round
+      // Individual round lineups take priority over group lineups
+      return Array.from(userLineups.values()).map(user => {
+        // Get golfers for each individual round (individual round overrides group lineup)
+        const golfersR1 = user.round_1?.golfers || user.rounds_1_2?.golfers || [];
+        const golfersR2 = user.round_2?.golfers || user.rounds_1_2?.golfers || [];
+        const golfersR3 = user.round_3?.golfers || user.rounds_3_4?.golfers || [];
+        const golfersR4 = user.round_4?.golfers || user.rounds_3_4?.golfers || [];
+        
+        // Group-level golfers for display
+        const golfersRounds12 = user.rounds_1_2?.golfers || [];
+        const golfersRounds34 = user.rounds_3_4?.golfers || [];
+        
+        return {
+          userId: user.userId,
+          userDisplayName: user.userDisplayName,
+          // Per-round golfers (with fallback logic applied)
+          golfersRound1: golfersR1,
+          golfersRound2: golfersR2,
+          golfersRound3: golfersR3,
+          golfersRound4: golfersR4,
+          // Group-level golfers (raw, without individual overrides)
+          golfersRounds12: golfersRounds12,
+          golfersRounds34: golfersRounds34,
+          golfers: golfersRounds12,
+          lineup1: user.rounds_1_2,
+          lineup2: user.rounds_3_4,
+          // Individual round lineup objects
+          lineupRound1: user.round_1,
+          lineupRound2: user.round_2,
+          lineupRound3: user.round_3,
+          lineupRound4: user.round_4,
+          // Flags for existence checks
+          hasLineup1: user.rounds_1_2 !== null,
+          hasLineup2: user.rounds_3_4 !== null,
+          hasIndividualRound1: user.round_1 !== null,
+          hasIndividualRound2: user.round_2 !== null,
+          hasIndividualRound3: user.round_3 !== null,
+          hasIndividualRound4: user.round_4 !== null
+        };
+      });
     } catch (error) {
       console.error('Error loading lineups:', error);
       return [];
