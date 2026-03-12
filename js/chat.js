@@ -8,14 +8,26 @@ const Chat = {
   lastReadTimestamp: null,
   reactionEmojis: ['👍', '👎', '🔥', '⛳', '😂', '😮', '👏'],
   userNameCache: {},
+  authListenerSet: false,
 
   init(tournamentId = null) {
     // Use tournament ID if available, otherwise use 'general' chat room
     this.currentTournamentId = tournamentId || 'general';
     this.loadLastReadTimestamp();
-    this.subscribeToMessages();
     this.setupUI();
     this.updateChatHeader();
+    
+    // Subscribe to messages (will show login prompt if not authenticated)
+    this.subscribeToMessages();
+    
+    // Also listen for auth state changes to re-subscribe when user logs in
+    if (!this.authListenerSet) {
+      this.authListenerSet = true;
+      firebaseAuth.onAuthStateChanged((user) => {
+        // Re-subscribe when auth state changes
+        this.subscribeToMessages();
+      });
+    }
   },
 
   updateChatHeader() {
@@ -230,20 +242,10 @@ const Chat = {
         });
     } catch (error) {
       console.error('Error sending message:', error);
-      // Show user-friendly error
       if (error.code === 'permission-denied') {
-        alert('Chat permission denied. Please add Firestore rules for the chats collection (see console for details).');
-        console.log(`
-Add these rules to your Firestore security rules:
-
-match /chats/{tournamentId}/messages/{messageId} {
-  allow read: if request.auth != null;
-  allow create: if request.auth != null;
-  allow update: if request.auth != null;
-}
-        `);
+        alert('Unable to send message. Please make sure you are signed in.');
       } else {
-        alert('Failed to send message: ' + error.message);
+        alert('Failed to send message. Please try again.');
       }
     }
   },
