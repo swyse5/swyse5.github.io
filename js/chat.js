@@ -9,26 +9,66 @@ const Chat = {
   reactionEmojis: ['👍', '👎', '🔥', '⛳', '😂', '😮', '👏'],
   userNameCache: {},
   authListenerSet: false,
-  _notifiedEagles: null, // Use private backing field
-  notifiedEaglesLoaded: false,
+  isAdmin: false,
+  adminEmails: [],
 
-  // Getter to ensure notifiedEagles is always a Set
-  get notifiedEagles() {
-    if (!this._notifiedEagles) {
-      this._notifiedEagles = new Set();
+  // Initialize notified eagles from localStorage immediately
+  _notifiedEaglesSet: null,
+  
+  getNotifiedEagles() {
+    if (this._notifiedEaglesSet === null) {
+      // Load from localStorage on first access
+      try {
+        const stored = localStorage.getItem('notifiedEagles');
+        if (stored) {
+          this._notifiedEaglesSet = new Set(JSON.parse(stored));
+        } else {
+          this._notifiedEaglesSet = new Set();
+        }
+      } catch (e) {
+        console.log('Could not load notified eagles:', e);
+        this._notifiedEaglesSet = new Set();
+      }
     }
-    return this._notifiedEagles;
+    return this._notifiedEaglesSet;
   },
 
-  set notifiedEagles(value) {
-    this._notifiedEagles = value;
+  addNotifiedEagle(key) {
+    this.getNotifiedEagles().add(key);
+    this.saveNotifiedEagles();
+  },
+
+  hasNotifiedEagle(key) {
+    return this.getNotifiedEagles().has(key);
+  },
+
+  async loadAdminStatus() {
+    try {
+      const user = firebaseAuth.currentUser;
+      if (!user) {
+        this.isAdmin = false;
+        return;
+      }
+
+      // Load admin emails if not already loaded
+      if (this.adminEmails.length === 0) {
+        const adminDoc = await firebaseDb.collection('config').doc('admins').get();
+        if (adminDoc.exists) {
+          this.adminEmails = adminDoc.data().emails || [];
+        }
+      }
+
+      this.isAdmin = this.adminEmails.includes(user.email);
+    } catch (error) {
+      console.log('Could not load admin status for chat:', error);
+      this.isAdmin = false;
+    }
   },
 
   init(tournamentId = null) {
     // Use tournament ID if available, otherwise use 'general' chat room
     this.currentTournamentId = tournamentId || 'general';
     this.loadLastReadTimestamp();
-    this.loadNotifiedEagles();
     this.setupUI();
     this.updateChatHeader();
     
@@ -38,8 +78,9 @@ const Chat = {
     // Also listen for auth state changes to re-subscribe when user logs in
     if (!this.authListenerSet) {
       this.authListenerSet = true;
-      firebaseAuth.onAuthStateChanged((user) => {
-        // Re-subscribe when auth state changes
+      firebaseAuth.onAuthStateChanged(async (user) => {
+        // Load admin status and re-subscribe when auth state changes
+        await this.loadAdminStatus();
         this.subscribeToMessages();
       });
     }
@@ -336,6 +377,35 @@ const Chat = {
         picker.classList.toggle('show');
       });
     });
+
+    // Add delete button listeners (admin only)
+    container.querySelectorAll('.message-delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const messageId = btn.dataset.messageId;
+        this.deleteMessage(messageId);
+      });
+    });
+  },
+
+  async deleteMessage(messageId) {
+    if (!this.isAdmin) {
+      alert('Only admins can delete messages');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this message?')) {
+      return;
+    }
+
+    try {
+      const chatId = this.currentTournamentId || 'general';
+      await firebaseDb.collection('chats').doc(chatId).collection('messages').doc(messageId).delete();
+      // Message will be removed from UI automatically via the onSnapshot listener
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      alert('Error deleting message: ' + error.message);
+    }
   },
 
   renderMessage(msg, currentUserId) {
@@ -345,12 +415,18 @@ const Chat = {
 
     const reactionsHtml = this.renderReactions(msg, currentUserId);
 
+    // Admin delete button
+    const deleteBtn = this.isAdmin ? `
+      <button class="message-delete-btn" data-message-id="${msg.id}" title="Delete message">×</button>
+    ` : '';
+
     if (isSystem) {
       return `
-        <div class="chat-message system">
+        <div class="chat-message system" data-message-id="${msg.id}">
           <div class="message-content system-message">
             <span class="system-icon">🦅</span>
             <span>${msg.text}</span>
+            ${deleteBtn}
           </div>
           <div class="message-time">${timeStr}</div>
           ${reactionsHtml}
@@ -359,11 +435,12 @@ const Chat = {
     }
 
     return `
-      <div class="chat-message ${isOwn ? 'own' : ''}">
+      <div class="chat-message ${isOwn ? 'own' : ''}" data-message-id="${msg.id}">
         <div class="message-header">
           ${msg.userPhoto ? `<img src="${msg.userPhoto}" alt="" class="message-avatar">` : '<div class="message-avatar-placeholder"></div>'}
           <span class="message-author">${msg.userName}</span>
           <span class="message-time">${timeStr}</span>
+          ${deleteBtn}
         </div>
         <div class="message-content">${this.escapeHtml(msg.text)}</div>
         ${reactionsHtml}
@@ -459,11 +536,6 @@ const Chat = {
   async checkForEagles(tournamentId, golferScores, lineups) {
     if (!golferScores || !lineups || !tournamentId) return;
 
-    // Ensure notified eagles are loaded from localStorage
-    if (!this.notifiedEaglesLoaded) {
-      this.loadNotifiedEagles();
-    }
-
     const eagleAlerts = [];
 
     // Build a map of which users have which golfers
@@ -497,7 +569,7 @@ const Chat = {
             const eagleKey = `${tournamentId}_${normalizedName}_R${roundIndex + 1}_H${holeIndex + 1}`;
             
             // Only alert if we haven't notified about this eagle before
-            if (!this.notifiedEagles.has(eagleKey)) {
+            if (!this.hasNotifiedEagle(eagleKey)) {
               const users = golferToUsers[normalizedName] || [];
               if (users.length > 0) {
                 const scoreLabel = this.getScoreLabel(hole.toPar);
@@ -520,53 +592,21 @@ const Chat = {
       });
     }
 
-    // Send eagle alerts and mark them as notified
+    // Send eagle alerts and mark them as notified BEFORE sending
+    // This prevents duplicates even if sendMessage is slow
     for (const alert of eagleAlerts) {
+      // Mark as notified FIRST to prevent race conditions
+      this.addNotifiedEagle(alert.key);
+      
       const message = `${alert.golfer} made ${alert.score} on Hole ${alert.hole} (R${alert.round})! 🦅 Teams: ${alert.users}`;
       await this.sendMessage(message, true);
-      
-      // Mark this eagle as notified
-      this.notifiedEagles.add(alert.key);
-    }
-    
-    // Save notified eagles to localStorage
-    if (eagleAlerts.length > 0) {
-      this.saveNotifiedEagles();
-    }
-  },
-
-  loadNotifiedEagles() {
-    // Skip if already loaded and has data
-    if (this.notifiedEaglesLoaded && this._notifiedEagles && this._notifiedEagles.size > 0) {
-      return;
-    }
-    
-    try {
-      const stored = localStorage.getItem('notifiedEagles');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Merge with existing to prevent data loss during re-init
-        if (!this._notifiedEagles) {
-          this._notifiedEagles = new Set(parsed);
-        } else {
-          parsed.forEach(key => this._notifiedEagles.add(key));
-        }
-      } else if (!this._notifiedEagles) {
-        this._notifiedEagles = new Set();
-      }
-      this.notifiedEaglesLoaded = true;
-    } catch (e) {
-      console.log('Could not load notified eagles from localStorage');
-      if (!this._notifiedEagles) {
-        this._notifiedEagles = new Set();
-      }
-      this.notifiedEaglesLoaded = true;
     }
   },
 
   saveNotifiedEagles() {
     try {
-      localStorage.setItem('notifiedEagles', JSON.stringify([...this.notifiedEagles]));
+      const eagles = this.getNotifiedEagles();
+      localStorage.setItem('notifiedEagles', JSON.stringify([...eagles]));
     } catch (e) {
       console.log('Could not save notified eagles to localStorage');
     }

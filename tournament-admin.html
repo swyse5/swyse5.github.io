@@ -346,6 +346,27 @@
         </div>
       </div>
 
+      <!-- Manage Golfer Field -->
+      <div class="admin-section">
+        <h2>Manage Golfer Field</h2>
+        <p>View and remove golfers from a tournament (e.g., for missed cuts or withdrawals).</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="manage-golfer-tournament-select">Tournament</label>
+            <select id="manage-golfer-tournament-select" class="form-control">
+              <option value="">Select tournament...</option>
+            </select>
+          </div>
+        </div>
+        <div id="manage-golfer-list" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0;"><span id="manage-golfer-count">0</span> Golfers</h3>
+            <input type="text" id="golfer-search" class="form-control" placeholder="Search golfers..." style="width: 250px;">
+          </div>
+          <div id="golfer-field-list" class="golfer-preview" style="max-height: 500px; overflow-y: auto;"></div>
+        </div>
+      </div>
+
       <!-- Validate Golfer Field -->
       <div class="admin-section">
         <h2>Validate Golfer Field</h2>
@@ -557,6 +578,14 @@ service cloud.firestore {
         // Save admins
         document.getElementById('save-admins')?.addEventListener('click', () => this.saveAdmins());
 
+        // Manage golfer field
+        document.getElementById('manage-golfer-tournament-select')?.addEventListener('change', (e) => {
+          this.loadGolferFieldForManagement(e.target.value);
+        });
+        document.getElementById('golfer-search')?.addEventListener('input', (e) => {
+          this.filterGolferList(e.target.value);
+        });
+
         // Validate golfer field
         document.getElementById('validate-tournament-select')?.addEventListener('change', (e) => {
           document.getElementById('validate-field-btn').disabled = !e.target.value;
@@ -715,6 +744,11 @@ service cloud.firestore {
               .filter(t => t.espnEventName)
               .map(t => `<option value="${t.id}" data-espn="${t.espnEventName}">${t.name}</option>`)
               .join('');
+
+          // Update manage golfer tournament select (all tournaments)
+          const manageGolferSelect = document.getElementById('manage-golfer-tournament-select');
+          manageGolferSelect.innerHTML = '<option value="">Select tournament...</option>' +
+            tournaments.map(t => `<option value="${t.id}">${t.name} (${t.golferField?.length || 0} golfers)</option>`).join('');
 
         } catch (error) {
           listDiv.innerHTML = `<p style="color: var(--danger);">Error loading tournaments: ${error.message}</p>`;
@@ -1034,6 +1068,125 @@ service cloud.firestore {
           alert('Error adding golfer: ' + error.message);
           if (item) item.classList.remove('processing');
         }
+      },
+
+      // Golfer Field Management
+      manageTournamentId: null,
+      manageTournamentData: null,
+      manageTournamentGolfers: [],
+
+      async loadGolferFieldForManagement(tournamentId) {
+        const listContainer = document.getElementById('manage-golfer-list');
+        const golferList = document.getElementById('golfer-field-list');
+        
+        if (!tournamentId) {
+          listContainer.style.display = 'none';
+          return;
+        }
+
+        this.manageTournamentId = tournamentId;
+        golferList.innerHTML = '<div class="loading">Loading golfers...</div>';
+        listContainer.style.display = 'block';
+
+        try {
+          const tournamentDoc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
+          if (!tournamentDoc.exists) {
+            golferList.innerHTML = '<p>Tournament not found</p>';
+            return;
+          }
+
+          this.manageTournamentData = tournamentDoc.data();
+          this.manageTournamentGolfers = this.manageTournamentData.golferField || [];
+          
+          this.renderGolferFieldList();
+        } catch (error) {
+          golferList.innerHTML = `<p style="color: var(--danger);">Error: ${error.message}</p>`;
+        }
+      },
+
+      renderGolferFieldList(filter = '') {
+        const golferList = document.getElementById('golfer-field-list');
+        const countEl = document.getElementById('manage-golfer-count');
+        
+        let golfers = [...this.manageTournamentGolfers];
+        
+        // Apply search filter
+        if (filter) {
+          const searchLower = filter.toLowerCase();
+          golfers = golfers.filter(g => g.name.toLowerCase().includes(searchLower));
+        }
+        
+        // Sort by salary (highest first)
+        golfers.sort((a, b) => b.salary - a.salary);
+        
+        countEl.textContent = `${this.manageTournamentGolfers.length}`;
+        
+        if (golfers.length === 0) {
+          golferList.innerHTML = filter 
+            ? '<p style="color: var(--text-secondary);">No golfers match your search</p>'
+            : '<p style="color: var(--text-secondary);">No golfers in this tournament</p>';
+          return;
+        }
+
+        golferList.innerHTML = golfers.map(g => `
+          <div class="golfer-preview-item" data-golfer="${this.escapeHtml(g.name)}" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <span class="golfer-name">${this.escapeHtml(g.name)}</span>
+              <span class="golfer-salary" style="color: var(--text-secondary); margin-left: 8px;">$${this.formatSalary(g.salary)}</span>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeGolferFromField('${g.name.replace(/'/g, "\\'")}')" 
+                    style="color: var(--danger); border-color: var(--danger); padding: 4px 12px;">
+              Remove
+            </button>
+          </div>
+        `).join('');
+      },
+
+      filterGolferList(searchText) {
+        this.renderGolferFieldList(searchText);
+      },
+
+      async removeGolferFromField(golferName) {
+        if (!this.manageTournamentId || !this.manageTournamentData) {
+          alert('No tournament selected');
+          return;
+        }
+
+        if (!confirm(`Remove "${golferName}" from this tournament?\n\nNote: This will not affect any lineups that already include this golfer.`)) {
+          return;
+        }
+
+        const item = document.querySelector(`[data-golfer="${golferName.replace(/"/g, '\\"')}"]`);
+        if (item) item.style.opacity = '0.5';
+
+        try {
+          const updatedField = this.manageTournamentGolfers.filter(g => g.name !== golferName);
+
+          await firebaseDb.collection('tournaments').doc(this.manageTournamentId).update({
+            golferField: updatedField
+          });
+
+          // Update local data
+          this.manageTournamentGolfers = updatedField;
+          this.manageTournamentData.golferField = updatedField;
+
+          // Re-render the list
+          const searchText = document.getElementById('golfer-search')?.value || '';
+          this.renderGolferFieldList(searchText);
+
+          // Refresh tournament list to show updated count
+          this.loadTournaments();
+
+        } catch (error) {
+          alert('Error removing golfer: ' + error.message);
+          if (item) item.style.opacity = '1';
+        }
+      },
+
+      escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
       },
 
       // Lineup Management
