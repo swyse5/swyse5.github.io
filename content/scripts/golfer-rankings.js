@@ -435,4 +435,103 @@ function isGolferDuplicateExcluding(name, excludeSelectId) {
 // Format salary
 function formatSalary(salary) {
     return salary % 1 === 0 ? salary.toString() : salary.toFixed(2);
-} 
+}
+
+// Pick a random team of `count` golfers that fits within `budget`.
+// `shuffled` should already be randomly ordered.
+function pickRandomTeam(shuffled, budget, count) {
+    const minSalary = Math.min(...shuffled.map(g => g.salary));
+    const team = [];
+    let remaining = budget;
+
+    for (const golfer of shuffled) {
+        if (team.length >= count) break;
+        const spotsLeft = count - team.length;
+        // Only pick if this golfer fits AND the cheapest possible players can fill remaining spots
+        if (golfer.salary <= remaining - (spotsLeft - 1) * minSalary) {
+            team.push(golfer);
+            remaining -= golfer.salary;
+        }
+    }
+
+    return team.length === count ? team : null;
+}
+
+async function randomizePicks() {
+    const btn = document.getElementById('randomizeBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Randomizing...';
+    }
+
+    try {
+        const data = await getGolferSalaries();
+        const golfers = (data.golfers || []).filter(g => g.name && g.salary > 0);
+
+        if (golfers.length < 4) {
+            alert('Not enough golfers available to randomize.');
+            return;
+        }
+
+        let salaryCap = 100;
+        try {
+            const settings = await getSettings();
+            salaryCap = settings.salaryCap || 100;
+        } catch (e) {}
+
+        // Try up to 200 random orderings to find a valid team
+        let team = null;
+        for (let attempt = 0; attempt < 200; attempt++) {
+            const shuffled = [...golfers].sort(() => Math.random() - 0.5);
+            team = pickRandomTeam(shuffled, salaryCap, 4);
+            if (team) break;
+        }
+
+        if (!team) {
+            alert('Could not find a valid random team within the salary cap. Please try again.');
+            return;
+        }
+
+        const selectIds = ['golfer1', 'golfer2', 'golfer3', 'golfer4'];
+
+        // Set each select to the chosen golfer, adding the option if it was filtered out
+        selectIds.forEach((selectId, i) => {
+            const golfer = team[i];
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            // Add the option if it isn't currently in the select (may have been filtered)
+            if (!Array.from(select.options).some(o => o.value === golfer.name)) {
+                const option = document.createElement('option');
+                option.value = golfer.name;
+                option.dataset.salary = golfer.salary;
+                option.textContent = `${golfer.name} - $${formatSalary(golfer.salary)}`;
+                select.appendChild(option);
+            }
+
+            select.value = golfer.name;
+            select.dataset.salary = golfer.salary;
+
+            // Show the clear button if present
+            const wrapper = select.closest('.golfer-select-wrapper');
+            if (wrapper) {
+                const clearBtn = wrapper.querySelector('.clear-golfer-btn');
+                if (clearBtn) clearBtn.style.display = 'flex';
+            }
+        });
+
+        // Update the salary calculator
+        if (typeof updateSalaryCalculator === 'function') {
+            updateSalaryCalculator();
+        }
+
+        // Refresh all dropdowns to reflect the new selections
+        setTimeout(() => selectIds.forEach(id => populateGolferSelect(id)), 50);
+
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-dice"></i> Randomize Picks';
+        }
+    }
+}
