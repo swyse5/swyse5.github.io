@@ -72,13 +72,19 @@ const Auth = {
   },
 
   updateUI(isSignedIn) {
+    const signInBtn = document.getElementById('sign-in-btn');
+    const userInfo = document.getElementById('user-info');
     const userAvatar = document.getElementById('user-avatar');
     const userName = document.getElementById('user-name');
     const adminLink = document.getElementById('admin-link');
 
     if (isSignedIn && this.currentUser) {
-      // Add signed-in class to body - CSS handles show/hide
+      // Add signed-in class to body
       document.body.classList.add('signed-in');
+      
+      // Also directly set styles as backup
+      if (signInBtn) signInBtn.style.display = 'none';
+      if (userInfo) userInfo.style.display = 'flex';
       
       if (userAvatar) {
         userAvatar.src = this.currentUser.photoURL || 'https://via.placeholder.com/32';
@@ -92,6 +98,10 @@ const Auth = {
     } else {
       // Remove signed-in class from body
       document.body.classList.remove('signed-in');
+      
+      // Also directly set styles as backup
+      if (signInBtn) signInBtn.style.display = 'flex';
+      if (userInfo) userInfo.style.display = 'none';
       if (adminLink) adminLink.style.display = 'none';
     }
   },
