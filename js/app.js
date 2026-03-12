@@ -212,6 +212,12 @@ const App = {
   },
 
   async onViewLoad(viewName) {
+    // Clean up subscriptions when leaving views
+    if (viewName !== 'leaderboard') {
+      Leaderboard.stopLiveUpdates();
+      Leaderboard.stopSeasonLiveUpdates();
+    }
+    
     switch (viewName) {
       case 'home':
         this.loadHomeView();

@@ -839,9 +839,16 @@ body.signed-in .auth-show-signed-in {
 }
 
 .season-standings-table th.pos { width: 50px; }
-.season-standings-table th.player { text-align: left; }
-.season-standings-table th.tournament { width: 80px; }
-.season-standings-table th.total { width: 80px; }
+.season-standings-table th.player { text-align: left; min-width: 120px; }
+.season-standings-table th.tournament { 
+  min-width: 100px; 
+  max-width: 180px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.season-standings-table th.season-total { width: 80px; }
 
 .season-standings-table td {
   padding: 14px 12px;
@@ -1197,6 +1204,13 @@ body.signed-in .auth-show-signed-in {
   background: rgba(0, 0, 0, 0.2);
 }
 
+/* Tournament Stats Section (real-time eagles/bogeys) */
+.tournament-stats-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
 /* Eagles & Bogeys Section */
 .eagles-bogeys-section {
   display: grid;
@@ -1332,7 +1346,7 @@ body.signed-in .auth-show-signed-in {
 .leaderboard-table th.player { text-align: left; }
 .leaderboard-table th.round { width: 60px; }
 .leaderboard-table th.total { width: 70px; }
-.leaderboard-table th.thru { width: 60px; }
+.leaderboard-table th.holes-remaining { width: 80px; }
 
 .leaderboard-row {
   cursor: pointer;

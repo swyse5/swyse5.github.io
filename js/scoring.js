@@ -44,6 +44,92 @@ const Scoring = {
       .trim();
   },
 
+  // Check if the tournament/round has progressed past a certain point
+  // Returns true if ANY golfer has started playing the specified round
+  hasAnyGolferStartedRound(golferScores, roundNum) {
+    const roundIndex = roundNum - 1;
+    for (const golfer of Object.values(golferScores)) {
+      if (!golfer?.rounds?.[roundIndex]?.holes) continue;
+      if (golfer.rounds[roundIndex].holes.some(h => h && h.toPar !== null)) {
+        return true;
+      }
+    }
+    return false;
+  },
+
+  // Check if a golfer is considered "withdrawn" for a specific round
+  // A golfer is considered withdrawn if:
+  // 1. They have partial scores in this round (started but didn't finish 18 holes)
+  // 2. AND the tournament has moved on (other golfers are playing a later round)
+  // Note: If a golfer WDs in Round 1, they don't play Rounds 2-4
+  isGolferWithdrawnForRound(golferScores, golferName, roundNum) {
+    const normalized = this.normalizeName(golferName);
+    const golfer = golferScores[normalized];
+    if (!golfer || !golfer.rounds) return false;
+
+    const roundIndex = roundNum - 1;
+    const round = golfer.rounds[roundIndex];
+    
+    // Count completed holes in this round
+    const holesCompleted = round?.holes 
+      ? round.holes.filter(h => h && h.toPar !== null && h.toPar !== undefined).length 
+      : 0;
+    
+    // If they completed all 18 holes, they're not withdrawn from this round
+    if (holesCompleted === 18) return false;
+    
+    // If they have 0 holes in this round, check if they were already withdrawn from a previous round
+    if (holesCompleted === 0) {
+      // Check if this golfer withdrew in an earlier round
+      // (had partial scores in an earlier round)
+      for (let i = 0; i < roundIndex; i++) {
+        const earlierRound = golfer.rounds?.[i];
+        if (!earlierRound?.holes) continue;
+        const earlierHoles = earlierRound.holes.filter(h => h && h.toPar !== null).length;
+        // If they started an earlier round but didn't finish it, they're WD
+        if (earlierHoles > 0 && earlierHoles < 18) {
+          return true;
+        }
+      }
+      // Never started this round - not considered withdrawn FROM this round
+      // (might not have made the cut, or tournament hasn't reached this round)
+      return false;
+    }
+
+    // They have partial scores (1-17 holes) in this round
+    // Check if the tournament has moved on to a later round
+    for (let laterRound = roundNum + 1; laterRound <= 4; laterRound++) {
+      if (this.hasAnyGolferStartedRound(golferScores, laterRound)) {
+        // Tournament has moved to a later round, this golfer didn't finish = withdrawn
+        return true;
+      }
+    }
+
+    // Tournament hasn't moved on yet - golfer might still be playing
+    // Check if their round is marked as complete (individually)
+    if (round?.isComplete && holesCompleted < 18) {
+      return true;
+    }
+
+    return false;
+  },
+
+  // Check if a golfer is "active" for a round (has started and not withdrawn)
+  isGolferActiveForRound(golferScores, golferName, roundNum) {
+    const normalized = this.normalizeName(golferName);
+    const golfer = golferScores[normalized];
+    if (!golfer || !golfer.rounds) return false;
+
+    const roundIndex = roundNum - 1;
+    const round = golfer.rounds[roundIndex];
+    
+    // Must have at least one hole score to be considered active
+    if (!round?.holes) return false;
+    const hasAnyScore = round.holes.some(h => h && h.toPar !== null && h.toPar !== undefined);
+    
+    return hasAnyScore;
+  },
+
   normalizeRelToPar(v) {
     if (v == null) return null;
     const s = String(v).trim();
@@ -197,6 +283,24 @@ const Scoring = {
   calculateTotalBestBallSplit(golfersRounds12, golfersRounds34, golferScores) {
     const rounds = [1, 2, 3, 4].map(roundNum => {
       const golfers = roundNum <= 2 ? golfersRounds12 : golfersRounds34;
+      return this.calculateBestBall(golfers, golferScores, roundNum);
+    });
+
+    const totalToPar = rounds.reduce((sum, r) => sum + r.totalToPar, 0);
+    const totalHolesPlayed = rounds.reduce((sum, r) => sum + r.holesPlayed, 0);
+    const completedRounds = rounds.filter(r => r.isComplete).length;
+
+    return {
+      rounds,
+      totalToPar,
+      totalHolesPlayed,
+      completedRounds
+    };
+  },
+
+  calculateTotalBestBallByRound(golfersPerRound, golferScores) {
+    const rounds = [1, 2, 3, 4].map(roundNum => {
+      const golfers = golfersPerRound[roundNum - 1] || [];
       return this.calculateBestBall(golfers, golferScores, roundNum);
     });
 

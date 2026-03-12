@@ -9,11 +9,26 @@ const Chat = {
   reactionEmojis: ['👍', '👎', '🔥', '⛳', '😂', '😮', '👏'],
   userNameCache: {},
   authListenerSet: false,
+  _notifiedEagles: null, // Use private backing field
+  notifiedEaglesLoaded: false,
+
+  // Getter to ensure notifiedEagles is always a Set
+  get notifiedEagles() {
+    if (!this._notifiedEagles) {
+      this._notifiedEagles = new Set();
+    }
+    return this._notifiedEagles;
+  },
+
+  set notifiedEagles(value) {
+    this._notifiedEagles = value;
+  },
 
   init(tournamentId = null) {
     // Use tournament ID if available, otherwise use 'general' chat room
     this.currentTournamentId = tournamentId || 'general';
     this.loadLastReadTimestamp();
+    this.loadNotifiedEagles();
     this.setupUI();
     this.updateChatHeader();
     
@@ -390,10 +405,39 @@ const Chat = {
     const now = new Date();
     const diff = now - date;
     
+    // Just now (less than 1 minute)
     if (diff < 60000) return 'Just now';
+    
+    // Minutes ago (less than 1 hour)
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    
+    // Check if same day
+    const isToday = date.toDateString() === now.toDateString();
+    
+    // Check if yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    if (isToday) {
+      return timeStr;
+    }
+    
+    if (isYesterday) {
+      return `Yesterday ${timeStr}`;
+    }
+    
+    // Check if within last 7 days - show day name
+    if (diff < 7 * 86400000) {
+      const dayName = date.toLocaleDateString([], { weekday: 'short' });
+      return `${dayName} ${timeStr}`;
+    }
+    
+    // Older than 7 days - show full date and time
+    const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return `${dateStr} ${timeStr}`;
   },
 
   escapeHtml(text) {
@@ -412,10 +456,13 @@ const Chat = {
   },
 
   // Eagle Alert System
-  previousScores: {},
-
   async checkForEagles(tournamentId, golferScores, lineups) {
-    if (!golferScores || !lineups) return;
+    if (!golferScores || !lineups || !tournamentId) return;
+
+    // Ensure notified eagles are loaded from localStorage
+    if (!this.notifiedEaglesLoaded) {
+      this.loadNotifiedEagles();
+    }
 
     const eagleAlerts = [];
 
@@ -438,8 +485,6 @@ const Chat = {
     for (const [normalizedName, golfer] of Object.entries(golferScores)) {
       if (!golfer.rounds) continue;
 
-      const prevGolfer = this.previousScores[normalizedName];
-
       golfer.rounds.forEach((round, roundIndex) => {
         if (!round.holes) return;
 
@@ -448,11 +493,11 @@ const Chat = {
 
           // Eagle is -2 or better
           if (hole.toPar <= -2) {
-            const prevRound = prevGolfer?.rounds?.[roundIndex];
-            const prevHole = prevRound?.holes?.[holeIndex];
-
-            // Only alert if this is new (wasn't in previous data)
-            if (!prevHole || prevHole.toPar !== hole.toPar) {
+            // Create a unique key for this eagle
+            const eagleKey = `${tournamentId}_${normalizedName}_R${roundIndex + 1}_H${holeIndex + 1}`;
+            
+            // Only alert if we haven't notified about this eagle before
+            if (!this.notifiedEagles.has(eagleKey)) {
               const users = golferToUsers[normalizedName] || [];
               if (users.length > 0) {
                 const scoreLabel = this.getScoreLabel(hole.toPar);
@@ -461,6 +506,7 @@ const Chat = {
                   `${users.slice(0, -1).join(', ')}, and ${users[users.length - 1]}`;
                 
                 eagleAlerts.push({
+                  key: eagleKey,
                   golfer: golfer.displayName,
                   hole: holeIndex + 1,
                   round: roundIndex + 1,
@@ -474,13 +520,55 @@ const Chat = {
       });
     }
 
-    // Store current scores for next comparison
-    this.previousScores = JSON.parse(JSON.stringify(golferScores));
-
-    // Send eagle alerts
+    // Send eagle alerts and mark them as notified
     for (const alert of eagleAlerts) {
       const message = `${alert.golfer} made ${alert.score} on Hole ${alert.hole} (R${alert.round})! 🦅 Teams: ${alert.users}`;
       await this.sendMessage(message, true);
+      
+      // Mark this eagle as notified
+      this.notifiedEagles.add(alert.key);
+    }
+    
+    // Save notified eagles to localStorage
+    if (eagleAlerts.length > 0) {
+      this.saveNotifiedEagles();
+    }
+  },
+
+  loadNotifiedEagles() {
+    // Skip if already loaded and has data
+    if (this.notifiedEaglesLoaded && this._notifiedEagles && this._notifiedEagles.size > 0) {
+      return;
+    }
+    
+    try {
+      const stored = localStorage.getItem('notifiedEagles');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Merge with existing to prevent data loss during re-init
+        if (!this._notifiedEagles) {
+          this._notifiedEagles = new Set(parsed);
+        } else {
+          parsed.forEach(key => this._notifiedEagles.add(key));
+        }
+      } else if (!this._notifiedEagles) {
+        this._notifiedEagles = new Set();
+      }
+      this.notifiedEaglesLoaded = true;
+    } catch (e) {
+      console.log('Could not load notified eagles from localStorage');
+      if (!this._notifiedEagles) {
+        this._notifiedEagles = new Set();
+      }
+      this.notifiedEaglesLoaded = true;
+    }
+  },
+
+  saveNotifiedEagles() {
+    try {
+      localStorage.setItem('notifiedEagles', JSON.stringify([...this.notifiedEagles]));
+    } catch (e) {
+      console.log('Could not save notified eagles to localStorage');
     }
   },
 
