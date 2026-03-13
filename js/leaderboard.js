@@ -32,7 +32,7 @@ const Leaderboard = {
     if (element && this.cachedLastUpdated) {
       element.textContent = this.formatLastUpdated(this.cachedLastUpdated);
     } else if (element) {
-      element.textContent = '';
+      element.textContent = 'Scores not yet updated';
     }
   },
 
@@ -135,21 +135,63 @@ const Leaderboard = {
       });
       
       // Calculate total holes remaining for all golfers in lineup
+      // Be smart about withdrawals - don't count holes for past rounds or withdrawn golfers
+      // Also don't count holes for rounds where the player didn't submit a lineup
       let holesRemaining = 0;
+      
+      // Find the current active round (latest round where any golfer has started)
+      let currentActiveRound = 0;
+      for (let r = 4; r >= 1; r--) {
+        if (Scoring.hasAnyGolferStartedRound(golferScores, r)) {
+          currentActiveRound = r;
+          break;
+        }
+      }
+      
+      // Track which rounds have a submitted lineup
+      const hasLineupForRound = [
+        hasLineup1, // R1
+        hasLineup1, // R2
+        hasLineup2, // R3
+        hasLineup2  // R4
+      ];
+      
       golfersPerRound.forEach((roundGolfers, roundIndex) => {
+        const roundNum = roundIndex + 1;
+        
+        // Skip rounds where no lineup was submitted
+        if (!hasLineupForRound[roundIndex] || roundGolfers.length === 0) {
+          return;
+        }
+        
         roundGolfers.forEach(golferName => {
           const normalized = Scoring.normalizeName(golferName);
           const golfer = golferScores[normalized];
           const round = golfer?.rounds?.[roundIndex];
           
-          if (!round || !round.holes) {
-            // No data for this round, count as 18 holes remaining
-            holesRemaining += 18;
+          // Check if golfer is withdrawn for this round
+          const isWithdrawn = Scoring.isGolferWithdrawnForRound(golferScores, golferName, roundNum);
+          
+          if (isWithdrawn) {
+            // Withdrawn golfers don't have remaining holes
+            holesRemaining += 0;
+          } else if (roundNum < currentActiveRound) {
+            // Past rounds: if golfer didn't complete, they won't (assume round is done)
+            holesRemaining += 0;
+          } else if (!round || !round.holes) {
+            // No data for this round yet
+            if (roundNum > currentActiveRound || currentActiveRound === 0) {
+              // Future round or tournament hasn't started - count as 18 remaining
+              holesRemaining += 18;
+            } else {
+              // Current round but no data - might not have teed off yet
+              holesRemaining += 18;
+            }
           } else if (round.isComplete) {
-            // Round complete, 0 holes remaining for this round
+            // Round complete, 0 holes remaining
             holesRemaining += 0;
           } else {
-            // Count holes not yet played
+            // Active round - count unplayed holes
             const holesPlayed = round.holes.filter(h => h && h.toPar !== null).length;
             holesRemaining += (18 - holesPlayed);
           }
@@ -297,6 +339,55 @@ const Leaderboard = {
   // Current selected round for detailed view
   selectedRound: 1,
   currentStandings: [],
+  
+  // Sorting state
+  sortColumn: 'pos',
+  sortDirection: 'asc',
+
+  sortStandings(standings, column, direction) {
+    const sorted = [...standings];
+    
+    sorted.sort((a, b) => {
+      let valA, valB;
+      
+      switch (column) {
+        case 'pos':
+        case 'total':
+          valA = a.totalToPar;
+          valB = b.totalToPar;
+          break;
+        case 'player':
+          valA = a.displayName.toLowerCase();
+          valB = b.displayName.toLowerCase();
+          break;
+        case 'r1':
+          valA = a.rounds[0]?.toPar ?? 999;
+          valB = b.rounds[0]?.toPar ?? 999;
+          break;
+        case 'r2':
+          valA = a.rounds[1]?.toPar ?? 999;
+          valB = b.rounds[1]?.toPar ?? 999;
+          break;
+        case 'r3':
+          valA = a.rounds[2]?.toPar ?? 999;
+          valB = b.rounds[2]?.toPar ?? 999;
+          break;
+        case 'r4':
+          valA = a.rounds[3]?.toPar ?? 999;
+          valB = b.rounds[3]?.toPar ?? 999;
+          break;
+        default:
+          valA = a.totalToPar;
+          valB = b.totalToPar;
+      }
+      
+      if (valA < valB) return direction === 'asc' ? -1 : 1;
+      if (valA > valB) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return sorted;
+  },
 
   renderLeaderboard(containerId, standings, currentUserId = null) {
     const container = document.getElementById(containerId);
@@ -334,22 +425,24 @@ const Leaderboard = {
       </div>
     `;
 
+    // Sort standings
+    const sortedStandings = this.sortStandings(standings, this.sortColumn, this.sortDirection);
+
     html += `
       <table class="leaderboard-table">
         <thead>
           <tr>
-            <th class="pos">Pos</th>
-            <th class="player">Player</th>
-            <th class="round">R1</th>
-            <th class="round">R2</th>
-            <th class="round">R3</th>
-            <th class="round">R4</th>
-            <th class="total">Total</th>
-            <th class="holes-remaining">Remaining</th>
+            <th class="pos sortable" data-sort="pos">Pos</th>
+            <th class="player sortable" data-sort="player">Player</th>
+            <th class="round sortable" data-sort="r1">R1</th>
+            <th class="round sortable" data-sort="r2">R2</th>
+            <th class="round sortable" data-sort="r3">R3</th>
+            <th class="round sortable" data-sort="r4">R4</th>
+            <th class="total sortable" data-sort="total">Total</th>
           </tr>
         </thead>
         <tbody>
-          ${standings.map(player => this.renderLeaderboardRow(player, currentUserId)).join('')}
+          ${sortedStandings.map(player => this.renderLeaderboardRow(player, currentUserId)).join('')}
         </tbody>
       </table>
     `;
@@ -394,6 +487,26 @@ const Leaderboard = {
         }
       });
     });
+
+    // Add click handlers for sortable headers
+    container.querySelectorAll('.sortable').forEach(th => {
+      th.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const column = th.dataset.sort;
+        
+        // Toggle direction if same column, otherwise default to asc (or desc for scores)
+        if (this.sortColumn === column) {
+          this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+          this.sortColumn = column;
+          // Default to ascending for player name, descending for remaining, ascending for scores
+          this.sortDirection = column === 'player' ? 'asc' : column === 'remaining' ? 'desc' : 'asc';
+        }
+        
+        // Re-render with new sort
+        this.renderLeaderboard(containerId, this.currentStandings, currentUserId);
+      });
+    });
   },
 
   renderLeaderboardRow(player, currentUserId) {
@@ -412,10 +525,9 @@ const Leaderboard = {
         <td class="round ${this.getScoreClass(player.rounds[2]?.toPar)}">${this.formatRoundScore(player.rounds[2])}</td>
         <td class="round ${this.getScoreClass(player.rounds[3]?.toPar)}">${this.formatRoundScore(player.rounds[3])}</td>
         <td class="total ${this.getScoreClass(player.totalToPar)}">${Scoring.formatToPar(player.totalToPar)}</td>
-        <td class="holes-remaining">${player.holesRemaining}</td>
       </tr>
       <tr class="golfer-details">
-        <td colspan="8">
+        <td colspan="7">
           ${this.renderHoleByHoleDetails(player, this.selectedRound, currentUserId)}
         </td>
       </tr>
@@ -521,28 +633,22 @@ const Leaderboard = {
           <table class="hole-scorecard">
             <thead>
               <tr>
-                <th class="golfer-col">Golfer</th>
+                <th class="golfer-col"></th>
                 ${[1,2,3,4,5,6,7,8,9].map(h => `<th>${h}</th>`).join('')}
-                <th class="subtotal">Out</th>
                 ${[10,11,12,13,14,15,16,17,18].map(h => `<th>${h}</th>`).join('')}
-                <th class="subtotal">In</th>
-                <th class="total-col">Total</th>
+                <th class="total-col">Tot</th>
               </tr>
             </thead>
             <tbody>
               <tr class="par-row">
                 <td>Par</td>
                 ${frontPars.map(p => `<td>${p || '-'}</td>`).join('')}
-                <td class="subtotal">${frontPars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
                 ${backPars.map(p => `<td>${p || '-'}</td>`).join('')}
-                <td class="subtotal">${backPars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
                 <td class="total-col">${pars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
               </tr>
               ${golferHoleData.map(g => {
                 const gFront = g.holes.slice(0, 9);
                 const gBack = g.holes.slice(9, 18);
-                const frontTotal = gFront.reduce((s, h) => s + (getHoleToPar(h) || 0), 0);
-                const backTotal = gBack.reduce((s, h) => s + (getHoleToPar(h) || 0), 0);
                 return `
                 <tr class="golfer-row">
                   <td class="golfer-col">${g.name}</td>
@@ -551,22 +657,18 @@ const Leaderboard = {
                     const isBest = toPar !== null && toPar === bestBallHoles[i];
                     return `<td class="${this.getScoreClass(toPar)} ${isBest ? 'best-score' : ''}">${toPar !== null ? Scoring.formatToPar(toPar) : '-'}</td>`;
                   }).join('')}
-                  <td class="subtotal ${this.getScoreClass(frontTotal)}">${Scoring.formatToPar(frontTotal)}</td>
                   ${gBack.map((h, i) => {
                     const toPar = getHoleToPar(h);
                     const isBest = toPar !== null && toPar === bestBallHoles[i + 9];
                     return `<td class="${this.getScoreClass(toPar)} ${isBest ? 'best-score' : ''}">${toPar !== null ? Scoring.formatToPar(toPar) : '-'}</td>`;
                   }).join('')}
-                  <td class="subtotal ${this.getScoreClass(backTotal)}">${Scoring.formatToPar(backTotal)}</td>
                   <td class="total-col ${this.getScoreClass(g.totalToPar)}">${g.totalToPar !== null ? Scoring.formatToPar(g.totalToPar) : '-'}</td>
                 </tr>`;
               }).join('')}
               <tr class="best-ball-row">
                 <td class="golfer-col"><strong>Best Ball</strong></td>
                 ${frontNine.map(h => `<td class="${this.getScoreClass(h)}"><strong>${h !== null ? Scoring.formatToPar(h) : '-'}</strong></td>`).join('')}
-                <td class="subtotal ${this.getScoreClass(frontNine.reduce((s, h) => s + (h || 0), 0))}"><strong>${Scoring.formatToPar(frontNine.reduce((s, h) => s + (h || 0), 0))}</strong></td>
                 ${backNine.map(h => `<td class="${this.getScoreClass(h)}"><strong>${h !== null ? Scoring.formatToPar(h) : '-'}</strong></td>`).join('')}
-                <td class="subtotal ${this.getScoreClass(backNine.reduce((s, h) => s + (h || 0), 0))}"><strong>${Scoring.formatToPar(backNine.reduce((s, h) => s + (h || 0), 0))}</strong></td>
                 <td class="total-col ${this.getScoreClass(player.rounds?.[roundIndex]?.toPar)}"><strong>${this.formatRoundScore(player.rounds?.[roundIndex])}</strong></td>
               </tr>
             </tbody>
@@ -603,6 +705,7 @@ const Leaderboard = {
       .onSnapshot(async () => {
         const standings = await this.calculateStandings(tournamentId);
         this.renderLeaderboard(containerId, standings, Auth.currentUser?.uid);
+        this.updateLastUpdatedDisplay('leaderboard-last-updated');
       });
 
     // Listen for lineup changes
@@ -611,6 +714,7 @@ const Leaderboard = {
       .onSnapshot(async () => {
         const standings = await this.calculateStandings(tournamentId);
         this.renderLeaderboard(containerId, standings, Auth.currentUser?.uid);
+        this.updateLastUpdatedDisplay('leaderboard-last-updated');
       });
   },
 

@@ -133,12 +133,18 @@ const App = {
         const tournamentHasEnded = now > endDateWithBuffer;
         
         // Start auto-update if: tournament dates indicate it's active, OR status is in_progress
+        // AND scoring is enabled for this tournament
         if ((tournamentHasStarted && !tournamentHasEnded) || this.activeTournament.status === 'in_progress') {
-          Scoring.startAutoUpdate(
-            this.activeTournament.id, 
-            this.activeTournament.espnEventName,
-            10 // Update every 10 minutes
-          );
+          const scoringEnabled = await Scoring.checkScoringEnabled(this.activeTournament.id);
+          if (scoringEnabled) {
+            Scoring.startAutoUpdate(
+              this.activeTournament.id, 
+              this.activeTournament.espnEventName,
+              10 // Update every 10 minutes
+            );
+          } else {
+            console.log('Auto-update not started: scoring disabled for this tournament');
+          }
         }
       } else {
         // No active tournament - initialize general chat
