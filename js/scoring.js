@@ -355,18 +355,60 @@ const Scoring = {
     return { pars, golferScores, event };
   },
 
+  currentTournamentId: null,
+
+  async checkScoringEnabled(tournamentId) {
+    try {
+      const doc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
+      if (doc.exists) {
+        const enabled = doc.data().scoringEnabled;
+        // Default to true if not explicitly set to false
+        const result = enabled !== false;
+        console.log(`Scoring enabled check for ${tournamentId}: ${enabled} (result: ${result})`);
+        return result;
+      }
+      console.log(`Tournament ${tournamentId} not found, defaulting to enabled`);
+      return true;
+    } catch (error) {
+      console.error('Error checking scoring status:', error);
+      return false; // If we can't check, default to disabled for safety
+    }
+  },
+
+  async setScoringEnabled(tournamentId, enabled) {
+    try {
+      await firebaseDb.collection('tournaments').doc(tournamentId).update({
+        scoringEnabled: enabled
+      });
+      console.log(`Scoring ${enabled ? 'enabled' : 'disabled'} for tournament ${tournamentId}`);
+      return true;
+    } catch (error) {
+      console.error('Error setting scoring status:', error);
+      return false;
+    }
+  },
+
   startAutoUpdate(tournamentId, espnEventName, intervalMinutes = 10) {
     this.stopAutoUpdate();
+    this.currentTournamentId = tournamentId;
     
-    // Initial update
-    this.updateScores(tournamentId, espnEventName);
+    // Function to check flag and update
+    const updateIfEnabled = async () => {
+      const enabled = await this.checkScoringEnabled(tournamentId);
+      if (enabled) {
+        this.updateScores(tournamentId, espnEventName);
+      } else {
+        console.log('Auto-update skipped: scoring disabled for this tournament');
+      }
+    };
     
-    // Set interval
+    // Don't do initial update - just set interval
+    // Scores are already in Firestore, no need to fetch on every page load
     this.updateInterval = setInterval(() => {
-      this.updateScores(tournamentId, espnEventName);
+      updateIfEnabled();
     }, intervalMinutes * 60 * 1000);
 
-    console.log(`Auto-update started: every ${intervalMinutes} minutes`);
+    console.log(`Auto-update started: will update every ${intervalMinutes} minutes`);
   },
 
   stopAutoUpdate() {

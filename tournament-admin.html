@@ -179,6 +179,50 @@
       opacity: 0.5;
       pointer-events: none;
     }
+    
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+      .admin-container {
+        padding: 16px;
+      }
+      
+      .admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      
+      .scoring-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      
+      .scoring-controls select {
+        max-width: 100% !important;
+      }
+      
+      .scoring-controls .interval-control {
+        justify-content: flex-start;
+      }
+      
+      .scoring-controls button {
+        width: 100%;
+      }
+      
+      .admin-section h2 {
+        font-size: 1.3rem;
+      }
+      
+      .form-row {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .form-row .form-group {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -263,6 +307,11 @@
           <select id="scoring-tournament" class="form-control" style="max-width: 300px;">
             <option value="">Select tournament...</option>
           </select>
+          <div class="interval-control" style="display: flex; align-items: center; gap: 8px;">
+            <label for="update-interval" style="white-space: nowrap;">Update every</label>
+            <input type="number" id="update-interval" class="form-control" value="10" min="1" max="60" style="width: 70px;">
+            <span>minutes</span>
+          </div>
           <button id="start-scoring" class="btn btn-primary">Start Auto-Update</button>
           <button id="stop-scoring" class="btn btn-outline">Stop</button>
           <button id="manual-update" class="btn btn-outline">Update Now</button>
@@ -787,15 +836,29 @@ service cloud.firestore {
           return;
         }
 
-        Scoring.startAutoUpdate(tournamentId, espnEventName, 10);
+        // Enable scoring in Firestore (so all clients will update)
+        await Scoring.setScoringEnabled(tournamentId, true);
+
+        // Do an immediate update when admin clicks Start
+        await Scoring.updateScores(tournamentId, espnEventName);
+
+        const interval = parseInt(document.getElementById('update-interval').value) || 10;
+        Scoring.startAutoUpdate(tournamentId, espnEventName, interval);
         document.getElementById('scoring-status').className = 'scoring-status scoring-active';
-        document.getElementById('scoring-status').textContent = 'Auto-update: Active (every 10 minutes)';
+        document.getElementById('scoring-status').textContent = `Auto-update: Active (every ${interval} minute${interval === 1 ? '' : 's'})`;
       },
 
-      stopScoring() {
+      async stopScoring() {
+        const select = document.getElementById('scoring-tournament');
+        const tournamentId = select.value;
+        
+        if (tournamentId) {
+          await Scoring.setScoringEnabled(tournamentId, false);
+        }
+        
         Scoring.stopAutoUpdate();
         document.getElementById('scoring-status').className = 'scoring-status scoring-inactive';
-        document.getElementById('scoring-status').textContent = 'Auto-update: Inactive';
+        document.getElementById('scoring-status').textContent = 'Auto-update: Disabled';
       },
 
       async manualUpdate() {

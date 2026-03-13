@@ -12,34 +12,33 @@ const Chat = {
   isAdmin: false,
   adminEmails: [],
 
-  // Initialize notified eagles from localStorage immediately
-  _notifiedEaglesSet: null,
-  
+  // Always read from localStorage to handle multiple tabs
   getNotifiedEagles() {
-    if (this._notifiedEaglesSet === null) {
-      // Load from localStorage on first access
-      try {
-        const stored = localStorage.getItem('notifiedEagles');
-        if (stored) {
-          this._notifiedEaglesSet = new Set(JSON.parse(stored));
-        } else {
-          this._notifiedEaglesSet = new Set();
-        }
-      } catch (e) {
-        console.log('Could not load notified eagles:', e);
-        this._notifiedEaglesSet = new Set();
+    try {
+      const stored = localStorage.getItem('notifiedEagles');
+      if (stored) {
+        return new Set(JSON.parse(stored));
       }
+    } catch (e) {
+      console.log('Could not load notified eagles:', e);
     }
-    return this._notifiedEaglesSet;
+    return new Set();
   },
 
   addNotifiedEagle(key) {
-    this.getNotifiedEagles().add(key);
-    this.saveNotifiedEagles();
+    const eagles = this.getNotifiedEagles();
+    eagles.add(key);
+    this.saveNotifiedEagles(eagles);
+    console.log(`Added eagle notification: ${key}`);
   },
 
   hasNotifiedEagle(key) {
-    return this.getNotifiedEagles().has(key);
+    const eagles = this.getNotifiedEagles();
+    const has = eagles.has(key);
+    if (has) {
+      console.log(`Eagle already notified: ${key}`);
+    }
+    return has;
   },
 
   async loadAdminStatus() {
@@ -603,9 +602,8 @@ const Chat = {
     }
   },
 
-  saveNotifiedEagles() {
+  saveNotifiedEagles(eagles) {
     try {
-      const eagles = this.getNotifiedEagles();
       localStorage.setItem('notifiedEagles', JSON.stringify([...eagles]));
     } catch (e) {
       console.log('Could not save notified eagles to localStorage');

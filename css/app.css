@@ -1359,7 +1359,16 @@ body.signed-in .auth-show-signed-in {
 .leaderboard-table th.player { text-align: left; }
 .leaderboard-table th.round { width: 60px; }
 .leaderboard-table th.total { width: 70px; }
-.leaderboard-table th.holes-remaining { width: 80px; }
+
+.leaderboard-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.leaderboard-table th.sortable:hover {
+  background: var(--accent-color);
+}
 
 .leaderboard-row {
   cursor: pointer;
@@ -1409,6 +1418,7 @@ body.signed-in .auth-show-signed-in {
   padding: 12px;
   background: var(--background);
 }
+
 
 .golfer-list {
   display: flex;
@@ -1730,15 +1740,12 @@ body.signed-in .auth-show-signed-in {
 .last-updated {
   font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-top: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.last-updated:empty {
-  display: none;
-}
 
 .last-updated::before {
   content: "🔄";
