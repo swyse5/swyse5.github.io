@@ -1661,18 +1661,91 @@ body.signed-in .auth-show-signed-in {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-header {
+  display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
 }
 
 .history-item h4 {
   margin-bottom: 4px;
 }
 
-.history-item p {
+.history-date {
   color: var(--text-secondary);
   font-size: 14px;
   margin: 0;
+}
+
+.history-standings {
+  width: 100%;
+}
+
+.history-standings .loading-placeholder,
+.history-standings .no-standings {
+  color: var(--text-secondary);
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+.history-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.history-standings-table th,
+.history-standings-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.history-standings-table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.history-standings-table th.pos,
+.history-standings-table td.pos {
+  width: 50px;
+  text-align: center;
+}
+
+.history-standings-table th.total,
+.history-standings-table td.total {
+  width: 70px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.history-standings-table tbody tr:first-child td {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.expand-standings-btn {
+  margin-top: 12px;
+  width: 100%;
+  background: var(--background);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expand-standings-btn:hover {
+  background: var(--surface);
+  color: var(--text-primary);
 }
 
 /* Modal */

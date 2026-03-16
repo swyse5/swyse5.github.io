@@ -88,9 +88,7 @@ const Chat = {
   updateChatHeader() {
     const header = document.querySelector('.chat-header h3');
     if (header) {
-      header.textContent = this.currentTournamentId === 'general' 
-        ? 'League Chat' 
-        : 'Tournament Chat';
+      header.textContent = 'League Chat';
     }
   },
 
@@ -537,18 +535,35 @@ const Chat = {
 
     const eagleAlerts = [];
 
-    // Build a map of which users have which golfers
-    const golferToUsers = {};
+    // Build a map of which users have which golfers PER ROUND
+    // This ensures we only alert users who have that golfer in the specific round
+    const golferToUsersByRound = {
+      1: {}, // Round 1
+      2: {}, // Round 2
+      3: {}, // Round 3
+      4: {}  // Round 4
+    };
+    
     lineups.forEach(lineup => {
-      const allGolfers = [...(lineup.golfersRounds12 || []), ...(lineup.golfersRounds34 || [])];
-      allGolfers.forEach(golferName => {
-        const normalized = Scoring.normalizeName(golferName);
-        if (!golferToUsers[normalized]) {
-          golferToUsers[normalized] = [];
-        }
-        if (!golferToUsers[normalized].includes(lineup.userDisplayName)) {
-          golferToUsers[normalized].push(lineup.userDisplayName);
-        }
+      // Get golfers for each individual round
+      const golfersR1 = lineup.golfersRound1 || lineup.golfersRounds12 || [];
+      const golfersR2 = lineup.golfersRound2 || lineup.golfersRounds12 || [];
+      const golfersR3 = lineup.golfersRound3 || lineup.golfersRounds34 || [];
+      const golfersR4 = lineup.golfersRound4 || lineup.golfersRounds34 || [];
+      
+      const roundGolfers = [golfersR1, golfersR2, golfersR3, golfersR4];
+      
+      roundGolfers.forEach((golfers, roundIndex) => {
+        const roundNum = roundIndex + 1;
+        golfers.forEach(golferName => {
+          const normalized = Scoring.normalizeName(golferName);
+          if (!golferToUsersByRound[roundNum][normalized]) {
+            golferToUsersByRound[roundNum][normalized] = [];
+          }
+          if (!golferToUsersByRound[roundNum][normalized].includes(lineup.userDisplayName)) {
+            golferToUsersByRound[roundNum][normalized].push(lineup.userDisplayName);
+          }
+        });
       });
     });
 
@@ -558,6 +573,7 @@ const Chat = {
 
       golfer.rounds.forEach((round, roundIndex) => {
         if (!round.holes) return;
+        const roundNum = roundIndex + 1;
 
         round.holes.forEach((hole, holeIndex) => {
           if (!hole || hole.toPar === null) return;
@@ -565,11 +581,12 @@ const Chat = {
           // Eagle is -2 or better
           if (hole.toPar <= -2) {
             // Create a unique key for this eagle
-            const eagleKey = `${tournamentId}_${normalizedName}_R${roundIndex + 1}_H${holeIndex + 1}`;
+            const eagleKey = `${tournamentId}_${normalizedName}_R${roundNum}_H${holeIndex + 1}`;
             
             // Only alert if we haven't notified about this eagle before
             if (!this.hasNotifiedEagle(eagleKey)) {
-              const users = golferToUsers[normalizedName] || [];
+              // Get users who have this golfer in THIS SPECIFIC ROUND
+              const users = golferToUsersByRound[roundNum][normalizedName] || [];
               if (users.length > 0) {
                 const scoreLabel = this.getScoreLabel(hole.toPar);
                 const userList = users.length === 1 ? users[0] : 
@@ -580,7 +597,7 @@ const Chat = {
                   key: eagleKey,
                   golfer: golfer.displayName,
                   hole: holeIndex + 1,
-                  round: roundIndex + 1,
+                  round: roundNum,
                   score: scoreLabel,
                   users: userList
                 });
