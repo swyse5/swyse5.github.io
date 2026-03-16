@@ -113,9 +113,6 @@ const App = {
         this.activeTournament = { id: doc.id, ...doc.data() };
         await Lineup.loadTournament(this.activeTournament.id);
         
-        // Initialize chat for the active tournament
-        Chat.init(this.activeTournament.id);
-        
         // Auto-start scoring if tournament has started (based on date) or is in_progress
         const tournamentStartDate = this.activeTournament.startDate?.toDate 
           ? this.activeTournament.startDate.toDate() 
@@ -146,10 +143,10 @@ const App = {
             console.log('Auto-update not started: scoring disabled for this tournament');
           }
         }
-      } else {
-        // No active tournament - initialize general chat
-        Chat.init(null);
       }
+      
+      // Always use general chat (persists across all tournaments)
+      Chat.init(null);
 
       this.updateTournamentDisplay();
     } catch (error) {
@@ -714,46 +711,118 @@ const App = {
         return;
       }
 
+      // Build initial HTML with loading placeholders
       content.innerHTML = `
         <div class="history-list">
           ${tournaments.map(t => `
             <div class="history-item" data-id="${t.id}">
-              <h4>${t.name}</h4>
-              <p>${new Date(t.startDate.seconds * 1000).toLocaleDateString()}</p>
-              <button class="btn btn-outline-primary btn-sm" onclick="App.viewHistoricalTournament('${t.id}')">
-                View Results
-              </button>
+              <div class="history-header">
+                <div>
+                  <h4>${t.name}</h4>
+                  <p class="history-date">${new Date(t.startDate.seconds * 1000).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div class="history-standings" id="history-standings-${t.id}">
+                <div class="loading-placeholder">Loading standings...</div>
+              </div>
             </div>
           `).join('')}
         </div>
       `;
+
+      // Load standings for each tournament
+      for (const tournament of tournaments) {
+        this.loadHistoryStandings(tournament.id);
+      }
     } catch (error) {
       console.error('Error loading history:', error);
     }
   },
 
-  async viewHistoricalTournament(tournamentId) {
-    // Load and display historical results
-    const standings = await Leaderboard.calculateStandings(tournamentId);
+  async loadHistoryStandings(tournamentId) {
+    try {
+      const standings = await Leaderboard.calculateStandings(tournamentId);
+      const container = document.getElementById(`history-standings-${tournamentId}`);
+      if (!container) return;
+
+      if (!standings || standings.length === 0) {
+        container.innerHTML = '<div class="no-standings">No standings available</div>';
+        return;
+      }
+
+      const top5 = standings.slice(0, 5);
+      const hasMore = standings.length > 5;
+
+      container.innerHTML = `
+        <table class="history-standings-table">
+          <thead>
+            <tr>
+              <th class="pos">Pos</th>
+              <th class="player">Player</th>
+              <th class="total">Total</th>
+            </tr>
+          </thead>
+          <tbody class="top-standings">
+            ${top5.map(player => this.renderHistoryStandingRow(player)).join('')}
+          </tbody>
+          ${hasMore ? `
+            <tbody class="expanded-standings" style="display: none;">
+              ${standings.slice(5).map(player => this.renderHistoryStandingRow(player)).join('')}
+            </tbody>
+          ` : ''}
+        </table>
+        ${hasMore ? `
+          <button class="btn btn-sm expand-standings-btn" data-tournament="${tournamentId}" data-total="${standings.length}">
+            Show All (${standings.length} players)
+          </button>
+        ` : ''}
+      `;
+
+      // Add click handler for expand button
+      const expandBtn = container.querySelector('.expand-standings-btn');
+      if (expandBtn) {
+        expandBtn.addEventListener('click', () => this.toggleHistoryStandings(tournamentId));
+      }
+    } catch (error) {
+      console.error(`Error loading standings for ${tournamentId}:`, error);
+      const container = document.getElementById(`history-standings-${tournamentId}`);
+      if (container) {
+        container.innerHTML = '<div class="no-standings">Error loading standings</div>';
+      }
+    }
+  },
+
+  renderHistoryStandingRow(player) {
+    const formatScore = (score) => {
+      if (score === null || score === undefined || score === '-') return '-';
+      if (score === 0) return 'E';
+      return score > 0 ? `+${score}` : score;
+    };
     
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-      <div class="modal-content">
-        <button class="modal-close">&times;</button>
-        <div id="historical-leaderboard"></div>
-      </div>
+    const positionDisplay = player.tied ? `T${player.position}` : player.position;
+
+    return `
+      <tr>
+        <td class="pos">${positionDisplay}</td>
+        <td class="player">${player.displayName}</td>
+        <td class="total">${formatScore(player.totalToPar)}</td>
+      </tr>
     `;
-    document.body.appendChild(modal);
+  },
 
-    Leaderboard.renderLeaderboard('historical-leaderboard', standings);
+  toggleHistoryStandings(tournamentId) {
+    const container = document.getElementById(`history-standings-${tournamentId}`);
+    if (!container) return;
 
-    modal.querySelector('.modal-close').addEventListener('click', () => {
-      modal.remove();
-    });
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.remove();
-    });
+    const expandedBody = container.querySelector('.expanded-standings');
+    const btn = container.querySelector('.expand-standings-btn');
+    
+    if (expandedBody && btn) {
+      const isExpanded = expandedBody.style.display !== 'none';
+      const total = btn.dataset.total;
+      expandedBody.style.display = isExpanded ? 'none' : 'table-row-group';
+      btn.textContent = isExpanded ? `Show All (${total} players)` : 'Show Top 5';
+    }
   },
 
   onUserSignedIn(user) {

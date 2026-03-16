@@ -398,7 +398,7 @@
       <!-- Manage Golfer Field -->
       <div class="admin-section">
         <h2>Manage Golfer Field</h2>
-        <p>View and remove golfers from a tournament (e.g., for missed cuts or withdrawals).</p>
+        <p>Add, view, and remove golfers from a tournament.</p>
         <div class="form-row">
           <div class="form-group">
             <label for="manage-golfer-tournament-select">Tournament</label>
@@ -408,6 +408,34 @@
           </div>
         </div>
         <div id="manage-golfer-list" style="display: none;">
+          <!-- Add Golfers Section -->
+          <div style="background: var(--background); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
+            <h4 style="margin: 0 0 12px 0;">Add Golfers</h4>
+            
+            <!-- Single Golfer Add -->
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+              <input type="text" id="add-single-golfer-name" class="form-control" placeholder="Golfer name" style="flex: 1; min-width: 150px;">
+              <input type="number" id="add-single-golfer-salary" class="form-control" placeholder="Salary" step="0.01" min="0" style="width: 100px;">
+              <button class="btn btn-primary btn-sm" onclick="TournamentAdmin.addSingleGolfer()">Add</button>
+            </div>
+            
+            <!-- Bulk Add -->
+            <details style="margin-top: 12px;">
+              <summary style="cursor: pointer; color: var(--primary-color); font-weight: 500; margin-bottom: 8px;">
+                Bulk Add (multiple golfers)
+              </summary>
+              <div style="margin-top: 12px;">
+                <textarea id="bulk-add-golfers" class="form-control" style="min-height: 120px;" 
+                  placeholder="Scottie Scheffler $30&#10;Rory McIlroy $28&#10;Jon Rahm $26&#10;..."></textarea>
+                <p style="font-size: 12px; color: var(--text-secondary); margin: 8px 0;">
+                  Format: "Name $Salary" (one per line). Existing golfers will be skipped.
+                </p>
+                <button class="btn btn-primary btn-sm" onclick="TournamentAdmin.addBulkGolfers()">Add All</button>
+              </div>
+            </details>
+          </div>
+          
+          <!-- Golfer List -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
             <h3 style="margin: 0;"><span id="manage-golfer-count">0</span> Golfers</h3>
             <input type="text" id="golfer-search" class="form-control" placeholder="Search golfers..." style="width: 250px;">
@@ -1192,10 +1220,15 @@ service cloud.firestore {
         }
 
         golferList.innerHTML = golfers.map(g => `
-          <div class="golfer-preview-item" data-golfer="${this.escapeHtml(g.name)}" style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <span class="golfer-name">${this.escapeHtml(g.name)}</span>
-              <span class="golfer-salary" style="color: var(--text-secondary); margin-left: 8px;">$${this.formatSalary(g.salary)}</span>
+          <div class="golfer-preview-item" data-golfer="${this.escapeHtml(g.name)}" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <span class="golfer-name" style="flex: 1;">${this.escapeHtml(g.name)}</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span style="color: var(--text-secondary);">$</span>
+              <input type="number" class="form-control golfer-salary-input" 
+                     value="${g.salary}" 
+                     step="0.01" min="0" 
+                     style="width: 70px; padding: 4px 8px; font-size: 14px;"
+                     onchange="TournamentAdmin.updateGolferSalary('${g.name.replace(/'/g, "\\'")}', this.value)">
             </div>
             <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeGolferFromField('${g.name.replace(/'/g, "\\'")}')" 
                     style="color: var(--danger); border-color: var(--danger); padding: 4px 12px;">
@@ -1244,6 +1277,195 @@ service cloud.firestore {
           alert('Error removing golfer: ' + error.message);
           if (item) item.style.opacity = '1';
         }
+      },
+
+      async updateGolferSalary(golferName, newSalary) {
+        if (!this.manageTournamentId || !this.manageTournamentData) {
+          alert('No tournament selected');
+          return;
+        }
+
+        const salary = parseFloat(newSalary);
+        if (isNaN(salary) || salary < 0) {
+          alert('Please enter a valid salary');
+          // Re-render to reset the input
+          const searchText = document.getElementById('golfer-search')?.value || '';
+          this.renderGolferFieldList(searchText);
+          return;
+        }
+
+        try {
+          // Update the golfer's salary in the array
+          const updatedField = this.manageTournamentGolfers.map(g => {
+            if (g.name === golferName) {
+              return { ...g, salary };
+            }
+            return g;
+          });
+
+          await firebaseDb.collection('tournaments').doc(this.manageTournamentId).update({
+            golferField: updatedField
+          });
+
+          // Update local data
+          this.manageTournamentGolfers = updatedField;
+          this.manageTournamentData.golferField = updatedField;
+
+          // Brief visual feedback
+          const item = document.querySelector(`[data-golfer="${golferName.replace(/"/g, '\\"')}"]`);
+          if (item) {
+            const input = item.querySelector('.golfer-salary-input');
+            if (input) {
+              input.style.borderColor = 'var(--success)';
+              setTimeout(() => {
+                input.style.borderColor = '';
+              }, 1000);
+            }
+          }
+
+        } catch (error) {
+          alert('Error updating salary: ' + error.message);
+          // Re-render to reset the input
+          const searchText = document.getElementById('golfer-search')?.value || '';
+          this.renderGolferFieldList(searchText);
+        }
+      },
+
+      async addSingleGolfer() {
+        if (!this.manageTournamentId || !this.manageTournamentData) {
+          alert('Please select a tournament first');
+          return;
+        }
+
+        const nameInput = document.getElementById('add-single-golfer-name');
+        const salaryInput = document.getElementById('add-single-golfer-salary');
+        
+        const name = nameInput.value.trim();
+        const salary = parseFloat(salaryInput.value);
+
+        if (!name) {
+          alert('Please enter a golfer name');
+          nameInput.focus();
+          return;
+        }
+
+        if (isNaN(salary) || salary < 0) {
+          alert('Please enter a valid salary');
+          salaryInput.focus();
+          return;
+        }
+
+        // Check for duplicate
+        const normalizedName = name.toLowerCase();
+        const exists = this.manageTournamentGolfers.some(g => g.name.toLowerCase() === normalizedName);
+        if (exists) {
+          alert(`"${name}" is already in this tournament`);
+          return;
+        }
+
+        try {
+          const newGolfer = { name: this.formatGolferName(name), salary };
+          const updatedField = [...this.manageTournamentGolfers, newGolfer];
+
+          await firebaseDb.collection('tournaments').doc(this.manageTournamentId).update({
+            golferField: updatedField
+          });
+
+          // Update local data
+          this.manageTournamentGolfers = updatedField;
+          this.manageTournamentData.golferField = updatedField;
+
+          // Clear inputs
+          nameInput.value = '';
+          salaryInput.value = '';
+
+          // Re-render the list
+          const searchText = document.getElementById('golfer-search')?.value || '';
+          this.renderGolferFieldList(searchText);
+
+          // Refresh tournament list
+          this.loadTournaments();
+
+        } catch (error) {
+          alert('Error adding golfer: ' + error.message);
+        }
+      },
+
+      async addBulkGolfers() {
+        if (!this.manageTournamentId || !this.manageTournamentData) {
+          alert('Please select a tournament first');
+          return;
+        }
+
+        const textarea = document.getElementById('bulk-add-golfers');
+        const text = textarea.value.trim();
+
+        if (!text) {
+          alert('Please enter golfers to add');
+          return;
+        }
+
+        const newGolfers = this.parseGolferField(text);
+        if (newGolfers.length === 0) {
+          alert('No valid golfers found. Use format: "Name $Salary" (one per line)');
+          return;
+        }
+
+        // Filter out duplicates
+        const existingNames = new Set(this.manageTournamentGolfers.map(g => g.name.toLowerCase()));
+        const uniqueNewGolfers = newGolfers.filter(g => !existingNames.has(g.name.toLowerCase()));
+        const skippedCount = newGolfers.length - uniqueNewGolfers.length;
+
+        if (uniqueNewGolfers.length === 0) {
+          alert('All golfers are already in this tournament');
+          return;
+        }
+
+        const confirmMsg = skippedCount > 0 
+          ? `Add ${uniqueNewGolfers.length} golfer(s)? (${skippedCount} duplicate(s) will be skipped)`
+          : `Add ${uniqueNewGolfers.length} golfer(s)?`;
+
+        if (!confirm(confirmMsg)) {
+          return;
+        }
+
+        try {
+          const updatedField = [...this.manageTournamentGolfers, ...uniqueNewGolfers];
+
+          await firebaseDb.collection('tournaments').doc(this.manageTournamentId).update({
+            golferField: updatedField
+          });
+
+          // Update local data
+          this.manageTournamentGolfers = updatedField;
+          this.manageTournamentData.golferField = updatedField;
+
+          // Clear textarea
+          textarea.value = '';
+
+          // Re-render the list
+          const searchText = document.getElementById('golfer-search')?.value || '';
+          this.renderGolferFieldList(searchText);
+
+          // Refresh tournament list
+          this.loadTournaments();
+
+          alert(`Successfully added ${uniqueNewGolfers.length} golfer(s)${skippedCount > 0 ? ` (${skippedCount} skipped as duplicates)` : ''}`);
+
+        } catch (error) {
+          alert('Error adding golfers: ' + error.message);
+        }
+      },
+
+      formatGolferName(name) {
+        // If name is in "Last, First" format, convert to "First Last"
+        if (name.includes(',')) {
+          const parts = name.split(',').map(p => p.trim());
+          if (parts.length === 2) {
+            return `${parts[1]} ${parts[0]}`;
+          }
+        }
+        return name;
       },
 
       escapeHtml(text) {
