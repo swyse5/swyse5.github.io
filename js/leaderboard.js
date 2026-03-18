@@ -408,7 +408,7 @@ const Leaderboard = {
       html = `
         <div class="no-data" style="margin-bottom: 20px;">
           <p><strong>Tournament has not started yet</strong></p>
-          <p style="font-size: 14px; margin-top: 8px;">Scores will appear once play begins. Lineups are locked.</p>
+          <p style="font-size: 14px; margin-top: 8px;">Scores will appear once play begins.</p>
         </div>
       `;
     }

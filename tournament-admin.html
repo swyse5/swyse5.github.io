@@ -487,6 +487,53 @@
         </div>
       </div>
 
+      <!-- Previous Winners -->
+      <div class="admin-section">
+        <h2>Previous Winners</h2>
+        <p>Add past tournament winners from previous seasons.</p>
+        
+        <!-- Add New Historical Winner -->
+        <div style="background: var(--background); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
+          <h4 style="margin: 0 0 12px 0;">Add Historical Winner</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label for="history-year">Year</label>
+              <select id="history-year" class="form-control">
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+                <option value="2021">2021</option>
+                <option value="2020">2020</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="history-tournament">Tournament</label>
+              <select id="history-tournament" class="form-control">
+                <option value="masters">Masters</option>
+                <option value="pga">PGA Championship</option>
+                <option value="usopen">US Open</option>
+                <option value="open">The Open</option>
+                <option value="season">Season Champion</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="history-winner">Winner</label>
+              <input type="text" id="history-winner" class="form-control" placeholder="Player name">
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="history-score">Score (optional)</label>
+              <input type="text" id="history-score" class="form-control" placeholder="e.g., -12">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="TournamentAdmin.addHistoricalWinner()">Add Winner</button>
+        </div>
+        
+        <!-- Historical Winners Table -->
+        <div id="historical-winners-table">
+          <p style="color: var(--text-secondary);">Loading historical data...</p>
+        </div>
+      </div>
+
       <!-- Admin Users -->
       <div class="admin-section">
         <h2>Admin Users</h2>
@@ -615,6 +662,7 @@ service cloud.firestore {
           userName.textContent = this.currentUser.displayName || this.currentUser.email;
           this.loadTournaments();
           this.loadAdminEmails();
+          this.loadHistoricalWinners();
         } else if (this.currentUser) {
           adminContent.style.display = 'none';
           accessDenied.style.display = 'block';
@@ -933,6 +981,151 @@ service cloud.firestore {
         } catch (error) {
           alert('Error saving admins: ' + error.message);
         }
+      },
+
+      // Historical Winners
+      historicalWinners: [],
+      
+      tournamentNames: {
+        masters: 'Masters',
+        pga: 'PGA Championship',
+        usopen: 'US Open',
+        open: 'The Open',
+        season: 'Season Champion'
+      },
+
+      async loadHistoricalWinners() {
+        try {
+          const doc = await firebaseDb.collection('config').doc('historicalWinners').get();
+          this.historicalWinners = doc.exists ? (doc.data().winners || []) : [];
+          this.renderHistoricalWinnersTable();
+        } catch (error) {
+          console.error('Error loading historical winners:', error);
+          document.getElementById('historical-winners-table').innerHTML = 
+            '<p style="color: var(--danger);">Error loading historical data</p>';
+        }
+      },
+
+      async addHistoricalWinner() {
+        const year = document.getElementById('history-year').value;
+        const tournament = document.getElementById('history-tournament').value;
+        const winner = document.getElementById('history-winner').value.trim();
+        const score = document.getElementById('history-score').value.trim();
+
+        if (!winner) {
+          alert('Please enter a winner name');
+          return;
+        }
+
+        // Check for duplicate
+        const exists = this.historicalWinners.some(w => 
+          w.year === year && w.tournament === tournament
+        );
+
+        if (exists) {
+          if (!confirm(`A winner for ${this.tournamentNames[tournament]} ${year} already exists. Replace it?`)) {
+            return;
+          }
+          // Remove existing entry
+          this.historicalWinners = this.historicalWinners.filter(w => 
+            !(w.year === year && w.tournament === tournament)
+          );
+        }
+
+        const newWinner = { year, tournament, winner, score: score || null };
+        this.historicalWinners.push(newWinner);
+
+        try {
+          await firebaseDb.collection('config').doc('historicalWinners').set({
+            winners: this.historicalWinners
+          });
+
+          // Clear inputs
+          document.getElementById('history-winner').value = '';
+          document.getElementById('history-score').value = '';
+
+          this.renderHistoricalWinnersTable();
+        } catch (error) {
+          alert('Error saving winner: ' + error.message);
+        }
+      },
+
+      async removeHistoricalWinner(year, tournament) {
+        if (!confirm(`Remove winner for ${this.tournamentNames[tournament]} ${year}?`)) {
+          return;
+        }
+
+        this.historicalWinners = this.historicalWinners.filter(w => 
+          !(w.year === year && w.tournament === tournament)
+        );
+
+        try {
+          await firebaseDb.collection('config').doc('historicalWinners').set({
+            winners: this.historicalWinners
+          });
+          this.renderHistoricalWinnersTable();
+        } catch (error) {
+          alert('Error removing winner: ' + error.message);
+        }
+      },
+
+      renderHistoricalWinnersTable() {
+        const container = document.getElementById('historical-winners-table');
+        
+        if (this.historicalWinners.length === 0) {
+          container.innerHTML = '<p style="color: var(--text-secondary);">No historical winners added yet.</p>';
+          return;
+        }
+
+        // Get unique years and sort descending
+        const years = [...new Set(this.historicalWinners.map(w => w.year))].sort((a, b) => b - a);
+        const tournaments = ['masters', 'pga', 'usopen', 'open', 'season'];
+
+        // Build table
+        let html = `
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="background: var(--background);">
+                <th style="padding: 12px; text-align: left; border-bottom: 2px solid var(--border-color);">Year</th>
+                ${tournaments.map(t => `
+                  <th style="padding: 12px; text-align: center; border-bottom: 2px solid var(--border-color);">
+                    ${this.tournamentNames[t]}
+                  </th>
+                `).join('')}
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        for (const year of years) {
+          html += `<tr>`;
+          html += `<td style="padding: 12px; font-weight: 600; border-bottom: 1px solid var(--border-color);">${year}</td>`;
+          
+          for (const tournament of tournaments) {
+            const winner = this.historicalWinners.find(w => w.year === year && w.tournament === tournament);
+            if (winner) {
+              html += `
+                <td style="padding: 8px; text-align: center; border-bottom: 1px solid var(--border-color);">
+                  <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                    <span style="font-weight: 500;">${this.escapeHtml(winner.winner)}</span>
+                    ${winner.score ? `<span style="font-size: 12px; color: var(--text-secondary);">(${winner.score})</span>` : ''}
+                    <button class="btn btn-sm" onclick="TournamentAdmin.removeHistoricalWinner('${year}', '${tournament}')" 
+                            style="font-size: 10px; padding: 2px 6px; color: var(--danger); border: 1px solid var(--danger); background: transparent;">
+                      ✕
+                    </button>
+                  </div>
+                </td>
+              `;
+            } else {
+              html += `<td style="padding: 12px; text-align: center; border-bottom: 1px solid var(--border-color); color: var(--text-secondary);">—</td>`;
+            }
+          }
+          
+          html += `</tr>`;
+        }
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
       },
 
       // Golfer Field Validation

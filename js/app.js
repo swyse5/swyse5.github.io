@@ -695,47 +695,170 @@ const App = {
     });
   },
 
+  // Cache for history tournaments
+  historyTournaments: [],
+  historySelectedSeason: null,
+
   async loadHistoryView() {
+    // Load Previous Winners
+    this.loadHallOfFame();
+    
+    // Load completed tournaments
     try {
       const snapshot = await firebaseDb.collection('tournaments')
         .where('status', '==', 'completed')
         .orderBy('startDate', 'desc')
-        .limit(20)
         .get();
 
-      const tournaments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      this.historyTournaments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       const content = document.getElementById('history-content');
-      if (tournaments.length === 0) {
+      const selectorContainer = document.getElementById('history-season-selector');
+      const selector = document.getElementById('history-season-select');
+      
+      if (this.historyTournaments.length === 0) {
         content.innerHTML = '<div class="no-data">No completed tournaments yet</div>';
+        selectorContainer.style.display = 'none';
         return;
       }
 
-      // Build initial HTML with loading placeholders
-      content.innerHTML = `
-        <div class="history-list">
-          ${tournaments.map(t => `
+      // Extract unique seasons
+      const seasons = [...new Set(this.historyTournaments.map(t => {
+        const date = t.startDate?.toDate ? t.startDate.toDate() : new Date(t.startDate.seconds * 1000);
+        return date.getFullYear();
+      }))].sort((a, b) => b - a);
+
+      // Show season selector if multiple seasons exist
+      if (seasons.length > 1) {
+        selectorContainer.style.display = 'flex';
+        selector.innerHTML = seasons.map(s => `<option value="${s}">${s}</option>`).join('');
+        
+        // Set up change handler
+        selector.onchange = () => {
+          this.historySelectedSeason = parseInt(selector.value);
+          this.renderHistoryTournaments();
+        };
+      } else {
+        selectorContainer.style.display = 'none';
+      }
+
+      // Default to most recent season
+      this.historySelectedSeason = seasons[0];
+      if (selector) selector.value = this.historySelectedSeason;
+      
+      this.renderHistoryTournaments();
+    } catch (error) {
+      console.error('Error loading history:', error);
+    }
+  },
+
+  renderHistoryTournaments() {
+    const content = document.getElementById('history-content');
+    
+    // Filter tournaments by selected season
+    const filteredTournaments = this.historyTournaments.filter(t => {
+      const date = t.startDate?.toDate ? t.startDate.toDate() : new Date(t.startDate.seconds * 1000);
+      return date.getFullYear() === this.historySelectedSeason;
+    });
+
+    if (filteredTournaments.length === 0) {
+      content.innerHTML = '<div class="no-data">No completed tournaments for this season</div>';
+      return;
+    }
+
+    // Build HTML with loading placeholders
+    content.innerHTML = `
+      <div class="history-list">
+        ${filteredTournaments.map(t => {
+          const date = t.startDate?.toDate ? t.startDate.toDate() : new Date(t.startDate.seconds * 1000);
+          return `
             <div class="history-item" data-id="${t.id}">
               <div class="history-header">
                 <div>
                   <h4>${t.name}</h4>
-                  <p class="history-date">${new Date(t.startDate.seconds * 1000).toLocaleDateString()}</p>
+                  <p class="history-date">${date.toLocaleDateString()}</p>
                 </div>
               </div>
               <div class="history-standings" id="history-standings-${t.id}">
                 <div class="loading-placeholder">Loading standings...</div>
               </div>
             </div>
-          `).join('')}
-        </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    // Load standings for each tournament
+    for (const tournament of filteredTournaments) {
+      this.loadHistoryStandings(tournament.id);
+    }
+  },
+
+  tournamentDisplayNames: {
+    masters: 'Masters',
+    pga: 'PGA Championship',
+    usopen: 'US Open',
+    open: 'The Open',
+    season: 'Season'
+  },
+
+  async loadHallOfFame() {
+    const container = document.getElementById('hall-of-fame-content');
+    
+    try {
+      const doc = await firebaseDb.collection('config').doc('historicalWinners').get();
+      const winners = doc.exists ? (doc.data().winners || []) : [];
+      
+      if (winners.length === 0) {
+        container.innerHTML = '<div class="no-data">No historical data available yet</div>';
+        return;
+      }
+
+      // Get unique years and sort descending
+      const years = [...new Set(winners.map(w => w.year))].sort((a, b) => b - a);
+      const tournaments = ['masters', 'pga', 'usopen', 'open', 'season'];
+
+      // Build table
+      let html = `
+        <div class="hall-of-fame-table-wrapper">
+          <table class="hall-of-fame-table">
+            <thead>
+              <tr>
+                <th class="year-col">Year</th>
+                ${tournaments.map(t => `
+                  <th class="tournament-col">${this.tournamentDisplayNames[t]}</th>
+                `).join('')}
+              </tr>
+            </thead>
+            <tbody>
       `;
 
-      // Load standings for each tournament
-      for (const tournament of tournaments) {
-        this.loadHistoryStandings(tournament.id);
+      for (const year of years) {
+        html += `<tr>`;
+        html += `<td class="year-col">${year}</td>`;
+        
+        for (const tournament of tournaments) {
+          const winner = winners.find(w => w.year === year && w.tournament === tournament);
+          if (winner) {
+            html += `
+              <td class="winner-cell ${tournament === 'season' ? 'season-champion' : ''}">
+                <span class="winner-name">${winner.winner}</span>
+                ${winner.score ? `<span class="winner-score">${winner.score}</span>` : ''}
+              </td>
+            `;
+          } else {
+            html += `<td class="winner-cell empty">—</td>`;
+          }
+        }
+        
+        html += `</tr>`;
       }
+
+      html += `</tbody></table></div>`;
+      container.innerHTML = html;
     } catch (error) {
-      console.error('Error loading history:', error);
+      console.error('Error loading previous winners:', error);
+      container.innerHTML = '<div class="no-data">Error loading previous winners</div>';
     }
   },
 

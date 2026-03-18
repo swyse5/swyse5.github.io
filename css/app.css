@@ -1748,6 +1748,119 @@ body.signed-in .auth-show-signed-in {
   color: var(--text-primary);
 }
 
+/* Hall of Fame */
+.history-section h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.hall-of-fame-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hall-of-fame-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  table-layout: fixed;
+}
+
+.hall-of-fame-table th,
+.hall-of-fame-table td {
+  padding: 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+  width: calc((100% - 70px) / 5);
+}
+
+.hall-of-fame-table th {
+  background: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hall-of-fame-table th.year-col,
+.hall-of-fame-table td.year-col {
+  width: 70px;
+}
+
+.hall-of-fame-table th.year-col {
+  background: var(--primary-dark);
+}
+
+.hall-of-fame-table td.year-col {
+  font-weight: 700;
+  font-size: 18px;
+  background: var(--background);
+}
+
+.hall-of-fame-table tbody tr:hover {
+  background: rgba(74, 124, 82, 0.05);
+}
+
+.winner-cell {
+  vertical-align: middle;
+}
+
+.winner-cell.empty {
+  color: var(--text-secondary);
+}
+
+.winner-cell.season-champion {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+[data-theme="dark"] .winner-cell.season-champion {
+  background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+}
+
+.winner-name {
+  display: block;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.winner-score {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+  .hall-of-fame-table th,
+  .hall-of-fame-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  
+  .hall-of-fame-table th {
+    font-size: 11px;
+  }
+  
+  .winner-name {
+    font-size: 13px;
+  }
+  
+  .winner-score {
+    font-size: 11px;
+  }
+  
+  .hall-of-fame-table td.year-col {
+    font-size: 14px;
+  }
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;

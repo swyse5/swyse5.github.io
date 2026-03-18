@@ -138,9 +138,28 @@
       <!-- History View -->
       <section id="view-history" class="view">
         <div class="container">
-          <h2>Tournament History</h2>
-          <div id="history-content">
-            <div class="loading">Loading...</div>
+          <!-- Previous Winners -->
+          <div id="hall-of-fame" class="history-section">
+            <h2>Previous Winners</h2>
+            <div id="hall-of-fame-content">
+              <div class="loading">Loading...</div>
+            </div>
+          </div>
+          
+          <!-- Tournament Results -->
+          <div class="history-section" style="margin-top: 40px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+              <h2 style="margin: 0;">Tournament Results</h2>
+              <div id="history-season-selector" class="tournament-selector-container" style="display: none;">
+                <label for="history-season-select">Season:</label>
+                <select id="history-season-select" class="tournament-selector">
+                  <option value="">Loading...</option>
+                </select>
+              </div>
+            </div>
+            <div id="history-content">
+              <div class="loading">Loading...</div>
+            </div>
           </div>
         </div>
       </section>
