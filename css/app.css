@@ -605,6 +605,13 @@ body.signed-in .auth-show-signed-in {
   font-family: 'Roboto Slab', serif;
 }
 
+.lineup-info-banner .secondary-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  font-style: italic;
+}
+
 /* Golfer Slots */
 .golfer-slot {
   display: flex;

@@ -26,6 +26,7 @@ const App = {
     await this.loadAllTournaments();
     
     // Show initial view based on URL hash
+    this.previousHash = window.location.hash;
     this.handleHashChange();
     window.addEventListener('hashchange', () => this.handleHashChange());
   },
@@ -181,6 +182,16 @@ const App = {
       el.addEventListener('click', (e) => {
         e.preventDefault();
         const view = el.dataset.nav;
+        
+        // Check for unsaved lineup changes before navigating away from lineup tab
+        if (this.hasUnsavedChanges() && window.location.hash === '#lineup') {
+          if (!confirm('You have unsaved lineup changes. Are you sure you want to leave?')) {
+            return;
+          }
+          // User confirmed, clear the warning
+          this.clearUnsavedWarning();
+        }
+        
         window.location.hash = view;
       });
     });
@@ -191,7 +202,21 @@ const App = {
   },
 
   handleHashChange() {
-    const hash = window.location.hash.slice(1) || 'home';
+    const newHash = window.location.hash;
+    const hash = newHash.slice(1) || 'home';
+    
+    // Check for unsaved changes when navigating away from lineup tab
+    if (this.previousHash === '#lineup' && newHash !== '#lineup' && this.hasUnsavedChanges()) {
+      if (!confirm('You have unsaved lineup changes. Are you sure you want to leave?')) {
+        // Restore the previous hash without triggering another hashchange
+        history.pushState(null, '', this.previousHash);
+        return;
+      }
+      // User confirmed, clear the warning
+      this.clearUnsavedWarning();
+    }
+    
+    this.previousHash = newHash;
     this.showView(hash);
   },
 
@@ -245,8 +270,44 @@ const App = {
   currentLineupType: 'rounds_1_2',
   selectedGolfersR12: [],
   selectedGolfersR34: [],
+  savedGolfersR12: [],
+  savedGolfersR34: [],
   round1Started: false,
   round3Started: false,
+  
+  // Unsaved changes warning
+  hasUnsavedChanges() {
+    const r12Changed = JSON.stringify(this.selectedGolfersR12.sort()) !== JSON.stringify(this.savedGolfersR12.sort());
+    const r34Changed = JSON.stringify(this.selectedGolfersR34.sort()) !== JSON.stringify(this.savedGolfersR34.sort());
+    return r12Changed || r34Changed;
+  },
+
+  beforeUnloadHandler: null,
+
+  updateUnsavedWarning() {
+    if (this.hasUnsavedChanges()) {
+      if (!this.beforeUnloadHandler) {
+        this.beforeUnloadHandler = (e) => {
+          e.preventDefault();
+          e.returnValue = 'You have unsaved lineup changes. Are you sure you want to leave?';
+          return e.returnValue;
+        };
+        window.addEventListener('beforeunload', this.beforeUnloadHandler);
+      }
+    } else {
+      if (this.beforeUnloadHandler) {
+        window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+        this.beforeUnloadHandler = null;
+      }
+    }
+  },
+
+  clearUnsavedWarning() {
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler);
+      this.beforeUnloadHandler = null;
+    }
+  },
 
   // Check if a round has started by looking for any golfer with scores
   async checkRoundStatus(tournamentId) {
@@ -308,6 +369,11 @@ const App = {
     this.selectedGolfersR12 = lineups.rounds_1_2?.golfers || [];
     this.selectedGolfersR34 = lineups.rounds_3_4?.golfers || [];
     
+    // Store saved state to detect unsaved changes
+    this.savedGolfersR12 = [...this.selectedGolfersR12];
+    this.savedGolfersR34 = [...this.selectedGolfersR34];
+    this.clearUnsavedWarning();
+    
     // Default to first unlocked lineup type
     if (this.round1Started && !this.round3Started) {
       this.currentLineupType = 'rounds_3_4';
@@ -361,7 +427,8 @@ const App = {
           </div>
         ` : `
           <div class="lineup-info-banner">
-            <p><strong>Note:</strong> You can use different golfers for rounds 1-2 vs rounds 3-4, or use the same lineup for both.</p>
+            <p>You can use different golfers for rounds 1-2 vs rounds 3-4, or use the same lineup for both.</p>
+            <p class="secondary-note">Golfers who are not playing or missed the cut are removed when possible, but the list may not always be up to date.</p>
           </div>
         `}
 
@@ -445,12 +512,14 @@ const App = {
         this.selectedGolfersR34 = [...this.selectedGolfersR12];
         this.currentLineupType = 'rounds_3_4';
         this.renderLineupBuilder();
+        this.updateUnsavedWarning();
         this.showToast('Lineup copied to Rounds 3-4', 'success');
       });
 
       document.getElementById('copy-from-r12-btn')?.addEventListener('click', () => {
         this.selectedGolfersR34 = [...this.selectedGolfersR12];
         this.renderLineupBuilder();
+        this.updateUnsavedWarning();
         this.showToast('Lineup copied from Rounds 1-2', 'success');
       });
 
@@ -474,6 +543,7 @@ const App = {
         }
         currentGolfers.push(golfer.name);
         this.updateLineupDisplay();
+        this.updateUnsavedWarning();
       });
 
       // Search functionality
@@ -499,6 +569,15 @@ const App = {
             currentGolfers,
             this.currentLineupType
           );
+          
+          // Update saved state after successful save
+          if (this.currentLineupType === 'rounds_1_2') {
+            this.savedGolfersR12 = [...this.selectedGolfersR12];
+          } else {
+            this.savedGolfersR34 = [...this.selectedGolfersR34];
+          }
+          this.updateUnsavedWarning();
+          
           this.showToast(`${this.currentLineupType === 'rounds_1_2' ? 'Rounds 1-2' : 'Rounds 3-4'} lineup saved!`, 'success');
           // Re-render to update tab status
           this.renderLineupBuilder();
@@ -525,6 +604,7 @@ const App = {
     Lineup.renderSelectedGolfers('selected-golfers', currentGolfers, isCurrentLocked ? null : (index) => {
       currentGolfers.splice(index, 1);
       this.updateLineupDisplay();
+      this.updateUnsavedWarning();
     });
 
     // Update submit button state
