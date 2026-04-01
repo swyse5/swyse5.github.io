@@ -6,8 +6,23 @@ const Leaderboard = {
   cachedGolferScores: {},
   cachedPars: null,
   cachedLastUpdated: null,
+  cachedGolferField: [],
   round1Started: false,
   round3Started: false,
+
+  // Look up a golfer's salary from the cached golfer field
+  getGolferSalary(golferName) {
+    if (!this.cachedGolferField || !this.cachedGolferField.length) return null;
+    const golfer = this.cachedGolferField.find(g => 
+      g.name.toLowerCase() === golferName.toLowerCase()
+    );
+    return golfer ? golfer.salary : null;
+  },
+
+  formatSalary(salary) {
+    if (salary === null || salary === undefined) return '';
+    return `$${salary.toFixed(2)}`;
+  },
 
   formatLastUpdated(timestamp) {
     if (!timestamp) return '';
@@ -63,10 +78,15 @@ const Leaderboard = {
     const golferScores = scoresData.golferScores || {};
     const pars = scoresData.pars || null;
     
+    // Get tournament golfer field for salary info
+    const tournamentDoc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
+    const golferField = tournamentDoc.exists ? (tournamentDoc.data().golferField || []) : [];
+    
     // Cache for use in expanded views
     this.cachedGolferScores = golferScores;
     this.cachedPars = pars;
     this.cachedLastUpdated = scoresData.lastUpdated || null;
+    this.cachedGolferField = golferField;
     
     // Determine which rounds have started (for hiding lineups until rounds begin)
     this.round1Started = this.checkRoundStarted(golferScores, 1);
@@ -649,9 +669,11 @@ const Leaderboard = {
               ${golferHoleData.map(g => {
                 const gFront = g.holes.slice(0, 9);
                 const gBack = g.holes.slice(9, 18);
+                const salary = this.getGolferSalary(g.name);
+                const salaryDisplay = salary ? ` <span class="golfer-salary">(${this.formatSalary(salary)})</span>` : '';
                 return `
                 <tr class="golfer-row">
-                  <td class="golfer-col">${g.name}</td>
+                  <td class="golfer-col">${g.name}${salaryDisplay}</td>
                   ${gFront.map((h, i) => {
                     const toPar = getHoleToPar(h);
                     const isBest = toPar !== null && toPar === bestBallHoles[i];

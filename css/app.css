@@ -1032,11 +1032,17 @@ body.signed-in .auth-show-signed-in {
 
 .hole-scorecard .golfer-col {
   text-align: left;
-  min-width: 120px;
-  max-width: 150px;
+  min-width: 160px;
+  max-width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.hole-scorecard .golfer-salary {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: normal;
 }
 
 .hole-scorecard .subtotal {
@@ -2121,11 +2127,15 @@ body.signed-in .auth-show-signed-in {
     left: 0;
     background: var(--surface);
     z-index: 1;
-    min-width: 70px;
-    max-width: 70px;
+    min-width: 100px;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .hole-scorecard .golfer-salary {
+    font-size: 10px;
   }
 
   .scorecard-scroll {
@@ -2281,6 +2291,10 @@ body.signed-in .auth-show-signed-in {
     min-width: 55px;
     max-width: 55px;
     font-size: 9px;
+  }
+
+  .hole-scorecard .golfer-salary {
+    display: none;
   }
 
   .season-standings-table th.tournament {
