@@ -930,6 +930,23 @@ const Leaderboard = {
       return { tournaments: [], standings: [], bogeyPot: 0, eagleLeaders: [], bogeyTracker: [] };
     }
 
+    // Load manual bogeys
+    let manualBogeys = [];
+    try {
+      const manualBogeysDoc = await firebaseDb.collection('config').doc('manualBogeys').get();
+      if (manualBogeysDoc.exists) {
+        const allBogeys = manualBogeysDoc.data().bogeys || [];
+        // Filter by season if specified
+        if (season) {
+          manualBogeys = allBogeys.filter(b => b.season === season.toString());
+        } else {
+          manualBogeys = allBogeys;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading manual bogeys:', error);
+    }
+
     // Get all users who have played
     const playersMap = new Map();
 
@@ -953,6 +970,7 @@ const Leaderboard = {
             tournamentsPlayed: 0,
             totalEagles: 0,
             totalBogeys: 0,
+            manualBogeys: 0,
             bogeyDetails: [],
             eagleDetails: []
           });
@@ -973,6 +991,18 @@ const Leaderboard = {
         playerData.totalToPar += player.totalToPar;
         playerData.tournamentsPlayed++;
       });
+    }
+
+    // Add manual bogeys to player totals
+    for (const bogey of manualBogeys) {
+      // Find player by display name
+      for (const [userId, playerData] of playersMap) {
+        if (playerData.displayName === bogey.playerName) {
+          playerData.totalBogeys += 1;
+          playerData.manualBogeys += 1;
+          break;
+        }
+      }
     }
 
     // Convert to array and sort

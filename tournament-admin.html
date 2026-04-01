@@ -533,6 +533,78 @@
         </div>
       </div>
 
+      <!-- Manual Bogey Tracking -->
+      <div class="admin-section">
+        <h2>Manual Bogey Tracking</h2>
+        <p>Add bogeys that weren't automatically detected by the system.</p>
+        
+        <!-- Add Manual Bogey -->
+        <div style="background: var(--background); padding: 16px; border-radius: var(--radius); margin-bottom: 20px;">
+          <h4 style="margin: 0 0 12px 0;">Add Bogey</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label for="bogey-season">Season</label>
+              <select id="bogey-season" class="form-control">
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="bogey-tournament">Tournament</label>
+              <select id="bogey-tournament" class="form-control">
+                <option value="">Select tournament...</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="bogey-player">Player</label>
+              <select id="bogey-player" class="form-control">
+                <option value="">Select player...</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="bogey-round">Round</label>
+              <select id="bogey-round" class="form-control">
+                <option value="1">Round 1</option>
+                <option value="2">Round 2</option>
+                <option value="3">Round 3</option>
+                <option value="4">Round 4</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label for="bogey-hole">Hole</label>
+              <select id="bogey-hole" class="form-control">
+                <option value="1">Hole 1</option>
+                <option value="2">Hole 2</option>
+                <option value="3">Hole 3</option>
+                <option value="4">Hole 4</option>
+                <option value="5">Hole 5</option>
+                <option value="6">Hole 6</option>
+                <option value="7">Hole 7</option>
+                <option value="8">Hole 8</option>
+                <option value="9">Hole 9</option>
+                <option value="10">Hole 10</option>
+                <option value="11">Hole 11</option>
+                <option value="12">Hole 12</option>
+                <option value="13">Hole 13</option>
+                <option value="14">Hole 14</option>
+                <option value="15">Hole 15</option>
+                <option value="16">Hole 16</option>
+                <option value="17">Hole 17</option>
+                <option value="18">Hole 18</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="TournamentAdmin.addManualBogey()">Add Bogey</button>
+        </div>
+        
+        <!-- Manual Bogeys List -->
+        <div id="manual-bogeys-list">
+          <p style="color: var(--text-secondary);">Loading manual bogeys...</p>
+        </div>
+      </div>
+
       <!-- Admin Users -->
       <div class="admin-section">
         <h2>Admin Users</h2>
@@ -662,6 +734,8 @@ service cloud.firestore {
           this.loadTournaments();
           this.loadAdminEmails();
           this.loadHistoricalWinners();
+          this.loadManualBogeys();
+          this.setupBogeyDropdowns();
         } else if (this.currentUser) {
           adminContent.style.display = 'none';
           accessDenied.style.display = 'block';
@@ -1121,6 +1195,224 @@ service cloud.firestore {
           }
           
           html += `</tr>`;
+        }
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+      },
+
+      // Manual Bogey Tracking
+      manualBogeys: [],
+      bogeyTournaments: [],
+      bogeyPlayers: [],
+
+      async setupBogeyDropdowns() {
+        const seasonSelect = document.getElementById('bogey-season');
+        const tournamentSelect = document.getElementById('bogey-tournament');
+        
+        // Load tournaments when season changes
+        seasonSelect?.addEventListener('change', () => this.loadBogeyTournaments());
+        tournamentSelect?.addEventListener('change', () => this.loadBogeyPlayers());
+        
+        // Initial load
+        this.loadBogeyTournaments();
+      },
+
+      async loadBogeyTournaments() {
+        const season = document.getElementById('bogey-season').value;
+        const tournamentSelect = document.getElementById('bogey-tournament');
+        
+        try {
+          const snapshot = await firebaseDb.collection('tournaments')
+            .orderBy('startDate', 'desc')
+            .get();
+          
+          // Filter by season year
+          this.bogeyTournaments = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(t => {
+              const date = t.startDate?.toDate ? t.startDate.toDate() : new Date(t.startDate?.seconds * 1000);
+              return date.getFullYear().toString() === season;
+            });
+          
+          tournamentSelect.innerHTML = '<option value="">Select tournament...</option>' +
+            this.bogeyTournaments.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+          
+          // Reset player dropdown
+          document.getElementById('bogey-player').innerHTML = '<option value="">Select player...</option>';
+        } catch (error) {
+          console.error('Error loading tournaments for bogey:', error);
+        }
+      },
+
+      async loadBogeyPlayers() {
+        const tournamentId = document.getElementById('bogey-tournament').value;
+        const playerSelect = document.getElementById('bogey-player');
+        
+        if (!tournamentId) {
+          playerSelect.innerHTML = '<option value="">Select player...</option>';
+          return;
+        }
+        
+        try {
+          const snapshot = await firebaseDb.collection('lineups')
+            .where('tournamentId', '==', tournamentId)
+            .get();
+          
+          this.bogeyPlayers = snapshot.docs.map(doc => ({
+            odl: doc.id,
+            odl: doc.data().userId,
+            name: doc.data().userDisplayName
+          }));
+          
+          // Remove duplicates by name
+          const uniquePlayers = [...new Map(this.bogeyPlayers.map(p => [p.name, p])).values()];
+          
+          playerSelect.innerHTML = '<option value="">Select player...</option>' +
+            uniquePlayers.sort((a, b) => a.name.localeCompare(b.name))
+              .map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+        } catch (error) {
+          console.error('Error loading players for bogey:', error);
+        }
+      },
+
+      async loadManualBogeys() {
+        try {
+          const doc = await firebaseDb.collection('config').doc('manualBogeys').get();
+          this.manualBogeys = doc.exists ? (doc.data().bogeys || []) : [];
+          this.renderManualBogeysList();
+        } catch (error) {
+          console.error('Error loading manual bogeys:', error);
+          document.getElementById('manual-bogeys-list').innerHTML = 
+            '<p style="color: var(--danger);">Error loading manual bogeys</p>';
+        }
+      },
+
+      async addManualBogey() {
+        const season = document.getElementById('bogey-season').value;
+        const tournamentId = document.getElementById('bogey-tournament').value;
+        const playerName = document.getElementById('bogey-player').value;
+        const round = document.getElementById('bogey-round').value;
+        const hole = document.getElementById('bogey-hole').value;
+
+        if (!tournamentId || !playerName) {
+          alert('Please select a tournament and player');
+          return;
+        }
+
+        // Get tournament name
+        const tournament = this.bogeyTournaments.find(t => t.id === tournamentId);
+        const tournamentName = tournament?.name || tournamentId;
+
+        // Check for duplicate
+        const exists = this.manualBogeys.some(b => 
+          b.season === season && 
+          b.tournamentId === tournamentId && 
+          b.playerName === playerName && 
+          b.round === round && 
+          b.hole === hole
+        );
+
+        if (exists) {
+          alert('This bogey has already been recorded');
+          return;
+        }
+
+        const newBogey = {
+          id: Date.now().toString(),
+          season,
+          tournamentId,
+          tournamentName,
+          playerName,
+          round,
+          hole,
+          addedAt: new Date().toISOString(),
+          addedBy: this.currentUser.email
+        };
+
+        this.manualBogeys.push(newBogey);
+
+        try {
+          await firebaseDb.collection('config').doc('manualBogeys').set({
+            bogeys: this.manualBogeys
+          });
+
+          this.renderManualBogeysList();
+          alert(`Bogey added for ${playerName} on hole ${hole}, round ${round}`);
+        } catch (error) {
+          alert('Error saving bogey: ' + error.message);
+          this.manualBogeys.pop(); // Remove the bogey we just added
+        }
+      },
+
+      async removeManualBogey(bogeyId) {
+        const bogey = this.manualBogeys.find(b => b.id === bogeyId);
+        if (!bogey) return;
+
+        if (!confirm(`Remove bogey for ${bogey.playerName} on hole ${bogey.hole}, round ${bogey.round}?`)) {
+          return;
+        }
+
+        this.manualBogeys = this.manualBogeys.filter(b => b.id !== bogeyId);
+
+        try {
+          await firebaseDb.collection('config').doc('manualBogeys').set({
+            bogeys: this.manualBogeys
+          });
+          this.renderManualBogeysList();
+        } catch (error) {
+          alert('Error removing bogey: ' + error.message);
+        }
+      },
+
+      renderManualBogeysList() {
+        const container = document.getElementById('manual-bogeys-list');
+        
+        if (this.manualBogeys.length === 0) {
+          container.innerHTML = '<p style="color: var(--text-secondary);">No manual bogeys recorded.</p>';
+          return;
+        }
+
+        // Sort by season desc, then tournament, then player
+        const sorted = [...this.manualBogeys].sort((a, b) => {
+          if (a.season !== b.season) return b.season.localeCompare(a.season);
+          if (a.tournamentName !== b.tournamentName) return a.tournamentName.localeCompare(b.tournamentName);
+          if (a.playerName !== b.playerName) return a.playerName.localeCompare(b.playerName);
+          if (a.round !== b.round) return a.round - b.round;
+          return a.hole - b.hole;
+        });
+
+        let html = `
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="background: var(--background);">
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid var(--border-color);">Season</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid var(--border-color);">Tournament</th>
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid var(--border-color);">Player</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid var(--border-color);">Round</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid var(--border-color);">Hole</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid var(--border-color);">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        for (const bogey of sorted) {
+          html += `
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${bogey.season}</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${this.escapeHtml(bogey.tournamentName)}</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">${this.escapeHtml(bogey.playerName)}</td>
+              <td style="padding: 10px; text-align: center; border-bottom: 1px solid var(--border-color);">R${bogey.round}</td>
+              <td style="padding: 10px; text-align: center; border-bottom: 1px solid var(--border-color);">${bogey.hole}</td>
+              <td style="padding: 10px; text-align: center; border-bottom: 1px solid var(--border-color);">
+                <button class="btn btn-sm" onclick="TournamentAdmin.removeManualBogey('${bogey.id}')" 
+                        style="font-size: 11px; padding: 4px 8px; color: var(--danger); border: 1px solid var(--danger); background: transparent;">
+                  Remove
+                </button>
+              </td>
+            </tr>
+          `;
         }
 
         html += `</tbody></table>`;
