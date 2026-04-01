@@ -994,22 +994,14 @@ const Leaderboard = {
     }
 
     // Add manual bogeys to player totals
-    console.log('Applying manual bogeys. Count:', manualBogeys.length);
     for (const bogey of manualBogeys) {
       // Find player by display name
-      let found = false;
       for (const [userId, playerData] of playersMap) {
         if (playerData.displayName === bogey.playerName) {
           playerData.totalBogeys += 1;
           playerData.manualBogeys += 1;
-          console.log(`Added manual bogey for ${bogey.playerName}. New total: ${playerData.totalBogeys}`);
-          found = true;
           break;
         }
-      }
-      if (!found) {
-        console.log(`Could not find player "${bogey.playerName}" in standings. Available players:`, 
-          Array.from(playersMap.values()).map(p => p.displayName));
       }
     }
 

@@ -177,6 +177,9 @@ const App = {
     }
   },
 
+  // Flag to skip hashchange warning when nav was already confirmed via click
+  skipHashChangeWarning: false,
+
   setupNavigation() {
     document.querySelectorAll('[data-nav]').forEach(el => {
       el.addEventListener('click', (e) => {
@@ -188,8 +191,9 @@ const App = {
           if (!confirm('You have unsaved lineup changes. Are you sure you want to leave?')) {
             return;
           }
-          // User confirmed, clear the warning
+          // User confirmed, clear the warning and skip the hashchange check
           this.clearUnsavedWarning();
+          this.skipHashChangeWarning = true;
         }
         
         window.location.hash = view;
@@ -206,7 +210,8 @@ const App = {
     const hash = newHash.slice(1) || 'home';
     
     // Check for unsaved changes when navigating away from lineup tab
-    if (this.previousHash === '#lineup' && newHash !== '#lineup' && this.hasUnsavedChanges()) {
+    // Skip if already confirmed via nav click
+    if (!this.skipHashChangeWarning && this.previousHash === '#lineup' && newHash !== '#lineup' && this.hasUnsavedChanges()) {
       if (!confirm('You have unsaved lineup changes. Are you sure you want to leave?')) {
         // Restore the previous hash without triggering another hashchange
         history.pushState(null, '', this.previousHash);
@@ -215,6 +220,9 @@ const App = {
       // User confirmed, clear the warning
       this.clearUnsavedWarning();
     }
+    
+    // Reset the skip flag
+    this.skipHashChangeWarning = false;
     
     this.previousHash = newHash;
     this.showView(hash);
