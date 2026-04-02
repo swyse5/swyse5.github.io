@@ -1874,6 +1874,347 @@ body.signed-in .auth-show-signed-in {
   }
 }
 
+/* Rules Page */
+.rules-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.rules-title {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 8px;
+  font-family: 'Roboto Slab', serif;
+}
+
+.rules-intro {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 18px;
+  margin-bottom: 30px;
+}
+
+.rules-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.rules-card h3 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 22px;
+  margin-bottom: 16px;
+  color: var(--primary-color);
+}
+
+.rules-card h4 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.rules-card p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.rules-card ul, .rules-card ol {
+  margin-left: 0;
+  padding-left: 20px;
+}
+
+.rules-card li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* Highlight Card (What's New) */
+.highlight-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border: 2px solid var(--primary-color);
+}
+
+[data-theme="dark"] .highlight-card {
+  background: linear-gradient(135deg, #1b3d1f 0%, #2c5232 100%);
+}
+
+.highlight-card h3 {
+  color: var(--primary-dark);
+}
+
+[data-theme="dark"] .highlight-card h3 {
+  color: var(--primary-light);
+}
+
+.new-features {
+  list-style: none;
+  padding-left: 0;
+}
+
+.new-features li {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .new-features li {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.new-features li:last-child {
+  border-bottom: none;
+}
+
+.feature-badge {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.new-features li div p {
+  margin: 4px 0 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Steps */
+.rules-steps {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: none;
+}
+
+.rules-steps li {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.rules-steps li:last-child {
+  border-bottom: none;
+}
+
+.step-number {
+  width: 36px;
+  height: 36px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.rules-steps li div p {
+  margin: 4px 0 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Example Box */
+.example-box {
+  background: var(--background);
+  padding: 16px;
+  border-radius: var(--radius);
+  border-left: 4px solid var(--primary-color);
+  margin: 16px 0;
+}
+
+.example-box .birdie {
+  color: #e53935;
+  font-weight: bold;
+}
+
+/* Rules Grid */
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 16px;
+}
+
+.rules-grid-item {
+  background: var(--background);
+  padding: 20px;
+  border-radius: var(--radius);
+}
+
+.rules-grid-item h4 {
+  margin-bottom: 12px;
+}
+
+.rules-grid-item ul, .rules-grid-item ol {
+  margin-bottom: 0;
+}
+
+/* Warning Box */
+.rules-warning {
+  background: #fff3cd;
+  color: #856404;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  margin-top: 16px;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .rules-warning {
+  background: #4a3f00;
+  color: #ffd54f;
+}
+
+/* Note */
+.rules-note {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 12px;
+}
+
+/* Bogey Card */
+.bogey-card {
+  border: 2px solid #f44336;
+}
+
+.bogey-payout {
+  background: var(--background);
+  padding: 20px;
+  border-radius: var(--radius);
+  margin: 16px 0;
+  text-align: center;
+}
+
+.payout-split {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 12px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Prizes Grid */
+.prizes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.prize-category {
+  background: var(--background);
+  padding: 20px;
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.prize-category h4 {
+  margin-bottom: 12px;
+  color: var(--primary-color);
+}
+
+.prize-category ul {
+  list-style: none;
+  padding: 0;
+}
+
+.prize-category li {
+  padding: 6px 0;
+}
+
+/* Other Rules */
+.other-rules {
+  display: grid;
+  gap: 20px;
+}
+
+.rule-item {
+  background: var(--background);
+  padding: 20px;
+  border-radius: var(--radius);
+}
+
+.rule-item h4 {
+  margin-bottom: 8px;
+}
+
+.rule-item p {
+  margin-bottom: 8px;
+}
+
+.rule-item p:last-child {
+  margin-bottom: 0;
+}
+
+/* Contact Card */
+.contact-card {
+  text-align: center;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: white;
+}
+
+.contact-card h3 {
+  color: white;
+}
+
+.contact-card p {
+  opacity: 0.95;
+}
+
+.contact-methods {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.contact-methods span {
+  font-weight: 500;
+  font-size: 15px;
+}
+
+/* Rules Mobile */
+@media (max-width: 768px) {
+  .rules-title {
+    font-size: 26px;
+  }
+  
+  .rules-intro {
+    font-size: 16px;
+  }
+  
+  .rules-card {
+    padding: 20px;
+  }
+  
+  .rules-card h3 {
+    font-size: 20px;
+  }
+  
+  .rules-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .payout-split {
+    gap: 20px;
+    font-size: 18px;
+  }
+  
+  .contact-methods {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
 /* Modal */
 .modal-overlay {
   position: fixed;
