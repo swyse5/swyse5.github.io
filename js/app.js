@@ -642,9 +642,13 @@ const App = {
     });
   },
 
+  // Tournament leaderboard sub-view: 'standings' | 'field'
+  leaderboardTournamentSubview: 'standings',
+
   async loadLeaderboardView() {
     // Setup toggle buttons and tournament selector
     this.setupLeaderboardToggle();
+    this.setupLeaderboardTournamentSubviewToggle();
     this.setupTournamentSelector();
     this.setupSeasonSelector();
     
@@ -751,10 +755,56 @@ const App = {
     }
     
     const standings = await Leaderboard.calculateStandings(tournamentId);
-    Leaderboard.renderLeaderboard('leaderboard-content', standings, Auth.currentUser?.uid);
+    if (this.leaderboardTournamentSubview === 'field') {
+      Leaderboard.renderFieldView('leaderboard-field-content', tournamentId, Auth.currentUser?.uid, standings);
+    } else {
+      Leaderboard.renderLeaderboard('leaderboard-content', standings, Auth.currentUser?.uid);
+    }
     
     // Update last updated timestamp
     Leaderboard.updateLastUpdatedDisplay('leaderboard-last-updated');
+    this.syncLeaderboardSubviewPanels();
+  },
+
+  syncLeaderboardSubviewPanels() {
+    const isField = this.leaderboardTournamentSubview === 'field';
+    document.getElementById('btn-leaderboard-standings')?.classList.toggle('active', !isField);
+    document.getElementById('btn-leaderboard-field')?.classList.toggle('active', isField);
+    document.getElementById('leaderboard-standings-panel')?.classList.toggle('active', !isField);
+    document.getElementById('leaderboard-field-panel')?.classList.toggle('active', isField);
+  },
+
+  setupLeaderboardTournamentSubviewToggle() {
+    const standingsBtn = document.getElementById('btn-leaderboard-standings');
+    const fieldBtn = document.getElementById('btn-leaderboard-field');
+    if (!standingsBtn || !fieldBtn) return;
+    if (standingsBtn.dataset.bound === '1') return;
+    standingsBtn.dataset.bound = '1';
+    fieldBtn.dataset.bound = '1';
+
+    standingsBtn.addEventListener('click', async () => {
+      if (this.leaderboardTournamentSubview === 'standings') return;
+      this.leaderboardTournamentSubview = 'standings';
+      this.syncLeaderboardSubviewPanels();
+      const tid = this.selectedLeaderboardTournament?.id;
+      if (tid && Leaderboard.currentStandings.length) {
+        Leaderboard.renderLeaderboard('leaderboard-content', Leaderboard.currentStandings, Auth.currentUser?.uid);
+      } else if (tid) {
+        await this.loadTournamentLeaderboard(tid);
+      }
+    });
+
+    fieldBtn.addEventListener('click', async () => {
+      if (this.leaderboardTournamentSubview === 'field') return;
+      this.leaderboardTournamentSubview = 'field';
+      this.syncLeaderboardSubviewPanels();
+      const tid = this.selectedLeaderboardTournament?.id;
+      if (tid) {
+        const standings = await Leaderboard.calculateStandings(tid);
+        Leaderboard.renderFieldView('leaderboard-field-content', tid, Auth.currentUser?.uid, standings);
+        Leaderboard.updateLastUpdatedDisplay('leaderboard-last-updated');
+      }
+    });
   },
 
   setupLeaderboardToggle() {
@@ -770,6 +820,7 @@ const App = {
       seasonBtn.classList.remove('active');
       tournamentView.classList.add('active');
       seasonView.classList.remove('active');
+      this.syncLeaderboardSubviewPanels();
     });
 
     seasonBtn.addEventListener('click', async () => {

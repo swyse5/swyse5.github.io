@@ -839,6 +839,126 @@ body.signed-in .auth-show-signed-in {
   display: block;
 }
 
+.leaderboard-tournament-subtoggle {
+  display: inline-flex;
+  background: var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.leaderboard-subpanel {
+  display: none;
+}
+
+.leaderboard-subpanel.active {
+  display: block;
+}
+
+.leaderboard-last-updated-tournament {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.field-scorecard-wrap .field-hole-scorecard {
+  font-size: 11px;
+}
+
+.field-scorecard-wrap .field-hole-scorecard th,
+.field-scorecard-wrap .field-hole-scorecard td {
+  padding: 5px 4px;
+}
+
+.field-hole-scorecard th.golfer-col,
+.field-hole-scorecard td.golfer-col {
+  white-space: normal;
+  min-width: 0;
+  width: 168px;
+  max-width: 168px;
+  box-sizing: border-box;
+  line-height: 1.35;
+  padding-right: 6px;
+  padding-left: 8px;
+}
+
+.field-hole-scorecard th.golfer-col {
+  text-align: left;
+}
+
+.field-hole-scorecard th.field-hole-sort,
+.field-hole-scorecard th.field-golfer-sort {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.field-hole-scorecard th.field-hole-sort:hover,
+.field-hole-scorecard th.field-golfer-sort:hover {
+  filter: brightness(1.12);
+}
+
+.field-hole-scorecard th.field-hole-sort.sorted-asc,
+.field-hole-scorecard th.field-hole-sort.sorted-desc,
+.field-hole-scorecard th.field-golfer-sort.sorted-asc,
+.field-hole-scorecard th.field-golfer-sort.sorted-desc {
+  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.45);
+}
+
+.field-hole-scorecard th.field-hole-sort.sorted-asc::after,
+.field-hole-scorecard th.field-golfer-sort.sorted-asc::after {
+  content: '▲';
+  font-size: 0.55em;
+  margin-left: 3px;
+  vertical-align: middle;
+  opacity: 0.95;
+}
+
+.field-hole-scorecard th.field-hole-sort.sorted-desc::after,
+.field-hole-scorecard th.field-golfer-sort.sorted-desc::after {
+  content: '▼';
+  font-size: 0.55em;
+  margin-left: 3px;
+  vertical-align: middle;
+  opacity: 0.95;
+}
+
+.field-hole-scorecard th.hole-col,
+.field-hole-scorecard td.hole-col {
+  width: 2.35rem;
+  min-width: 2.35rem;
+  max-width: 2.35rem;
+  box-sizing: border-box;
+}
+
+.field-hole-scorecard th.total-col,
+.field-hole-scorecard td.total-col {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  max-width: 2.75rem;
+  box-sizing: border-box;
+}
+
+.field-hole-scorecard .field-lone-low {
+  background: rgba(44, 82, 50, 0.2) !important;
+  font-weight: 700;
+}
+
+/* Zebra striping: par row is 1st child; golfer rows 2,4,6… get a light band */
+.field-hole-scorecard tbody tr.golfer-row:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+[data-theme="dark"] .field-hole-scorecard tbody tr.golfer-row:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.field-pick-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 /* Season Standings */
 .season-standings-table {
   width: 100%;
@@ -2475,6 +2595,43 @@ body.signed-in .auth-show-signed-in {
     white-space: nowrap;
   }
 
+  .field-hole-scorecard th.golfer-col,
+  .field-hole-scorecard td.golfer-col {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    white-space: normal;
+    width: 140px;
+    max-width: 140px;
+    min-width: 0;
+    overflow: visible;
+    text-overflow: unset;
+    box-shadow: 3px 0 8px -2px rgba(0, 0, 0, 0.1);
+  }
+
+  .field-hole-scorecard td.golfer-col {
+    background: var(--surface);
+  }
+
+  .field-hole-scorecard th.golfer-col {
+    background: var(--primary-color);
+    z-index: 3;
+  }
+
+  .field-hole-scorecard th.hole-col,
+  .field-hole-scorecard td.hole-col {
+    width: 2rem;
+    min-width: 2rem;
+    max-width: 2rem;
+  }
+
+  .field-hole-scorecard th.total-col,
+  .field-hole-scorecard td.total-col {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    max-width: 2.5rem;
+  }
+
   .hole-scorecard .golfer-salary {
     font-size: 10px;
   }
@@ -2632,6 +2789,27 @@ body.signed-in .auth-show-signed-in {
     min-width: 55px;
     max-width: 55px;
     font-size: 9px;
+  }
+
+  .field-hole-scorecard th.hole-col,
+  .field-hole-scorecard td.hole-col {
+    width: 1.85rem;
+    min-width: 1.85rem;
+    max-width: 1.85rem;
+    padding: 3px 1px;
+  }
+
+  .field-hole-scorecard th.golfer-col,
+  .field-hole-scorecard td.golfer-col {
+    width: 118px;
+    max-width: 118px;
+  }
+
+  .field-hole-scorecard th.total-col,
+  .field-hole-scorecard td.total-col {
+    width: 2.35rem;
+    min-width: 2.35rem;
+    max-width: 2.35rem;
   }
 
   .hole-scorecard .golfer-salary {

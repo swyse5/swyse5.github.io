@@ -358,7 +358,270 @@ const Leaderboard = {
 
   // Current selected round for detailed view
   selectedRound: 1,
+  // Field tab: round selector (independent from expanded standings row)
+  fieldSelectedRound: 1,
+  // null = sort by golfer name; 0–17 = sort by that hole’s toPar
+  fieldSortHoleIndex: null,
+  fieldSortAsc: true,
   currentStandings: [],
+
+  getGolfersForRoundFromStandings(player, roundNumber) {
+    const roundKey = `golfersRound${roundNumber}`;
+    const isRounds12 = roundNumber <= 2;
+    const golfers = player[roundKey] || (isRounds12 ? player.golfersRounds12 : player.golfersRounds34) || [];
+    const hasIndividualRound = player[`hasIndividualRound${roundNumber}`];
+    const hasGroupLineup = isRounds12 ? player.hasLineup1 : player.hasLineup2;
+    const hasLineup = golfers.length > 0 && (hasIndividualRound || hasGroupLineup);
+    return hasLineup ? golfers : [];
+  },
+
+  buildFieldPickCounts(standings, roundNumber) {
+    const pickCounts = new Map();
+    for (const player of standings) {
+      const golfers = this.getGolfersForRoundFromStandings(player, roundNumber);
+      for (const g of golfers) {
+        pickCounts.set(g, (pickCounts.get(g) || 0) + 1);
+      }
+    }
+    return pickCounts;
+  },
+
+  renderFieldView(containerId, tournamentId, currentUserId, standings) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    this.currentStandings = standings;
+
+    const roundNum = this.fieldSelectedRound;
+    const isRounds12 = roundNum <= 2;
+    const roundStarted = isRounds12 ? this.round1Started : this.round3Started;
+    const roundLabel = isRounds12 ? 'Rounds 1-2' : 'Rounds 3-4';
+
+    const roundSelectorHtml = `
+      <div class="round-selector">
+        <span class="round-selector-label">Round:</span>
+        <div class="round-buttons">
+          ${[1, 2, 3, 4].map(r => `
+            <button type="button" class="round-btn field-round-btn ${this.fieldSelectedRound === r ? 'active' : ''}" data-round="${r}">R${r}</button>
+          `).join('')}
+        </div>
+      </div>`;
+
+    let bodyHtml = '';
+
+    if (!standings.length) {
+      bodyHtml = '<div class="no-data">No lineups submitted yet</div>';
+    } else if (!roundStarted) {
+      bodyHtml = `
+        <div class="lineup-hidden-message field-round-body">
+          <p><strong>Field hidden</strong></p>
+          <p>The full field and pick counts for ${roundLabel} appear once Round ${isRounds12 ? '1' : '3'} begins. Use the round buttons above to view another round.</p>
+        </div>`;
+    } else {
+      const pickCounts = this.buildFieldPickCounts(standings, roundNum);
+      const golferNames = [...pickCounts.keys()].sort((a, b) => a.localeCompare(b));
+
+      if (golferNames.length === 0) {
+        bodyHtml = `
+          <div class="no-data field-round-body">
+            <p><strong>No golfers in the field for Round ${roundNum}</strong></p>
+            <p style="font-size: 14px; margin-top: 8px;">No lineups are active for this round yet.</p>
+          </div>`;
+      } else {
+        const pars = this.cachedPars || Array(18).fill(null);
+        const roundIndex = roundNum - 1;
+
+        const getHoleToPar = (hole) => {
+          if (!hole || hole.toPar === null || hole.toPar === undefined) return null;
+          return hole.toPar;
+        };
+
+        const golferHoleData = golferNames.map(name => {
+          const normalized = Scoring.normalizeName(name);
+          const golfer = this.cachedGolferScores[normalized];
+          const roundData = golfer?.rounds?.[roundIndex];
+          return {
+            name,
+            holes: roundData?.holes || Array(18).fill(null),
+            totalToPar: roundData?.totalToPar ?? null,
+            pickCount: pickCounts.get(name) || 0
+          };
+        });
+
+        const loneLowGolferByHole = Array(18).fill(null);
+        for (let hi = 0; hi < 18; hi++) {
+          const scored = golferHoleData
+            .map(g => ({ name: g.name, toPar: getHoleToPar(g.holes[hi]) }))
+            .filter(x => x.toPar !== null);
+          if (scored.length === 0) continue;
+          const minToPar = Math.min(...scored.map(x => x.toPar));
+          const atMin = scored.filter(x => x.toPar === minToPar);
+          if (atMin.length === 1) loneLowGolferByHole[hi] = atMin[0].name;
+        }
+
+        const sortedGolfers = [...golferHoleData];
+        if (this.fieldSortHoleIndex !== null && this.fieldSortHoleIndex >= 0 && this.fieldSortHoleIndex < 18) {
+          const hi = this.fieldSortHoleIndex;
+          sortedGolfers.sort((a, b) => {
+            const aPar = getHoleToPar(a.holes[hi]);
+            const bPar = getHoleToPar(b.holes[hi]);
+            if (aPar === null && bPar === null) return a.name.localeCompare(b.name);
+            if (aPar === null) return 1;
+            if (bPar === null) return -1;
+            let cmp = aPar - bPar;
+            if (!this.fieldSortAsc) cmp = -cmp;
+            if (cmp !== 0) return cmp;
+            return a.name.localeCompare(b.name);
+          });
+        } else {
+          sortedGolfers.sort((a, b) => {
+            const cmp = a.name.localeCompare(b.name);
+            return this.fieldSortAsc ? cmp : -cmp;
+          });
+        }
+
+        const hasAnyScores = golferHoleData.some(g => g.holes.some(h => getHoleToPar(h) !== null));
+
+        const nameSortActive = this.fieldSortHoleIndex === null;
+        const nameDir = nameSortActive ? (this.fieldSortAsc ? 'sorted-asc' : 'sorted-desc') : '';
+        const nameAriaSort = nameSortActive
+          ? (this.fieldSortAsc ? ' aria-sort="ascending"' : ' aria-sort="descending"')
+          : '';
+
+        bodyHtml = `
+      <div class="field-scorecard-wrap field-round-body">
+        <div class="hole-by-hole-container">
+          ${!hasAnyScores ? `
+            <div class="no-scores-message">
+              <p>Scores will appear once Round ${roundNum} begins.</p>
+            </div>
+          ` : ''}
+          <div class="scorecard-scroll">
+            <table class="hole-scorecard field-hole-scorecard">
+              <thead>
+                <tr>
+                  <th class="golfer-col field-golfer-sort ${nameDir}" scope="col" title="Sort A–Z; click again for Z–A" tabindex="0"${nameAriaSort}>Golfer</th>
+                  ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map((h, i) => {
+                    const active = this.fieldSortHoleIndex === i;
+                    const dir = active ? (this.fieldSortAsc ? 'sorted-asc' : 'sorted-desc') : '';
+                    const ariaSort = active
+                      ? (this.fieldSortAsc ? ' aria-sort="ascending"' : ' aria-sort="descending"')
+                      : '';
+                    return `<th class="hole-col field-hole-sort ${dir}" data-hole-index="${i}" scope="col" title="Sort by hole ${h} (best scores first)" tabindex="0"${ariaSort}>${h}</th>`;
+                  }).join('')}
+                  ${[10, 11, 12, 13, 14, 15, 16, 17, 18].map((h, i) => {
+                    const idx = i + 9;
+                    const active = this.fieldSortHoleIndex === idx;
+                    const dir = active ? (this.fieldSortAsc ? 'sorted-asc' : 'sorted-desc') : '';
+                    const ariaSort = active
+                      ? (this.fieldSortAsc ? ' aria-sort="ascending"' : ' aria-sort="descending"')
+                      : '';
+                    return `<th class="hole-col field-hole-sort ${dir}" data-hole-index="${idx}" scope="col" title="Sort by hole ${h} (best scores first)" tabindex="0"${ariaSort}>${h}</th>`;
+                  }).join('')}
+                  <th class="total-col" scope="col">Tot</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="par-row">
+                  <td class="golfer-col">Par</td>
+                  ${pars.slice(0, 9).map(p => `<td class="hole-col">${p || '-'}</td>`).join('')}
+                  ${pars.slice(9, 18).map(p => `<td class="hole-col">${p || '-'}</td>`).join('')}
+                  <td class="total-col">${pars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
+                </tr>
+                ${sortedGolfers.map((g) => {
+                  const gFront = g.holes.slice(0, 9);
+                  const gBack = g.holes.slice(9, 18);
+                  const salary = this.getGolferSalary(g.name);
+                  const salaryDisplay = salary ? ` <span class="golfer-salary">(${this.formatSalary(salary)})</span>` : '';
+                  const pickLabel = g.pickCount === 1 ? '1 pick' : `${g.pickCount} picks`;
+                  return `
+                <tr class="golfer-row">
+                  <td class="golfer-col">${g.name}${salaryDisplay} <span class="field-pick-count">${pickLabel}</span></td>
+                  ${gFront.map((h, i) => {
+                    const toPar = getHoleToPar(h);
+                    const loneLow = loneLowGolferByHole[i] === g.name;
+                    const loneClass = loneLow ? ' field-lone-low' : '';
+                    return `<td class="hole-col ${this.getScoreClass(toPar)}${loneClass}">${toPar !== null ? Scoring.formatToPar(toPar) : '-'}</td>`;
+                  }).join('')}
+                  ${gBack.map((h, i) => {
+                    const toPar = getHoleToPar(h);
+                    const holeIdx = i + 9;
+                    const loneLow = loneLowGolferByHole[holeIdx] === g.name;
+                    const loneClass = loneLow ? ' field-lone-low' : '';
+                    return `<td class="hole-col ${this.getScoreClass(toPar)}${loneClass}">${toPar !== null ? Scoring.formatToPar(toPar) : '-'}</td>`;
+                  }).join('')}
+                  <td class="total-col ${this.getScoreClass(g.totalToPar)}">${g.totalToPar !== null ? Scoring.formatToPar(g.totalToPar) : '-'}</td>
+                </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+      }
+    }
+
+    container.innerHTML = roundSelectorHtml + bodyHtml;
+
+    container.querySelectorAll('.field-round-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.fieldSelectedRound = parseInt(btn.dataset.round, 10);
+        this.fieldSortHoleIndex = null;
+        this.fieldSortAsc = true;
+        this.renderFieldView(containerId, tournamentId, currentUserId, this.currentStandings);
+      });
+    });
+
+    const activateHoleSort = (hi) => {
+      if (this.fieldSortHoleIndex === hi) {
+        this.fieldSortAsc = !this.fieldSortAsc;
+      } else {
+        this.fieldSortHoleIndex = hi;
+        this.fieldSortAsc = true;
+      }
+      this.renderFieldView(containerId, tournamentId, currentUserId, this.currentStandings);
+    };
+
+    const activateGolferSort = () => {
+      if (this.fieldSortHoleIndex === null) {
+        this.fieldSortAsc = !this.fieldSortAsc;
+      } else {
+        this.fieldSortHoleIndex = null;
+        this.fieldSortAsc = true;
+      }
+      this.renderFieldView(containerId, tournamentId, currentUserId, this.currentStandings);
+    };
+
+    container.querySelectorAll('th.field-hole-sort').forEach(th => {
+      th.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const hi = parseInt(th.dataset.holeIndex, 10);
+        if (Number.isNaN(hi)) return;
+        activateHoleSort(hi);
+      });
+      th.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        const hi = parseInt(th.dataset.holeIndex, 10);
+        if (Number.isNaN(hi)) return;
+        activateHoleSort(hi);
+      });
+    });
+
+    const golferSortTh = container.querySelector('th.field-golfer-sort');
+    if (golferSortTh) {
+      golferSortTh.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activateGolferSort();
+      });
+      golferSortTh.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        activateGolferSort();
+      });
+    }
+  },
   
   // Sorting state
   sortColumn: 'pos',
@@ -722,22 +985,25 @@ const Leaderboard = {
     this.currentTournamentId = tournamentId;
     this.stopLiveUpdates();
 
+    const refreshTournamentViews = async () => {
+      const standings = await this.calculateStandings(tournamentId);
+      const sub = typeof App !== 'undefined' ? App.leaderboardTournamentSubview : 'standings';
+      if (sub === 'field') {
+        this.renderFieldView('leaderboard-field-content', tournamentId, Auth.currentUser?.uid, standings);
+      } else {
+        this.renderLeaderboard(containerId, standings, Auth.currentUser?.uid);
+      }
+      this.updateLastUpdatedDisplay('leaderboard-last-updated');
+    };
+
     // Listen for score updates
     this.unsubscribeScores = firebaseDb.collection('scores').doc(tournamentId)
-      .onSnapshot(async () => {
-        const standings = await this.calculateStandings(tournamentId);
-        this.renderLeaderboard(containerId, standings, Auth.currentUser?.uid);
-        this.updateLastUpdatedDisplay('leaderboard-last-updated');
-      });
+      .onSnapshot(() => refreshTournamentViews());
 
     // Listen for lineup changes
     this.unsubscribeLineups = firebaseDb.collection('lineups')
       .where('tournamentId', '==', tournamentId)
-      .onSnapshot(async () => {
-        const standings = await this.calculateStandings(tournamentId);
-        this.renderLeaderboard(containerId, standings, Auth.currentUser?.uid);
-        this.updateLastUpdatedDisplay('leaderboard-last-updated');
-      });
+      .onSnapshot(() => refreshTournamentViews());
   },
 
   stopLiveUpdates() {

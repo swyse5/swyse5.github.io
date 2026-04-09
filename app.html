@@ -117,10 +117,19 @@
               </select>
               <span id="season-indicator" class="season-indicator"></span>
             </div>
-            <div id="leaderboard-content">
-              <div class="loading">Loading...</div>
+            <div class="leaderboard-tournament-subtoggle">
+              <button type="button" id="btn-leaderboard-standings" class="toggle-btn active">Standings</button>
+              <button type="button" id="btn-leaderboard-field" class="toggle-btn">Field</button>
             </div>
-            <div id="leaderboard-last-updated" class="last-updated"></div>
+            <div id="leaderboard-standings-panel" class="leaderboard-subpanel active">
+              <div id="leaderboard-content">
+                <div class="loading">Loading...</div>
+              </div>
+            </div>
+            <div id="leaderboard-field-panel" class="leaderboard-subpanel">
+              <div id="leaderboard-field-content"></div>
+            </div>
+            <div id="leaderboard-last-updated" class="last-updated leaderboard-last-updated-tournament"></div>
           </div>
           <div id="leaderboard-season" class="leaderboard-view">
             <div id="season-selector-container" class="tournament-selector-container">
@@ -282,24 +291,24 @@
 
             <!-- Prizes -->
             <div class="rules-card">
-              <h3>🏆 Prizes</h3>
-              <p>Final payouts depend on total entries. Prizes awarded for:</p>
+              <h3>🏆 2026 Season Prizes</h3>
               <div class="prizes-grid">
                 <div class="prize-category">
                   <h4>Each Major</h4>
                   <ul>
-                    <li>🥇 1st Place</li>
-                    <li>🥈 2nd Place</li>
-                    <li>🥉 3rd Place</li>
+                    <li>🥇 1st Place: $65</li>
+                    <li>🥈 2nd Place: $45</li>
+                    <li>🥉 3rd Place: $30</li>
                   </ul>
                 </div>
                 <div class="prize-category">
                   <h4>Season Overall</h4>
                   <ul>
-                    <li>🥇 1st Place</li>
-                    <li>🥈 2nd Place</li>
-                    <li>🥉 3rd Place</li>
-                    <li>4th Place</li>
+                    <li>🥇 1st Place: $175</li>
+                    <li>🥈 2nd Place: $120</li>
+                    <li>🥉 3rd Place: $80</li>
+                    <li>4th Place: $60</li>
+                    <li>5th Place: $45</li>
                   </ul>
                 </div>
               </div>
@@ -334,14 +343,10 @@
               <h3>📋 Other Rules</h3>
               <div class="other-rules">
                 <div class="rule-item">
-                  <h4>🏥 Withdrawals</h4>
-                  <p>If a golfer withdraws <strong>before</strong> their tee time, you may replace them with any golfer of equal or lesser value before that new golfer tees off.</p>
-                  <p>If they WD <strong>mid-round</strong>, you can replace them for the next day but not the current round.</p>
+                  <h4>🏥 Withdrawals & Disqualifications</h4>
+                  <p>If a golfer withdraws or is DQed <strong>before</strong> their tee time, you may replace them with any golfer of equal or lesser value before that new golfer tees off.</p>
+                  <p>If they WD or are DQed <strong>mid-round</strong>, you can replace them for the next day but not the current round.</p>
                   <p class="rules-note">It's YOUR responsibility to track your golfers' status!</p>
-                </div>
-                <div class="rule-item">
-                  <h4>🚨 Emergency Backup</h4>
-                  <p>If you're unsure a golfer will make their tee time, text the commissioner a "backup" golfer who will only enter your lineup if the original can't play.</p>
                 </div>
               </div>
             </div>
