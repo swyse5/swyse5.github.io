@@ -243,6 +243,15 @@ const Chat = {
           if (data.userId && data.userName && data.userId !== 'system') {
             this.userNameCache[data.userId] = data.userName;
           }
+          const rx = data.reactions || {};
+          for (const list of Object.values(rx)) {
+            if (!Array.isArray(list)) continue;
+            for (const entry of list) {
+              if (entry && typeof entry === 'object' && entry.userId && entry.userName) {
+                this.userNameCache[entry.userId] = entry.userName;
+              }
+            }
+          }
           return {
             id: doc.id,
             ...data,
@@ -306,6 +315,10 @@ const Chat = {
     }
   },
 
+  reactionEntryUid(entry) {
+    return typeof entry === 'string' ? entry : entry?.userId;
+  },
+
   async toggleReaction(messageId, emoji) {
     const user = firebaseAuth.currentUser;
     if (!user) {
@@ -324,16 +337,18 @@ const Chat = {
 
       const reactions = doc.data().reactions || {};
       const emojiReactions = reactions[emoji] || [];
-      
-      if (emojiReactions.includes(user.uid)) {
-        // Remove reaction
-        reactions[emoji] = emojiReactions.filter(uid => uid !== user.uid);
+      const displayName = user.displayName || 'Anonymous';
+
+      const hasMine = emojiReactions.some(e => this.reactionEntryUid(e) === user.uid);
+
+      if (hasMine) {
+        reactions[emoji] = emojiReactions.filter(e => this.reactionEntryUid(e) !== user.uid);
         if (reactions[emoji].length === 0) {
           delete reactions[emoji];
         }
       } else {
-        // Add reaction
-        reactions[emoji] = [...emojiReactions, user.uid];
+        reactions[emoji] = [...emojiReactions, { userId: user.uid, userName: displayName }];
+        this.userNameCache[user.uid] = displayName;
       }
 
       await messageRef.update({ reactions });
@@ -453,10 +468,15 @@ const Chat = {
 
     let reactionButtons = '';
     for (const [emoji, users] of Object.entries(reactions)) {
-      const isActive = users.includes(currentUserId);
+      const isActive = users.some(e => this.reactionEntryUid(e) === currentUserId);
       const count = users.length;
-      // Get user names for tooltip
-      const userNames = users.map(uid => this.userNameCache[uid] || 'Someone').join(', ');
+      const userNames = users.map(entry => {
+        if (entry && typeof entry === 'object' && entry.userName) {
+          return entry.userName;
+        }
+        const uid = this.reactionEntryUid(entry);
+        return this.userNameCache[uid] || 'Someone';
+      }).join(', ');
       reactionButtons += `
         <button class="reaction-btn ${isActive ? 'active' : ''}" data-message-id="${msg.id}" data-emoji="${emoji}" title="${userNames}">
           ${emoji} ${count}

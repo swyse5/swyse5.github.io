@@ -28,8 +28,12 @@ const Lineup = {
       this.golferField = this.currentTournament.golferField || [];
       this.salaryCap = this.currentTournament.salaryCap || 100;
       
-      // Sort by salary descending
-      this.golferField.sort((a, b) => b.salary - a.salary);
+      // Sort by salary descending, then name A–Z when salaries match
+      this.golferField.sort((a, b) => {
+        const diff = Number(b.salary) - Number(a.salary);
+        if (diff !== 0) return diff;
+        return String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' });
+      });
       
       return this.currentTournament;
     } catch (error) {
