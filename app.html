@@ -117,10 +117,19 @@
               </select>
               <span id="season-indicator" class="season-indicator"></span>
             </div>
-            <div id="leaderboard-content">
-              <div class="loading">Loading...</div>
+            <div class="leaderboard-tournament-subtoggle">
+              <button type="button" id="btn-leaderboard-standings" class="toggle-btn active">Standings</button>
+              <button type="button" id="btn-leaderboard-field" class="toggle-btn">Field</button>
             </div>
-            <div id="leaderboard-last-updated" class="last-updated"></div>
+            <div id="leaderboard-standings-panel" class="leaderboard-subpanel active">
+              <div id="leaderboard-content">
+                <div class="loading">Loading...</div>
+              </div>
+            </div>
+            <div id="leaderboard-field-panel" class="leaderboard-subpanel">
+              <div id="leaderboard-field-content"></div>
+            </div>
+            <div id="leaderboard-last-updated" class="last-updated leaderboard-last-updated-tournament"></div>
           </div>
           <div id="leaderboard-season" class="leaderboard-view">
             <div id="season-selector-container" class="tournament-selector-container">
