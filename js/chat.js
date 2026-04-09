@@ -11,34 +11,37 @@ const Chat = {
   authListenerSet: false,
   isAdmin: false,
   adminEmails: [],
+  announcedEaglesCache: null,
 
-  // Always read from localStorage to handle multiple tabs
-  getNotifiedEagles() {
+  // Check if an eagle has been announced (using Firebase)
+  async hasNotifiedEagle(tournamentId, golferName, round, hole) {
+    const eagleId = `${tournamentId}_${golferName}_R${round}_H${hole}`;
     try {
-      const stored = localStorage.getItem('notifiedEagles');
-      if (stored) {
-        return new Set(JSON.parse(stored));
+      const doc = await firebaseDb.collection('config').doc('announcedEagles').get();
+      if (doc.exists) {
+        const data = doc.data();
+        return data[eagleId] === true;
       }
+      return false;
     } catch (e) {
-      console.log('Could not load notified eagles:', e);
+      console.error('Error checking announced eagle:', e);
+      return false;
     }
-    return new Set();
   },
 
-  addNotifiedEagle(key) {
-    const eagles = this.getNotifiedEagles();
-    eagles.add(key);
-    this.saveNotifiedEagles(eagles);
-    console.log(`Added eagle notification: ${key}`);
-  },
-
-  hasNotifiedEagle(key) {
-    const eagles = this.getNotifiedEagles();
-    const has = eagles.has(key);
-    if (has) {
-      console.log(`Eagle already notified: ${key}`);
+  // Add an eagle to Firebase as announced
+  async addNotifiedEagle(tournamentId, golferName, round, hole) {
+    const eagleId = `${tournamentId}_${golferName}_R${round}_H${hole}`;
+    try {
+      await firebaseDb.collection('config').doc('announcedEagles').set({
+        [eagleId]: true
+      }, { merge: true });
+      console.log(`Added eagle to Firebase: ${eagleId}`);
+      return true;
+    } catch (e) {
+      console.error('Error saving announced eagle:', e);
+      return false;
     }
-    return has;
   },
 
   async loadAdminStatus() {
@@ -533,8 +536,6 @@ const Chat = {
   async checkForEagles(tournamentId, golferScores, lineups) {
     if (!golferScores || !lineups || !tournamentId) return;
 
-    const eagleAlerts = [];
-
     // Build a map of which users have which golfers PER ROUND
     // This ensures we only alert users who have that golfer in the specific round
     const golferToUsersByRound = {
@@ -567,7 +568,9 @@ const Chat = {
       });
     });
 
-    // Check each golfer for new eagles or better
+    // Collect potential eagles first
+    const potentialEagles = [];
+    
     for (const [normalizedName, golfer] of Object.entries(golferScores)) {
       if (!golfer.rounds) continue;
 
@@ -580,50 +583,60 @@ const Chat = {
 
           // Eagle is -2 or better
           if (hole.toPar <= -2) {
-            // Create a unique key for this eagle
-            const eagleKey = `${tournamentId}_${normalizedName}_R${roundNum}_H${holeIndex + 1}`;
-            
-            // Only alert if we haven't notified about this eagle before
-            if (!this.hasNotifiedEagle(eagleKey)) {
-              // Get users who have this golfer in THIS SPECIFIC ROUND
-              const users = golferToUsersByRound[roundNum][normalizedName] || [];
-              if (users.length > 0) {
-                const scoreLabel = this.getScoreLabel(hole.toPar);
-                const userList = users.length === 1 ? users[0] : 
-                  users.length === 2 ? `${users[0]} and ${users[1]}` :
-                  `${users.slice(0, -1).join(', ')}, and ${users[users.length - 1]}`;
-                
-                eagleAlerts.push({
-                  key: eagleKey,
-                  golfer: golfer.displayName,
-                  hole: holeIndex + 1,
-                  round: roundNum,
-                  score: scoreLabel,
-                  users: userList
-                });
-              }
+            // Get users who have this golfer in THIS SPECIFIC ROUND
+            const users = golferToUsersByRound[roundNum][normalizedName] || [];
+            if (users.length > 0) {
+              potentialEagles.push({
+                tournamentId,
+                normalizedName,
+                golferDisplayName: golfer.displayName,
+                round: roundNum,
+                hole: holeIndex + 1,
+                toPar: hole.toPar,
+                users
+              });
             }
           }
         });
       });
     }
 
-    // Send eagle alerts and mark them as notified BEFORE sending
-    // This prevents duplicates even if sendMessage is slow
-    for (const alert of eagleAlerts) {
-      // Mark as notified FIRST to prevent race conditions
-      this.addNotifiedEagle(alert.key);
+    // Check each potential eagle against Firebase and send alerts for new ones
+    for (const eagle of potentialEagles) {
+      // Check Firebase if this eagle has already been announced
+      const alreadyAnnounced = await this.hasNotifiedEagle(
+        eagle.tournamentId, 
+        eagle.normalizedName, 
+        eagle.round, 
+        eagle.hole
+      );
       
-      const message = `${alert.golfer} made ${alert.score} on Hole ${alert.hole} (R${alert.round})! 🦅 Teams: ${alert.users}`;
-      await this.sendMessage(message, true);
-    }
-  },
+      if (alreadyAnnounced) {
+        continue;
+      }
 
-  saveNotifiedEagles(eagles) {
-    try {
-      localStorage.setItem('notifiedEagles', JSON.stringify([...eagles]));
-    } catch (e) {
-      console.log('Could not save notified eagles to localStorage');
+      // Mark as announced in Firebase FIRST to prevent race conditions
+      const saved = await this.addNotifiedEagle(
+        eagle.tournamentId, 
+        eagle.normalizedName, 
+        eagle.round, 
+        eagle.hole
+      );
+      
+      if (!saved) {
+        // If we couldn't save to Firebase, skip to avoid potential duplicates
+        console.warn('Could not save eagle to Firebase, skipping announcement');
+        continue;
+      }
+
+      // Now send the message
+      const scoreLabel = this.getScoreLabel(eagle.toPar);
+      const userList = eagle.users.length === 1 ? eagle.users[0] : 
+        eagle.users.length === 2 ? `${eagle.users[0]} and ${eagle.users[1]}` :
+        `${eagle.users.slice(0, -1).join(', ')}, and ${eagle.users[eagle.users.length - 1]}`;
+      
+      const message = `${eagle.golferDisplayName} made ${scoreLabel} on Hole ${eagle.hole} (R${eagle.round})! 🦅 Teams: ${userList}`;
+      await this.sendMessage(message, true);
     }
   },
 
