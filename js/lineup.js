@@ -5,6 +5,11 @@ const Lineup = {
   formatSalary(value) {
     return Number(value).toFixed(2);
   },
+
+  /** Golfers with eligibleForLineup === false stay in the DB (salary history) but are omitted from the lineup picker. */
+  isEligibleForLineup(g) {
+    return g && g.eligibleForLineup !== false;
+  },
   currentTournament: null,
   golferField: [],
   selectedGolfers: [],
@@ -101,6 +106,18 @@ const Lineup = {
     const totalSalary = this.calculateTotalSalary(golfers);
     if (totalSalary > this.salaryCap) {
       throw new Error(`Lineup exceeds salary cap ($${this.formatSalary(totalSalary)} > $${this.formatSalary(this.salaryCap)})`);
+    }
+
+    for (const name of golfers) {
+      const entry = this.golferField.find(g => g.name === name);
+      if (!entry) {
+        throw new Error(`Unknown golfer: ${name}`);
+      }
+      if (!this.isEligibleForLineup(entry)) {
+        throw new Error(
+          `${name} is no longer in the lineup pool (for example, missed the cut). Replace that pick to save.`
+        );
+      }
     }
 
     // Check for existing lineup of this type
@@ -232,7 +249,7 @@ const Lineup = {
 
     container.innerHTML = '';
 
-    this.golferField.forEach(golfer => {
+    this.golferField.filter(g => this.isEligibleForLineup(g)).forEach(golfer => {
       const item = document.createElement('div');
       item.className = 'golfer-item';
       item.dataset.name = golfer.name;

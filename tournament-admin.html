@@ -398,7 +398,7 @@
       <!-- Manage Golfer Field -->
       <div class="admin-section">
         <h2>Manage Golfer Field</h2>
-        <p>Add, view, and remove golfers from a tournament.</p>
+        <p>Add or edit golfers. Use <strong>Hide from lineups</strong> for players who missed the cut (they stay in the database for salary history). Use <strong>Delete</strong> only to remove someone who is not in the tournament field.</p>
         <div class="form-row">
           <div class="form-group">
             <label for="manage-golfer-tournament-select">Tournament</label>
@@ -644,6 +644,14 @@
         return Number(value).toFixed(2);
       },
 
+      isGolferEligibleForLineup(g) {
+        return g && g.eligibleForLineup !== false;
+      },
+
+      selectableGolferCount(field) {
+        return (field || []).filter(g => this.isGolferEligibleForLineup(g)).length;
+      },
+
       async init() {
         firebaseAuth.onAuthStateChanged(async (user) => {
           this.currentUser = user;
@@ -824,7 +832,7 @@ service cloud.firestore {
             }
             const salary = parseFloat(match[2]);
             if (name && !isNaN(salary) && salary > 0) {
-              golfers.push({ name, salary });
+              golfers.push({ name, salary, eligibleForLineup: true });
             }
           }
         }
@@ -910,7 +918,7 @@ service cloud.firestore {
             <div class="tournament-card ${t.status === 'in_progress' || t.status === 'lineup_open' ? 'active' : ''}">
               <div class="tournament-info">
                 <h4>${t.name}</h4>
-                <p>Status: ${t.status} | Golfers: ${t.golferField?.length || 0} | Cap: $${this.formatSalary(t.salaryCap)}</p>
+                <p>Status: ${t.status} | Field: ${t.golferField?.length || 0} golfers (${this.selectableGolferCount(t.golferField)} in lineup pool) | Cap: $${this.formatSalary(t.salaryCap)}</p>
               </div>
               <div class="tournament-actions">
                 <select class="form-control btn-sm" onchange="TournamentAdmin.updateStatus('${t.id}', this.value)" style="width: auto;">
@@ -946,7 +954,7 @@ service cloud.firestore {
           // Update manage golfer tournament select (all tournaments)
           const manageGolferSelect = document.getElementById('manage-golfer-tournament-select');
           manageGolferSelect.innerHTML = '<option value="">Select tournament...</option>' +
-            tournaments.map(t => `<option value="${t.id}">${t.name} (${t.golferField?.length || 0} golfers)</option>`).join('');
+            tournaments.map(t => `<option value="${t.id}">${t.name} (${this.selectableGolferCount(t.golferField)}/${t.golferField?.length || 0} in pool)</option>`).join('');
 
         } catch (error) {
           listDiv.innerHTML = `<p style="color: var(--danger);">Error loading tournaments: ${error.message}</p>`;
@@ -1527,7 +1535,7 @@ service cloud.firestore {
                 <span class="golfer-name">${g.name}</span>
                 <span class="golfer-salary">$${this.formatSalary(g.salary)}</span>
               </div>
-              <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeGolferFromField('${g.name.replace(/'/g, "\\'")}')">Remove</button>
+              <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeGolferFromValidationField('${g.name.replace(/'/g, "\\'")}')">Remove</button>
             </div>
           `).join('');
         } else {
@@ -1552,7 +1560,7 @@ service cloud.firestore {
         }
       },
 
-      async removeGolferFromField(golferName) {
+      async removeGolferFromValidationField(golferName) {
         if (!this.validationTournamentId || !this.validationTournamentData) {
           alert('No tournament selected');
           return;
@@ -1610,7 +1618,7 @@ service cloud.firestore {
         try {
           const updatedField = [
             ...this.validationTournamentData.golferField,
-            { name: golferName, salary: salary }
+            { name: golferName, salary: salary, eligibleForLineup: true }
           ].sort((a, b) => b.salary - a.salary);
 
           await firebaseDb.collection('tournaments').doc(this.validationTournamentId).update({
@@ -1694,7 +1702,9 @@ service cloud.firestore {
         // Sort by salary (highest first)
         golfers.sort((a, b) => b.salary - a.salary);
         
-        countEl.textContent = `${this.manageTournamentGolfers.length}`;
+        const total = this.manageTournamentGolfers.length;
+        const inPool = this.selectableGolferCount(this.manageTournamentGolfers);
+        countEl.textContent = `${inPool} in lineup pool / ${total} in field`;
         
         if (golfers.length === 0) {
           golferList.innerHTML = filter 
@@ -1703,9 +1713,20 @@ service cloud.firestore {
           return;
         }
 
-        golferList.innerHTML = golfers.map(g => `
-          <div class="golfer-preview-item" data-golfer="${this.escapeHtml(g.name)}" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-            <span class="golfer-name" style="flex: 1;">${this.escapeHtml(g.name)}</span>
+        golferList.innerHTML = golfers.map(g => {
+          const eligible = this.isGolferEligibleForLineup(g);
+          const rowStyle = eligible
+            ? 'display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;'
+            : 'display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; opacity: 0.92; background: rgba(128,128,128,0.08);';
+          const badge = eligible
+            ? ''
+            : '<span style="font-size: 11px; color: var(--text-secondary); margin-left: 6px;">(hidden from lineup pool)</span>';
+          const hideBtn = eligible
+            ? `<button type="button" class="btn btn-outline btn-sm" onclick="TournamentAdmin.hideGolferFromLineups('${g.name.replace(/'/g, "\\'")}')" title="Keeps salary in the database; removes from player lineup picker">Hide from lineups</button>`
+            : `<button type="button" class="btn btn-primary btn-sm" onclick="TournamentAdmin.restoreGolferToLineupPool('${g.name.replace(/'/g, "\\'")}')">Restore to pool</button>`;
+          return `
+          <div class="golfer-preview-item" data-golfer="${this.escapeHtml(g.name)}" style="${rowStyle}">
+            <span class="golfer-name" style="flex: 1; min-width: 120px;">${this.escapeHtml(g.name)}${badge}</span>
             <div style="display: flex; align-items: center; gap: 4px;">
               <span style="color: var(--text-secondary);">$</span>
               <input type="number" class="form-control golfer-salary-input" 
@@ -1714,25 +1735,72 @@ service cloud.firestore {
                      style="width: 70px; padding: 4px 8px; font-size: 14px;"
                      onchange="TournamentAdmin.updateGolferSalary('${g.name.replace(/'/g, "\\'")}', this.value)">
             </div>
-            <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.removeGolferFromField('${g.name.replace(/'/g, "\\'")}')" 
-                    style="color: var(--danger); border-color: var(--danger); padding: 4px 12px;">
-              Remove
-            </button>
-          </div>
-        `).join('');
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+              ${hideBtn}
+              <button type="button" class="btn btn-outline btn-sm" onclick="TournamentAdmin.deleteGolferFromTournamentField('${g.name.replace(/'/g, "\\'")}')" 
+                      style="color: var(--danger); border-color: var(--danger); padding: 4px 12px;">
+                Delete
+              </button>
+            </div>
+          </div>`;
+        }).join('');
       },
 
       filterGolferList(searchText) {
         this.renderGolferFieldList(searchText);
       },
 
-      async removeGolferFromField(golferName) {
+      async hideGolferFromLineups(golferName) {
+        if (!this.manageTournamentId || !this.manageTournamentData) {
+          alert('No tournament selected');
+          return;
+        }
+        try {
+          const updatedField = this.manageTournamentGolfers.map(g =>
+            g.name === golferName ? { ...g, eligibleForLineup: false } : g
+          );
+          await firebaseDb.collection('tournaments').doc(this.manageTournamentId).update({
+            golferField: updatedField
+          });
+          this.manageTournamentGolfers = updatedField;
+          this.manageTournamentData.golferField = updatedField;
+          const searchText = document.getElementById('golfer-search')?.value || '';
+          this.renderGolferFieldList(searchText);
+          this.loadTournaments();
+        } catch (error) {
+          alert('Error updating golfer: ' + error.message);
+        }
+      },
+
+      async restoreGolferToLineupPool(golferName) {
+        if (!this.manageTournamentId || !this.manageTournamentData) {
+          alert('No tournament selected');
+          return;
+        }
+        try {
+          const updatedField = this.manageTournamentGolfers.map(g =>
+            g.name === golferName ? { ...g, eligibleForLineup: true } : g
+          );
+          await firebaseDb.collection('tournaments').doc(this.manageTournamentId).update({
+            golferField: updatedField
+          });
+          this.manageTournamentGolfers = updatedField;
+          this.manageTournamentData.golferField = updatedField;
+          const searchText = document.getElementById('golfer-search')?.value || '';
+          this.renderGolferFieldList(searchText);
+          this.loadTournaments();
+        } catch (error) {
+          alert('Error updating golfer: ' + error.message);
+        }
+      },
+
+      async deleteGolferFromTournamentField(golferName) {
         if (!this.manageTournamentId || !this.manageTournamentData) {
           alert('No tournament selected');
           return;
         }
 
-        if (!confirm(`Remove "${golferName}" from this tournament?\n\nNote: This will not affect any lineups that already include this golfer.`)) {
+        if (!confirm(`Permanently delete "${golferName}" from this tournament field?\n\nThis removes their salary entry from the database. Existing lineups that include this golfer are not changed.`)) {
           return;
         }
 
@@ -1758,7 +1826,7 @@ service cloud.firestore {
           this.loadTournaments();
 
         } catch (error) {
-          alert('Error removing golfer: ' + error.message);
+          alert('Error deleting golfer: ' + error.message);
           if (item) item.style.opacity = '1';
         }
       },
@@ -1848,7 +1916,7 @@ service cloud.firestore {
         }
 
         try {
-          const newGolfer = { name: this.formatGolferName(name), salary };
+          const newGolfer = { name: this.formatGolferName(name), salary, eligibleForLineup: true };
           const updatedField = [...this.manageTournamentGolfers, newGolfer];
 
           await firebaseDb.collection('tournaments').doc(this.manageTournamentId).update({
@@ -2109,7 +2177,9 @@ service cloud.firestore {
 
         // Render golfer pool
         const poolDiv = document.getElementById('admin-golfer-pool');
-        poolDiv.innerHTML = this.tournamentGolferField.map(g => {
+        poolDiv.innerHTML = this.tournamentGolferField
+          .filter(g => this.isGolferEligibleForLineup(g))
+          .map(g => {
           const isSelected = this.adminSelectedGolfers.includes(g.name);
           return `
             <div class="golfer-preview-item" style="cursor: pointer; ${isSelected ? 'background: rgba(44, 82, 50, 0.1);' : ''}" 

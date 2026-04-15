@@ -329,18 +329,27 @@ const Scoring = {
     const event = this.findEvent(scoreboard, espnEventName);
     if (!event) return null;
 
-    const competitors = event?.competitions?.[0]?.competitors || [];
+    const competition = event?.competitions?.[0];
+    const competitors = competition?.competitors || [];
     const pars = this.computePars(competitors);
     const golferScores = this.parseGolferScores(competitors);
 
+    const periodNum = Number(competition?.status?.period);
+    const espnCompetitionPeriod =
+      Number.isInteger(periodNum) && periodNum >= 1 && periodNum <= 4 ? periodNum : undefined;
+
     // Store in Firestore
-    await firebaseDb.collection('scores').doc(tournamentId).set({
+    const scorePayload = {
       lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
       eventName: event.name || event.shortName,
       eventStatus: event.status?.type?.description || 'Unknown',
       pars,
       golferScores
-    }, { merge: true });
+    };
+    if (espnCompetitionPeriod !== undefined) {
+      scorePayload.espnCompetitionPeriod = espnCompetitionPeriod;
+    }
+    await firebaseDb.collection('scores').doc(tournamentId).set(scorePayload, { merge: true });
 
     // Check for eagles and send alerts to chat
     if (typeof Chat !== 'undefined' && Chat.checkForEagles) {
