@@ -274,6 +274,9 @@ const Leaderboard = {
       position++;
     });
 
+    const tournamentStatus = tournamentDoc.exists ? (tournamentDoc.data().status || '') : '';
+    this.applyLeaderboardRoundDefaultsIfNeeded(tournamentId, tournamentStatus, scoresData, golferScores);
+
     return standings;
   },
 
@@ -360,6 +363,29 @@ const Leaderboard = {
   selectedRound: 1,
   // Field tab: round selector (independent from expanded standings row)
   fieldSelectedRound: 1,
+  // Apply default round selection once per tournament load (not on every live refresh)
+  roundDefaultsAppliedForTournamentId: null,
+
+  computeDefaultLeaderboardRound(tournamentStatus, scoresData, golferScores) {
+    if (tournamentStatus === 'completed') return 4;
+    const fromEspn = Number(scoresData?.espnCompetitionPeriod);
+    if (Number.isFinite(fromEspn)) {
+      const r = Math.round(fromEspn);
+      if (r >= 1 && r <= 4) return r;
+    }
+    for (let r = 4; r >= 1; r--) {
+      if (Scoring.hasAnyGolferStartedRound(golferScores, r)) return r;
+    }
+    return 1;
+  },
+
+  applyLeaderboardRoundDefaultsIfNeeded(tournamentId, tournamentStatus, scoresData, golferScores) {
+    if (this.roundDefaultsAppliedForTournamentId === tournamentId) return;
+    this.roundDefaultsAppliedForTournamentId = tournamentId;
+    const r = this.computeDefaultLeaderboardRound(tournamentStatus, scoresData, golferScores);
+    this.selectedRound = r;
+    this.fieldSelectedRound = r;
+  },
   // null = sort by golfer name; 0–17 = sort by that hole’s toPar
   fieldSortHoleIndex: null,
   fieldSortAsc: true,
@@ -699,7 +725,7 @@ const Leaderboard = {
     // Round selector
     html += `
       <div class="round-selector">
-        <span class="round-selector-label">View Round:</span>
+        <span class="round-selector-label">Round:</span>
         <div class="round-buttons">
           ${[1, 2, 3, 4].map(r => `
             <button class="round-btn ${this.selectedRound === r ? 'active' : ''}" data-round="${r}">R${r}</button>
