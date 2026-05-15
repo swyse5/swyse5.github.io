@@ -1463,6 +1463,52 @@ body.signed-in .auth-show-signed-in {
   color: var(--danger);
 }
 
+/* Season eagles/bogeys breakdown (by tournament + total) */
+.stat-breakdown-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.stat-breakdown-scroll .season-standings-table {
+  margin-bottom: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.season-stats-spread-table td.num,
+.season-stats-spread-table th.tournament {
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.sort-col-hint {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.season-standings-table .stats-sort-col {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.season-standings-table .stats-sort-col .sort-indicator::after {
+  content: '';
+  display: inline-block;
+  width: 0.85em;
+}
+
+.season-standings-table .stats-sort-col.sorted-asc .sort-indicator::after {
+  content: '\00a0▲';
+}
+
+.season-standings-table .stats-sort-col.sorted-desc .sort-indicator::after {
+  content: '\00a0▼';
+}
+
 .section-title {
   font-family: 'Roboto Slab', serif;
   font-size: 20px;
@@ -1862,7 +1908,8 @@ body.signed-in .auth-show-signed-in {
   font-weight: 600;
 }
 
-.history-standings-table tbody tr:first-child td {
+/* First place only (supports split top-5 vs expanded tbody; ties share position === 1) */
+.history-standings-table tbody tr.history-first-place td {
   font-weight: 600;
   color: var(--primary-color);
 }
