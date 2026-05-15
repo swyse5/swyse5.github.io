@@ -1062,9 +1062,10 @@ const App = {
     };
     
     const positionDisplay = player.tied ? `T${player.position}` : player.position;
+    const trClass = Number(player.position) === 1 ? ' class="history-first-place"' : '';
 
     return `
-      <tr>
+      <tr${trClass}>
         <td class="pos">${positionDisplay}</td>
         <td class="player">${player.displayName}</td>
         <td class="total">${formatScore(player.totalToPar)}</td>

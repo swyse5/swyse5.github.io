@@ -1285,6 +1285,8 @@ const Leaderboard = {
             totalEagles: 0,
             totalBogeys: 0,
             manualBogeys: 0,
+            eaglesByTournament: {},
+            bogeysByTournament: {},
             bogeyDetails: [],
             eagleDetails: []
           });
@@ -1295,6 +1297,10 @@ const Leaderboard = {
         // Use real-time eagles/bogeys from calculateStandings (already calculated with proper rules)
         playerData.totalEagles += player.eagles || 0;
         playerData.totalBogeys += player.bogeys || 0;
+        playerData.eaglesByTournament[tournament.id] =
+          (playerData.eaglesByTournament[tournament.id] || 0) + (player.eagles || 0);
+        playerData.bogeysByTournament[tournament.id] =
+          (playerData.bogeysByTournament[tournament.id] || 0) + (player.bogeys || 0);
         
         playerData.tournamentScores[tournament.id] = {
           toPar: player.totalToPar,
@@ -1314,6 +1320,10 @@ const Leaderboard = {
         if (playerData.displayName === bogey.playerName) {
           playerData.totalBogeys += 1;
           playerData.manualBogeys += 1;
+          if (bogey.tournamentId) {
+            playerData.bogeysByTournament[bogey.tournamentId] =
+              (playerData.bogeysByTournament[bogey.tournamentId] || 0) + 1;
+          }
           break;
         }
       }
@@ -1440,6 +1450,15 @@ const Leaderboard = {
 
   seasonTournaments: [],
   seasonStandings: [],
+  seasonEagleLeaders: [],
+  seasonBogeyTracker: [],
+  seasonBogeyPot: 0,
+  seasonStandingsSort: { col: 'total', descending: false },
+  /** Columns: 'player' | 'total' | 'tid:${tournamentId}' */
+  seasonStatsSortEagles: { col: 'total', descending: true },
+  seasonStatsSortBogeys: { col: 'total', descending: true },
+  _seasonStatSortHandler: null,
+  _seasonStatSortContainer: null,
   unsubscribeSeasonScores: null,
   seasonContainerId: null,
   seasonCurrentUserId: null,
@@ -1459,6 +1478,9 @@ const Leaderboard = {
     const { tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker } = await this.calculateSeasonStandings(season);
     this.seasonTournaments = tournaments;
     this.seasonStandings = standings;
+    this.seasonEagleLeaders = eagleLeaders;
+    this.seasonBogeyTracker = bogeyTracker;
+    this.seasonBogeyPot = bogeyPot;
 
     if (!tournaments.length) {
       const seasonText = season ? `the ${season} season` : 'this season';
@@ -1474,19 +1496,12 @@ const Leaderboard = {
     const html = this.buildSeasonStandingsHTML(tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker, currentUserId);
     container.innerHTML = html;
 
-    // Add click handlers for expandable rows
-    container.querySelectorAll('.season-row').forEach(row => {
-      row.addEventListener('click', () => {
-        row.classList.toggle('expanded');
-        const details = row.nextElementSibling;
-        if (details?.classList.contains('season-details')) {
-          details.classList.toggle('show');
-        }
-      });
-    });
+    this.attachSeasonStandingsExpandHandlers(container);
 
     // Subscribe to live updates for in-progress tournaments (only if not already subscribed)
     this.subscribeToSeasonUpdates(tournaments);
+    this.detachSeasonStatSortDelegation();
+    this.attachSeasonStatSortDelegation(container);
   },
 
   seasonSubscribedTournamentId: null,
@@ -1531,6 +1546,9 @@ const Leaderboard = {
     const { tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker } = await this.calculateSeasonStandings(this.seasonValue);
     this.seasonTournaments = tournaments;
     this.seasonStandings = standings;
+    this.seasonEagleLeaders = eagleLeaders;
+    this.seasonBogeyTracker = bogeyTracker;
+    this.seasonBogeyPot = bogeyPot;
 
     if (!tournaments.length || !standings.length) return;
 
@@ -1539,8 +1557,15 @@ const Leaderboard = {
     const html = this.buildSeasonStandingsHTML(tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker, currentUserId);
     container.innerHTML = html;
 
-    // Re-add click handlers
-    container.querySelectorAll('.season-row').forEach(row => {
+    this.attachSeasonStandingsExpandHandlers(container);
+
+    this.detachSeasonStatSortDelegation();
+    this.attachSeasonStatSortDelegation(container);
+  },
+
+  attachSeasonStandingsExpandHandlers(containerEl) {
+    if (!containerEl) return;
+    containerEl.querySelectorAll('.season-row').forEach(row => {
       row.addEventListener('click', () => {
         row.classList.toggle('expanded');
         const details = row.nextElementSibling;
@@ -1551,6 +1576,122 @@ const Leaderboard = {
     });
   },
 
+  refreshSeasonMainStandingsTable(containerEl) {
+    const prev = containerEl.querySelector('table[data-stats-table-kind="season"]');
+    if (!prev || !this.seasonStandings?.length) return;
+    const html = this.buildSeasonMainStandingsTableHtml(
+      this.seasonTournaments,
+      this.seasonStandings,
+      this.seasonCurrentUserId
+    );
+    prev.outerHTML = html;
+    this.attachSeasonStandingsExpandHandlers(containerEl);
+  },
+
+  /** Same row tie-break after primary sort comparison. */
+  compareSeasonStandingsTiebreaker(a, b) {
+    return String(a.displayName || '').localeCompare(String(b.displayName || ''), undefined, {
+      sensitivity: 'base'
+    });
+  },
+
+  compareSeasonStandingsRows(a, b, cfg) {
+    const { col, descending } = cfg;
+
+    if (col === 'player') {
+      const sa = String(a.displayName || '').toLowerCase();
+      const sb = String(b.displayName || '').toLowerCase();
+      const c = sa.localeCompare(sb, undefined, { sensitivity: 'base' });
+      if (c !== 0) return descending ? -c : c;
+      return 0;
+    }
+
+    if (col === 'total') {
+      const va = a.totalToPar;
+      const vb = b.totalToPar;
+      if (va !== vb) return descending ? vb - va : va - vb;
+      return 0;
+    }
+
+    const tidPref = 'tid:';
+    if (col.startsWith(tidPref)) {
+      const tid = col.slice(tidPref.length);
+      const sa = a.tournamentScores[tid];
+      const sb = b.tournamentScores[tid];
+      const va =
+        sa != null && sa.toPar != null && sa.toPar !== undefined ? Number(sa.toPar) : null;
+      const vb =
+        sb != null && sb.toPar != null && sb.toPar !== undefined ? Number(sb.toPar) : null;
+      const miss = this._compareAbsentLastNumeric(va, vb);
+      if (miss !== null && miss !== 0) return miss;
+      if (va !== vb) return descending ? vb - va : va - vb;
+      return 0;
+    }
+
+    return 0;
+  },
+
+  sortSeasonStandingsPlayers(standings) {
+    const cfg = this.seasonStandingsSort;
+    return [...standings].sort((a, b) => {
+      const p = this.compareSeasonStandingsRows(a, b, cfg);
+      if (p !== 0) return p;
+      return this.compareSeasonStandingsTiebreaker(a, b);
+    });
+  },
+
+  /** First click defaults to ascending: lower totals / lower per-event scores, A→Z players. */
+  seasonStandingsDefaultDescending() {
+    return false;
+  },
+
+  /**
+   * Main season standings grid (sorted by seasonStandingsSort).
+   */
+  buildSeasonMainStandingsTableHtml(tournaments, standings, currentUserId) {
+    const escAttr = (s) => String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+
+    const sorted = this.sortSeasonStandingsPlayers(standings);
+    const sortCfg = this.seasonStandingsSort;
+
+    const headerSortCls = (colKey) => {
+      if (sortCfg.col !== colKey) return '';
+      return sortCfg.descending ? 'sorted-desc' : 'sorted-asc';
+    };
+
+    const thSortSeason = (classNames, sortColKey, innerHtml) =>
+      `<th class="${classNames} stats-sort-col ${headerSortCls(sortColKey)}" `
+      + `scope="col" data-stats-sort-col="${escAttr(sortColKey)}">${innerHtml}`
+      + '<span class="sort-indicator" aria-hidden="true"></span></th>';
+
+    const headerTournaments = tournaments
+      .map(t =>
+        thSortSeason('tournament', `tid:${t.id}`, `<span title="${escAttr(t.name)}">${t.name}</span>`)
+      )
+      .join('');
+
+    const tbodyHtml = sorted
+      .map(player => this.renderSeasonRow(player, tournaments, currentUserId))
+      .join('');
+
+    return `
+      <table class="season-standings-table" data-stats-table-kind="season">
+        <thead>
+          <tr>
+            <th class="pos" scope="col">Pos</th>
+            ${thSortSeason('player', 'player', 'Player')}
+            ${headerTournaments}
+            ${thSortSeason('season-total', 'total', 'Total')}
+          </tr>
+        </thead>
+        <tbody>${tbodyHtml}</tbody>
+      </table>
+    `;
+  },
+
   buildSeasonStandingsHTML(tournaments, standings, bogeyPot, eagleLeaders, bogeyTracker, currentUserId) {
     return `
       <div class="season-info">
@@ -1559,20 +1700,8 @@ const Leaderboard = {
       </div>
 
       <!-- Season Standings Table (moved to top) -->
-      <h3 class="section-title">Season Standings</h3>
-      <table class="season-standings-table">
-        <thead>
-          <tr>
-            <th class="pos">Pos</th>
-            <th class="player">Player</th>
-            ${tournaments.map(t => `<th class="tournament" title="${t.name}">${t.name}</th>`).join('')}
-            <th class="season-total">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${standings.map(player => this.renderSeasonRow(player, tournaments, currentUserId)).join('')}
-        </tbody>
-      </table>
+      <h3 class="section-title">Season Standings <span class="sort-col-hint"></span></h3>
+      ${this.buildSeasonMainStandingsTableHtml(tournaments, standings, currentUserId)}
 
       <!-- Bogey Pot Banner -->
       <div class="bogey-pot-banner" style="margin-top: 30px;">
@@ -1591,40 +1720,234 @@ const Leaderboard = {
         <!-- Eagles Leaderboard -->
         <div class="stat-card eagles-card">
           <h3>🦅 Eagles Leaderboard</h3>
-          <p class="stat-subtitle">Players compete for the Bogey Pot with most eagles</p>
-          ${eagleLeaders.length === 0 ? `
-            <div class="no-stat-data">No eagles recorded yet</div>
-          ` : `
-            <div class="stat-table">
-              ${eagleLeaders.map((player, index) => `
-                <div class="stat-row ${player.userId === currentUserId ? 'current-user' : ''}">
-                  <span class="stat-rank">${index + 1}</span>
-                  <span class="stat-name">${player.displayName}</span>
-                  <span class="stat-value eagles">${player.totalEagles} 🦅</span>
-                </div>
-              `).join('')}
-            </div>
-          `}
+          <p class="stat-subtitle">Players compete for the Bogey Pot with most eagles <span class="sort-col-hint"></span></p>
+          ${this.buildSeasonEaglesBogeysSpreadHtml(tournaments, eagleLeaders, currentUserId, 'eagles')}
         </div>
 
         <!-- Bogey Tracker -->
         <div class="stat-card bogeys-card">
           <h3>💸 Bogey Tracker</h3>
-          <p class="stat-subtitle">$5 per bogey into the pot</p>
-          ${bogeyTracker.length === 0 ? `
-            <div class="no-stat-data">No bogeys recorded yet</div>
-          ` : `
-            <div class="stat-table">
-              ${bogeyTracker.map((player, index) => `
-                <div class="stat-row ${player.userId === currentUserId ? 'current-user' : ''}">
-                  <span class="stat-rank">${index + 1}</span>
-                  <span class="stat-name">${player.displayName}</span>
-                  <span class="stat-value bogeys">${player.totalBogeys} ($${(player.totalBogeys * 5).toFixed(0)})</span>
-                </div>
-              `).join('')}
-            </div>
-          `}
+          <p class="stat-subtitle">$5 per bogey into the pot <span class="sort-col-hint"></span></p>
+          ${this.buildSeasonEaglesBogeysSpreadHtml(tournaments, bogeyTracker, currentUserId, 'bogeys')}
         </div>
+      </div>
+    `;
+  },
+
+  getSeasonStatSortConfig(kind) {
+    return kind === 'eagles' ? this.seasonStatsSortEagles : this.seasonStatsSortBogeys;
+  },
+
+  setSeasonStatSortConfig(kind, cfg) {
+    if (kind === 'eagles') this.seasonStatsSortEagles = cfg;
+    else this.seasonStatsSortBogeys = cfg;
+  },
+
+  /** Numeric columns sort high-first on first click; player column is A–Z first. */
+  seasonStatDefaultDescending(sortCol) {
+    return sortCol !== 'player';
+  },
+
+  /** Absent lineup for a tournament column sorts last. */
+  _compareAbsentLastNumeric(va, vb) {
+    const mA = va == null || va === undefined || Number.isNaN(va);
+    const mB = vb == null || vb === undefined || Number.isNaN(vb);
+    if (mA && mB) return 0;
+    if (mA) return 1;
+    if (mB) return -1;
+    return null;
+  },
+
+  compareSeasonStatRows(a, b, kind, cfg) {
+    const totalField = kind === 'eagles' ? 'totalEagles' : 'totalBogeys';
+    const byKey = kind === 'eagles' ? 'eaglesByTournament' : 'bogeysByTournament';
+    const { col, descending } = cfg;
+
+    if (col === 'player') {
+      const sa = String(a.displayName || '').toLowerCase();
+      const sb = String(b.displayName || '').toLowerCase();
+      const c = sa.localeCompare(sb, undefined, { sensitivity: 'base' });
+      if (c !== 0) return descending ? -c : c;
+      return 0;
+    }
+
+    if (col === 'total') {
+      const va = a[totalField] ?? 0;
+      const vb = b[totalField] ?? 0;
+      if (va !== vb) return descending ? vb - va : va - vb;
+      return 0;
+    }
+
+    const tidPref = 'tid:';
+    if (col.startsWith(tidPref)) {
+      const tid = col.slice(tidPref.length);
+      const playedA = !!a.tournamentScores[tid];
+      const playedB = !!b.tournamentScores[tid];
+      const va = playedA ? ((a[byKey] && a[byKey][tid]) || 0) : null;
+      const vb = playedB ? ((b[byKey] && b[byKey][tid]) || 0) : null;
+      const miss = this._compareAbsentLastNumeric(va, vb);
+      if (miss !== null && miss !== 0) return miss;
+      if (va !== vb) return descending ? vb - va : va - vb;
+      return 0;
+    }
+
+    return 0;
+  },
+
+  sortSeasonStatPlayers(players, kind, tournaments) {
+    const cfg = this.getSeasonStatSortConfig(kind);
+    return [...players].sort((a, b) => {
+      const p = this.compareSeasonStatRows(a, b, kind, cfg);
+      if (p !== 0) return p;
+      return String(a.displayName || '').localeCompare(String(b.displayName || ''), undefined, {
+        sensitivity: 'base'
+      });
+    });
+  },
+
+  attachSeasonStatSortDelegation(containerEl) {
+    if (!containerEl?.querySelector?.('[data-stats-sort-col]')) return;
+
+    this.detachSeasonStatSortDelegation();
+
+    const fn = (e) => {
+      const th = e.target.closest('th.stats-sort-col');
+      if (!th || !containerEl.contains(th)) return;
+      const table = th.closest('table[data-stats-table-kind]');
+      if (!table || !containerEl.contains(table)) return;
+      const k = table.getAttribute('data-stats-table-kind');
+      if (!k || (k !== 'season' && k !== 'eagles' && k !== 'bogeys')) return;
+
+      const col = th.getAttribute('data-stats-sort-col');
+      if (!col) return;
+      e.preventDefault();
+
+      if (k === 'season') {
+        let cfg = this.seasonStandingsSort;
+        cfg = cfg.col === col
+          ? { col, descending: !cfg.descending }
+          : { col, descending: this.seasonStandingsDefaultDescending() };
+        this.seasonStandingsSort = cfg;
+        this.refreshSeasonMainStandingsTable(containerEl);
+        return;
+      }
+
+      let cfg = this.getSeasonStatSortConfig(k);
+      cfg = cfg.col === col
+        ? { col, descending: !cfg.descending }
+        : { col, descending: this.seasonStatDefaultDescending(col) };
+      this.setSeasonStatSortConfig(k, cfg);
+      this.refreshSeasonSpreadTables(containerEl);
+    };
+
+    this._seasonStatSortHandler = fn;
+    this._seasonStatSortContainer = containerEl;
+    containerEl.addEventListener('click', fn);
+  },
+
+  detachSeasonStatSortDelegation() {
+    if (this._seasonStatSortHandler && this._seasonStatSortContainer) {
+      this._seasonStatSortContainer.removeEventListener('click', this._seasonStatSortHandler);
+    }
+    this._seasonStatSortHandler = null;
+    this._seasonStatSortContainer = null;
+  },
+
+  /** Rebuild only eagle/bogey spreadsheet DOM after sorting (full container still holds listener). */
+  refreshSeasonSpreadTables(containerEl) {
+    ['eagles', 'bogeys'].forEach((kind) => {
+      const root = containerEl.querySelector(`.season-stats-spread-root[data-spread-kind="${kind}"]`);
+      if (!root) return;
+      const players = kind === 'eagles' ? this.seasonEagleLeaders : this.seasonBogeyTracker;
+      const tournaments = this.seasonTournaments;
+      root.outerHTML = this.buildSeasonEaglesBogeysSpreadHtml(tournaments, players, this.seasonCurrentUserId, kind);
+    });
+  },
+
+  /** Season eagle/bogey tables: per-tournament columns + Total; headers sort rows. */
+  buildSeasonEaglesBogeysSpreadHtml(tournaments, players, currentUserId, kind) {
+    const emptyMsg = kind === 'eagles'
+      ? 'No eagles recorded yet'
+      : 'No bogeys recorded yet';
+    if (!players.length) {
+      return `<div class="no-stat-data">${emptyMsg}</div>`;
+    }
+
+    const byKey = kind === 'eagles' ? 'eaglesByTournament' : 'bogeysByTournament';
+    const totalKey = kind === 'eagles' ? 'totalEagles' : 'totalBogeys';
+    const colClass = kind === 'eagles' ? 'stat-value eagles' : 'stat-value bogeys';
+    const sortCfg = this.getSeasonStatSortConfig(kind);
+    const sortedPlayers = this.sortSeasonStatPlayers(players, kind, tournaments);
+
+    const escAttr = (s) => String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+
+    const headerSortCls = (col) => {
+      if (sortCfg.col !== col) return '';
+      return sortCfg.descending ? 'sorted-desc' : 'sorted-asc';
+    };
+
+    const thSortCol = (classNames, sortColKey, innerHtml) =>
+      `<th class="${classNames} stats-sort-col ${headerSortCls(sortColKey)}" `
+      + `scope="col" data-stats-sort-col="${escAttr(sortColKey)}">${innerHtml}`
+      + '<span class="sort-indicator" aria-hidden="true"></span></th>';
+
+    const headerTournaments = tournaments
+      .map(t => {
+        const colKey = `tid:${t.id}`;
+        return thSortCol('tournament', colKey,
+          `<span title="${escAttr(t.name)}">${t.abbrev}</span>`);
+      })
+      .join('');
+
+    const tbody = sortedPlayers.map((player, index) => {
+      const cols = tournaments
+        .map((t) => {
+          const played = !!player.tournamentScores[t.id];
+          const n = played ? ((player[byKey] && player[byKey][t.id]) || 0) : null;
+          const cell = n === null ? '-' : String(n);
+          return `<td class="num">${cell}</td>`;
+        })
+        .join('');
+      let totalCell;
+      if (kind === 'eagles') {
+        totalCell = `${player[totalKey]} 🦅`;
+      } else {
+        const tb = player[totalKey];
+        totalCell = `${tb} ($${(tb * 5).toFixed(0)})`;
+      }
+
+      const rowCls = player.userId === currentUserId ? ' current-user' : '';
+      const rankCell =
+        kind === 'eagles' ? `<td class="pos">${index + 1}</td>` : '';
+      return `
+        <tr class="season-stats-row${rowCls}">
+          ${rankCell}
+          <td class="player">${player.displayName}</td>
+          ${cols}
+          <td class="season-total ${colClass}">${totalCell}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const rankHeader =
+      kind === 'eagles' ? '<th class="pos" scope="col">Rank</th>' : '';
+
+    return `
+      <div class="stat-breakdown-scroll season-stats-spread-root" data-spread-kind="${kind}">
+        <table class="season-standings-table season-stats-spread-table" data-stats-table-kind="${kind}">
+          <thead>
+            <tr>
+              ${rankHeader}
+              ${thSortCol('player', 'player', 'Player')}
+              ${headerTournaments}
+              ${thSortCol('season-total', 'total', 'Total')}
+            </tr>
+          </thead>
+          <tbody>${tbody}</tbody>
+        </table>
       </div>
     `;
   },
