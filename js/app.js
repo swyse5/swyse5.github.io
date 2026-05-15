@@ -1090,6 +1090,7 @@ const App = {
 
   onUserSignedIn(user) {
     console.log('User signed in:', user.displayName);
+    // SiteAnalytics is started from Auth.init (before user-doc / admin lookups).
     // Re-subscribe to chat now that user is authenticated
     if (typeof Chat !== 'undefined') {
       Chat.subscribeToMessages();
@@ -1100,6 +1101,7 @@ const App = {
 
   onUserSignedOut() {
     console.log('User signed out');
+    // SiteAnalytics is stopped from Auth.init when auth becomes null.
     // Cleanup chat subscription
     if (typeof Chat !== 'undefined') {
       Chat.cleanup();
