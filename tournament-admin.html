@@ -179,6 +179,117 @@
       opacity: 0.5;
       pointer-events: none;
     }
+
+    .admin-analytics-wrap {
+      margin-top: 8px;
+    }
+    .admin-analytics-subheading {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 20px 0 8px 0;
+      color: var(--text-primary);
+    }
+    .admin-analytics-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .admin-analytics-table th,
+    .admin-analytics-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .admin-analytics-table th.num,
+    .admin-analytics-table td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .admin-analytics-table th.rank {
+      width: 40px;
+    }
+
+    .presence-section {
+      margin: 24px 0;
+      overflow-x: auto;
+    }
+    .ph-grid {
+      display: grid;
+      grid-template-columns: 48px repeat(24, minmax(12px, 1fr));
+      gap: 3px;
+      align-items: stretch;
+      min-width: 360px;
+    }
+    .ph-corner {
+      min-height: 20px;
+    }
+    .ph-hour-label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-align: center;
+      align-self: end;
+      padding-bottom: 2px;
+    }
+    .ph-day-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 6px;
+    }
+    .ph-cell {
+      min-height: 22px;
+      border-radius: 3px;
+      background-color: rgba(44, 82, 50, var(--ph-op, 0.06));
+      border: 1px solid var(--border-color);
+    }
+    .ph-day-bars {
+      margin-top: 20px;
+      max-width: 520px;
+    }
+    .ph-day-bars h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .ph-day-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .ph-day-row .ph-dname {
+      width: 38px;
+      flex-shrink: 0;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .ph-day-row .ph-bar-wrap {
+      flex: 1;
+      height: 14px;
+      background: var(--background);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+    .ph-day-row .ph-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: linear-gradient(90deg, rgba(44, 82, 50, 0.35), var(--primary-color));
+      transition: width 0.2s ease;
+    }
+    .ph-day-row .ph-dcount {
+      width: 64px;
+      text-align: right;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
     
     /* Mobile responsive styles */
     @media (max-width: 768px) {
@@ -605,6 +716,16 @@
         </div>
       </div>
 
+      <!-- Site usage (admin-only in Firestore; not on main app UI) -->
+      <div class="admin-section">
+        <h2>Site usage (signed-in)</h2>
+        <div id="admin-analytics-error" class="alert alert-error" style="display: none;"></div>
+        <div id="admin-analytics-dashboard" class="admin-analytics-wrap">
+          <p style="color: var(--text-secondary);">Loading…</p>
+        </div>
+        <button type="button" id="refresh-site-analytics" class="btn btn-outline btn-sm" style="margin-top: 8px;">Refresh usage stats</button>
+      </div>
+
       <!-- Admin Users -->
       <div class="admin-section">
         <h2>Admin Users</h2>
@@ -631,6 +752,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
   <script src="js/firebase-config.js"></script>
+  <script src="js/analytics.js"></script>
   <script src="js/scoring.js"></script>
   
   <script>
@@ -656,9 +778,15 @@
         firebaseAuth.onAuthStateChanged(async (user) => {
           this.currentUser = user;
           if (user) {
+            if (typeof SiteAnalytics !== 'undefined') {
+              SiteAnalytics.start(user);
+            }
             await this.checkAdminStatus(user.email);
             this.updateUI();
           } else {
+            if (typeof SiteAnalytics !== 'undefined') {
+              SiteAnalytics.stop();
+            }
             this.isAdmin = false;
             this.updateUI();
           }
@@ -744,6 +872,7 @@ service cloud.firestore {
           this.loadHistoricalWinners();
           this.loadManualBogeys();
           this.setupBogeyDropdowns();
+          this.loadSiteAnalyticsDashboard();
         } else if (this.currentUser) {
           adminContent.style.display = 'none';
           accessDenied.style.display = 'block';
@@ -780,6 +909,10 @@ service cloud.firestore {
         document.getElementById('start-scoring')?.addEventListener('click', () => this.startScoring());
         document.getElementById('stop-scoring')?.addEventListener('click', () => this.stopScoring());
         document.getElementById('manual-update')?.addEventListener('click', () => this.manualUpdate());
+
+        document.getElementById('refresh-site-analytics')?.addEventListener('click', () => {
+          this.loadSiteAnalyticsDashboard();
+        });
 
         // Save admins
         document.getElementById('save-admins')?.addEventListener('click', () => this.saveAdmins());
@@ -1047,6 +1180,214 @@ service cloud.firestore {
           }
         } catch (error) {
           console.error('Error loading admin emails:', error);
+        }
+      },
+
+      escapeAdminHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text == null ? '' : String(text);
+        return d.innerHTML;
+      },
+
+      formatAnalyticsTimestamp(value) {
+        if (!value) return '—';
+        try {
+          const d = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+          return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+        } catch {
+          return '—';
+        }
+      },
+
+      buildPresenceSectionHtml(bucketMap) {
+        /** Display order Mon→Sun (Firestore keys use JS dow: 0 Sun … 6 Sat, in UTC — see analytics.js). */
+        const ROW_ORDER = [
+          [1, 'Mon'],
+          [2, 'Tue'],
+          [3, 'Wed'],
+          [4, 'Thu'],
+          [5, 'Fri'],
+          [6, 'Sat'],
+          [0, 'Sun']
+        ];
+
+        const get = (d, h) => {
+          const key = `${d}_${h}`;
+          const v = Number(bucketMap[key] ?? 0);
+          return Number.isFinite(v) ? v : 0;
+        };
+
+        let max = 0;
+        let total = 0;
+        for (let d = 0; d < 7; d++) {
+          for (let h = 0; h < 24; h++) {
+            const v = get(d, h);
+            total += v;
+            if (v > max) max = v;
+          }
+        }
+
+        max = Math.max(max, 1);
+
+        if (total === 0) {
+          return `
+            <div class="presence-section">
+              <h3 class="admin-analytics-subheading">When people are on the site</h3>
+              <p style="color: var(--text-secondary); font-size: 14px;">No data yet.</p>
+            </div>`;
+        }
+
+        const cellOpacity = (c) => 0.05 + Math.min(1, c / max) * 0.9;
+
+        let header = '<div class="ph-corner"></div>';
+        for (let h = 0; h < 24; h++) {
+          const label = h % 4 === 0 ? String(h) : '';
+          header += `<div class="ph-hour-label" title="UTC ${h}:00–${h}:59">${this.escapeAdminHtml(label)}</div>`;
+        }
+
+        let gridCells = '';
+        for (const [d, dayLabel] of ROW_ORDER) {
+          gridCells += `<div class="ph-day-label">${dayLabel}</div>`;
+          for (let h = 0; h < 24; h++) {
+            const cnt = get(d, h);
+            const hh = String(h).padStart(2, '0');
+            const titlePlain = `${dayLabel} ${hh}:00–${hh}:59 UTC • ${cnt.toLocaleString()} ping(s)`;
+            const titleEsc = titlePlain.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+            gridCells += `<div class="ph-cell" style="--ph-op:${cellOpacity(cnt).toFixed(4)}" title="${titleEsc}"></div>`;
+          }
+        }
+
+        const dayTotalsMap = {};
+        for (const [d] of ROW_ORDER) {
+          let s = 0;
+          for (let h = 0; h < 24; h++) s += get(d, h);
+          dayTotalsMap[d] = s;
+        }
+        const dayMax = Math.max(...Object.values(dayTotalsMap), 1);
+
+        const barRows = ROW_ORDER.map(([d, dayLabel]) => {
+          const t = dayTotalsMap[d];
+          const pct = (t / dayMax) * 100;
+          return `
+            <div class="ph-day-row">
+              <span class="ph-dname">${dayLabel}</span>
+              <div class="ph-bar-wrap"><div class="ph-bar-fill" style="width:${pct.toFixed(1)}%;"></div></div>
+              <span class="ph-dcount">${t.toLocaleString()}</span>
+            </div>`;
+        }).join('');
+
+        return `
+          <div class="presence-section">
+            <h3 class="admin-analytics-subheading">When people are on the site</h3>
+            <div class="ph-grid">${header}${gridCells}</div>
+            <div class="ph-day-bars">
+              <h4>Total pings by day of week</h4>
+              ${barRows}
+            </div>
+          </div>`;
+      },
+
+      async loadSiteAnalyticsDashboard() {
+        const dash = document.getElementById('admin-analytics-dashboard');
+        const err = document.getElementById('admin-analytics-error');
+        if (!dash) return;
+
+        err.style.display = 'none';
+        err.textContent = '';
+        dash.innerHTML = '<p style="color: var(--text-secondary);">Loading…</p>';
+
+        if (typeof SiteAnalytics === 'undefined') {
+          dash.innerHTML = '';
+          err.style.display = 'block';
+          err.textContent = 'Site analytics script missing (js/analytics.js).';
+          return;
+        }
+
+        try {
+          const [rows, bucketMap] = await Promise.all([
+            SiteAnalytics.fetchStatsForDashboard(),
+            SiteAnalytics.fetchPresenceBucketsForDashboard()
+          ]);
+
+          const presenceHtml = this.buildPresenceSectionHtml(bucketMap);
+
+          if (!rows.length) {
+            dash.innerHTML = presenceHtml;
+            return;
+          }
+
+          const bySessions = [...rows].sort(
+            (a, b) => (Number(b.sessionStarts) || 0) - (Number(a.sessionStarts) || 0)
+          );
+          const byTime = [...rows].sort(
+            (a, b) => (Number(b.totalActiveSeconds) || 0) - (Number(a.totalActiveSeconds) || 0)
+          );
+
+          const tableHeadSessions = `
+            <thead>
+              <tr>
+                <th class="rank">#</th>
+                <th>Player</th>
+                <th>Email</th>
+                <th class="num">Sessions</th>
+                <th class="num">Visible time (approx.)</th>
+                <th>Last active</th>
+              </tr>
+            </thead>`;
+
+          const tableHeadTime = `
+            <thead>
+              <tr>
+                <th class="rank">#</th>
+                <th>Player</th>
+                <th>Email</th>
+                <th class="num">Visible time (approx.)</th>
+                <th class="num">Sessions</th>
+                <th>Last active</th>
+              </tr>
+            </thead>`;
+
+          const bodySessions = bySessions
+            .map(
+              (r, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${this.escapeAdminHtml(r.displayName)}</td>
+              <td>${this.escapeAdminHtml(r.email)}</td>
+              <td class="num">${Number(r.sessionStarts) || 0}</td>
+              <td class="num">${SiteAnalytics.formatDuration(r.totalActiveSeconds)}</td>
+              <td>${this.formatAnalyticsTimestamp(r.lastActiveAt)}</td>
+            </tr>`
+            )
+            .join('');
+
+          const bodyTime = byTime
+            .map(
+              (r, i) => `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${this.escapeAdminHtml(r.displayName)}</td>
+              <td>${this.escapeAdminHtml(r.email)}</td>
+              <td class="num">${SiteAnalytics.formatDuration(r.totalActiveSeconds)}</td>
+              <td class="num">${Number(r.sessionStarts) || 0}</td>
+              <td>${this.formatAnalyticsTimestamp(r.lastActiveAt)}</td>
+            </tr>`
+            )
+            .join('');
+
+          dash.innerHTML = `
+            ${presenceHtml}
+            <h3 class="admin-analytics-subheading" style="margin-top: 28px;">Most visits (session starts)</h3>
+            <table class="admin-analytics-table">${tableHeadSessions}<tbody>${bodySessions}</tbody></table>
+            <h3 class="admin-analytics-subheading">Longest visible time</h3>
+            <table class="admin-analytics-table">${tableHeadTime}<tbody>${bodyTime}</tbody></table>
+          `;
+        } catch (error) {
+          console.error('Site analytics dashboard:', error);
+          dash.innerHTML = '';
+          err.style.display = 'block';
+          err.textContent =
+            'Could not load usage stats. Ensure admins may read <code>siteUsageByUser</code> and <code>sitePresenceBuckets</code> (merge <code>firestore.rules</code> from the repo).';
         }
       },
 

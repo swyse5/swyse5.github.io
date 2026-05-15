@@ -8,12 +8,17 @@ const Auth = {
     firebaseAuth.onAuthStateChanged(async (user) => {
       this.currentUser = user;
       if (user) {
+        // Start recording before awaited admin/user-doc work — if anything below fails,
+        // usage still rolls up under siteUsageByUser (Firestore rules keyed by uid).
+        if (typeof SiteAnalytics !== 'undefined') SiteAnalytics.start(user);
+
         await this.loadAdminEmails();
         await this.checkAdminStatus(user.email);
         await this.ensureUserDocument(user);
         this.updateUI(true);
         App.onUserSignedIn(user);
       } else {
+        if (typeof SiteAnalytics !== 'undefined') SiteAnalytics.stop();
         this.isAdmin = false;
         this.adminEmails = [];
         this.updateUI(false);
@@ -39,16 +44,20 @@ const Auth = {
   },
 
   async ensureUserDocument(user) {
-    const userRef = firebaseDb.collection('users').doc(user.uid);
-    const doc = await userRef.get();
-    
-    if (!doc.exists) {
-      await userRef.set({
-        email: user.email,
-        displayName: user.displayName || user.email.split('@')[0],
-        photoURL: user.photoURL || null,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+    try {
+      const userRef = firebaseDb.collection('users').doc(user.uid);
+      const doc = await userRef.get();
+
+      if (!doc.exists) {
+        await userRef.set({
+          email: user.email,
+          displayName: user.displayName || user.email.split('@')[0],
+          photoURL: user.photoURL || null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    } catch (e) {
+      console.warn('Could not ensure users/{uid} document (analytics still runs separately):', e);
     }
   },
 
