@@ -290,14 +290,31 @@ body.signed-in .auth-show-signed-in {
 .tournament-banner {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
   color: white;
-  padding: 24px 20px;
+  padding: 12px 16px 14px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 .tournament-banner h2 {
   font-family: 'Roboto Slab', serif;
-  font-size: 2rem;
-  margin-bottom: 8px;
+  font-size: 1.65rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.tournament-banner-subtext {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 400;
+  opacity: 0.92;
+  line-height: 1.35;
+}
+
+.tournament-banner-subtext[hidden] {
+  display: none;
 }
 
 .status-badge {
@@ -967,15 +984,17 @@ body.signed-in .auth-show-signed-in {
   overflow: hidden;
   box-shadow: var(--shadow);
   border-collapse: collapse;
+  font-size: 13.5px;
 }
 
 .season-standings-table th {
   background: var(--accent-color);
   color: var(--text-primary);
-  padding: 14px 12px;
+  padding: 11px 11px;
   text-align: center;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12.5px;
+  line-height: 1.25;
 }
 
 .season-standings-table th.pos { width: 50px; }
@@ -988,15 +1007,18 @@ body.signed-in .auth-show-signed-in {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.season-standings-table th.season-total { width: 80px; }
+.season-standings-table th.season-total { width: 64px; }
 
 .season-standings-table td {
-  padding: 14px 12px;
+  padding: 10px 11px;
   text-align: center;
   border-bottom: 1px solid var(--border-color);
+  line-height: 1.3;
 }
 
-.season-standings-table td.player { text-align: left; }
+.season-standings-table td.player {
+  text-align: left;
+}
 
 .season-standings-table tbody tr:hover {
   background: var(--background);
@@ -1006,13 +1028,49 @@ body.signed-in .auth-show-signed-in {
   background: rgba(44, 82, 50, 0.1);
 }
 
+.season-row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.season-row:hover {
+  background: var(--background);
+}
+
+.season-row .expand-icon {
+  font-size: 10px;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+  margin-left: 8px;
+}
+
+.season-row.expanded .expand-icon {
+  transform: rotate(180deg);
+}
+
+.season-standings-table .player-name {
+  display: inline;
+}
+
+.season-details {
+  display: none;
+}
+
+.season-details.show {
+  display: table-row;
+}
+
+.season-details td {
+  padding: 10px 11px;
+  background: var(--background);
+}
+
 .tournament-abbrev {
   font-weight: 600;
 }
 
-.season-total {
+.season-standings-table .season-total {
   font-weight: 700;
-  font-size: 15px;
 }
 
 /* Round Selector */
@@ -1192,48 +1250,6 @@ body.signed-in .auth-show-signed-in {
 .hole-scorecard .best-score {
   background: rgba(44, 82, 50, 0.2) !important;
   font-weight: 700;
-}
-
-/* Season Details */
-.season-row {
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.season-row:hover {
-  background: var(--background);
-}
-
-.season-row .expand-icon {
-  font-size: 10px;
-  color: var(--text-secondary);
-  transition: transform 0.2s;
-  margin-left: 8px;
-}
-
-.season-row.expanded .expand-icon {
-  transform: rotate(180deg);
-}
-
-.season-standings-table td.player {
-  text-align: left;
-}
-
-.season-standings-table .player-name {
-  display: inline;
-}
-
-.season-details {
-  display: none;
-}
-
-.season-details.show {
-  display: table-row;
-}
-
-.season-details td {
-  padding: 16px;
-  background: var(--background);
 }
 
 .tournament-details-grid {
@@ -1482,6 +1498,20 @@ body.signed-in .auth-show-signed-in {
   text-align: center;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+.season-stats-spread-table th.season-total,
+.season-stats-spread-table td.season-total {
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bogey total: "count ($amount)" on one line */
+.season-stats-spread-table[data-stats-table-kind="bogeys"] th.season-total,
+.season-stats-spread-table[data-stats-table-kind="bogeys"] td.season-total {
+  width: auto;
+  min-width: 6.75rem;
 }
 
 .sort-col-hint {
@@ -2511,11 +2541,16 @@ body.signed-in .auth-show-signed-in {
   }
 
   .tournament-banner {
-    padding: 16px 12px;
+    padding: 10px 12px 12px;
+    gap: 3px;
   }
 
   .tournament-banner h2 {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
+  }
+
+  .tournament-banner-subtext {
+    font-size: 0.875rem;
   }
 
   .container {
@@ -2610,6 +2645,7 @@ body.signed-in .auth-show-signed-in {
     left: 0;
     background: var(--surface);
     z-index: 1;
+    min-width: 100px;
   }
 
   .season-standings-table th.player {

@@ -210,6 +210,41 @@
       width: 40px;
     }
 
+    .admin-analytics-collapsible {
+      margin-top: 28px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .admin-analytics-collapsible summary {
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+
+    .admin-analytics-collapsible summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .admin-analytics-collapsible summary::before {
+      content: '▸ ';
+      display: inline-block;
+      transition: transform 0.15s ease;
+    }
+
+    .admin-analytics-collapsible[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .admin-analytics-collapsible .admin-analytics-table-wrap {
+      padding: 0 12px 12px;
+      overflow-x: auto;
+    }
+
     .presence-section {
       margin: 24px 0;
       overflow-x: auto;
@@ -350,6 +385,24 @@
     </div>
 
     <div id="admin-content" style="display: none;">
+      <!-- Site banner (when no active tournament) -->
+      <div class="admin-section">
+        <h2>Site header banner</h2>
+        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+          Shown on the main app when no tournament is <strong>lineups open</strong> or <strong>in progress</strong>.
+          Use subtext for dates or other details (e.g. &ldquo;April 10&ndash;13, 2026&rdquo;).
+        </p>
+        <div class="form-group">
+          <label for="site-banner-text">Title</label>
+          <input type="text" id="site-banner-text" class="form-control" maxlength="120" placeholder="e.g., PGA Championship 2026">
+        </div>
+        <div class="form-group">
+          <label for="site-banner-subtext">Subtext</label>
+          <input type="text" id="site-banner-subtext" class="form-control" maxlength="200" placeholder="e.g., Lineups open May 12–14">
+        </div>
+        <button type="button" id="save-site-banner" class="btn btn-primary">Save banner</button>
+      </div>
+
       <!-- Create Tournament -->
       <div class="admin-section">
         <h2>Create New Tournament</h2>
@@ -770,6 +823,28 @@
         return g && g.eligibleForLineup !== false;
       },
 
+      lineupUpdatedMillis(lineup) {
+        if (!lineup) return 0;
+        const ts = lineup.updatedAt || lineup.submittedAt;
+        if (!ts) return 0;
+        if (typeof ts.toMillis === 'function') return ts.toMillis();
+        if (typeof ts.seconds === 'number') {
+          return ts.seconds * 1000 + (ts.nanoseconds || 0) / 1e6;
+        }
+        const parsed = Date.parse(ts);
+        return Number.isFinite(parsed) ? parsed : 0;
+      },
+
+      pickNewerLineup(incumbent, candidate) {
+        if (!candidate) return incumbent || null;
+        if (!incumbent) return candidate;
+        const cMs = this.lineupUpdatedMillis(candidate);
+        const iMs = this.lineupUpdatedMillis(incumbent);
+        if (cMs > iMs) return candidate;
+        if (iMs > cMs) return incumbent;
+        return String(candidate.id || '') > String(incumbent.id || '') ? candidate : incumbent;
+      },
+
       selectableGolferCount(field) {
         return (field || []).filter(g => this.isGolferEligibleForLineup(g)).length;
       },
@@ -868,6 +943,7 @@ service cloud.firestore {
           userInfo.style.display = 'flex';
           userName.textContent = this.currentUser.displayName || this.currentUser.email;
           this.loadTournaments();
+          this.loadSiteBanner();
           this.loadAdminEmails();
           this.loadHistoricalWinners();
           this.loadManualBogeys();
@@ -916,6 +992,8 @@ service cloud.firestore {
 
         // Save admins
         document.getElementById('save-admins')?.addEventListener('click', () => this.saveAdmins());
+
+        document.getElementById('save-site-banner')?.addEventListener('click', () => this.saveSiteBanner());
 
         // Manage golfer field
         document.getElementById('manage-golfer-tournament-select')?.addEventListener('change', (e) => {
@@ -1171,6 +1249,32 @@ service cloud.firestore {
         }
       },
 
+      async loadSiteBanner() {
+        try {
+          const doc = await firebaseDb.collection('config').doc('siteBanner').get();
+          const textEl = document.getElementById('site-banner-text');
+          const subtextEl = document.getElementById('site-banner-subtext');
+          if (doc.exists) {
+            const data = doc.data();
+            if (textEl) textEl.value = data.text || '';
+            if (subtextEl) subtextEl.value = data.subtext || '';
+          }
+        } catch (error) {
+          console.error('Error loading site banner:', error);
+        }
+      },
+
+      async saveSiteBanner() {
+        const text = document.getElementById('site-banner-text')?.value.trim() || '';
+        const subtext = document.getElementById('site-banner-subtext')?.value.trim() || '';
+        try {
+          await firebaseDb.collection('config').doc('siteBanner').set({ text, subtext }, { merge: true });
+          alert('Site banner saved.');
+        } catch (error) {
+          alert('Error saving site banner: ' + error.message);
+        }
+      },
+
       async loadAdminEmails() {
         try {
           const doc = await firebaseDb.collection('config').doc('admins').get();
@@ -1200,7 +1304,7 @@ service cloud.firestore {
       },
 
       buildPresenceSectionHtml(bucketMap) {
-        /** Display order Mon→Sun (Firestore keys use JS dow: 0 Sun … 6 Sat, in UTC — see analytics.js). */
+        /** Display order Mon→Sun (Firestore keys: US Eastern dow 0 Sun … 6 Sat — see analytics.js). */
         const ROW_ORDER = [
           [1, 'Mon'],
           [2, 'Tue'],
@@ -1242,7 +1346,7 @@ service cloud.firestore {
         let header = '<div class="ph-corner"></div>';
         for (let h = 0; h < 24; h++) {
           const label = h % 4 === 0 ? String(h) : '';
-          header += `<div class="ph-hour-label" title="UTC ${h}:00–${h}:59">${this.escapeAdminHtml(label)}</div>`;
+          header += `<div class="ph-hour-label" title="ET ${h}:00–${h}:59">${this.escapeAdminHtml(label)}</div>`;
         }
 
         let gridCells = '';
@@ -1251,7 +1355,7 @@ service cloud.firestore {
           for (let h = 0; h < 24; h++) {
             const cnt = get(d, h);
             const hh = String(h).padStart(2, '0');
-            const titlePlain = `${dayLabel} ${hh}:00–${hh}:59 UTC • ${cnt.toLocaleString()} ping(s)`;
+            const titlePlain = `${dayLabel} ${hh}:00–${hh}:59 ET • ${cnt.toLocaleString()} ping(s)`;
             const titleEsc = titlePlain.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
             gridCells += `<div class="ph-cell" style="--ph-op:${cellOpacity(cnt).toFixed(4)}" title="${titleEsc}"></div>`;
           }
@@ -1319,9 +1423,6 @@ service cloud.firestore {
           const bySessions = [...rows].sort(
             (a, b) => (Number(b.sessionStarts) || 0) - (Number(a.sessionStarts) || 0)
           );
-          const byTime = [...rows].sort(
-            (a, b) => (Number(b.totalActiveSeconds) || 0) - (Number(a.totalActiveSeconds) || 0)
-          );
 
           const tableHeadSessions = `
             <thead>
@@ -1331,18 +1432,6 @@ service cloud.firestore {
                 <th>Email</th>
                 <th class="num">Sessions</th>
                 <th class="num">Visible time (approx.)</th>
-                <th>Last active</th>
-              </tr>
-            </thead>`;
-
-          const tableHeadTime = `
-            <thead>
-              <tr>
-                <th class="rank">#</th>
-                <th>Player</th>
-                <th>Email</th>
-                <th class="num">Visible time (approx.)</th>
-                <th class="num">Sessions</th>
                 <th>Last active</th>
               </tr>
             </thead>`;
@@ -1361,26 +1450,14 @@ service cloud.firestore {
             )
             .join('');
 
-          const bodyTime = byTime
-            .map(
-              (r, i) => `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${this.escapeAdminHtml(r.displayName)}</td>
-              <td>${this.escapeAdminHtml(r.email)}</td>
-              <td class="num">${SiteAnalytics.formatDuration(r.totalActiveSeconds)}</td>
-              <td class="num">${Number(r.sessionStarts) || 0}</td>
-              <td>${this.formatAnalyticsTimestamp(r.lastActiveAt)}</td>
-            </tr>`
-            )
-            .join('');
-
           dash.innerHTML = `
             ${presenceHtml}
-            <h3 class="admin-analytics-subheading" style="margin-top: 28px;">Most visits (session starts)</h3>
-            <table class="admin-analytics-table">${tableHeadSessions}<tbody>${bodySessions}</tbody></table>
-            <h3 class="admin-analytics-subheading">Longest visible time</h3>
-            <table class="admin-analytics-table">${tableHeadTime}<tbody>${bodyTime}</tbody></table>
+            <details class="admin-analytics-collapsible">
+              <summary>Most visits (session starts) — ${bySessions.length} user(s)</summary>
+              <div class="admin-analytics-table-wrap">
+                <table class="admin-analytics-table">${tableHeadSessions}<tbody>${bodySessions}</tbody></table>
+              </div>
+            </details>
           `;
         } catch (error) {
           console.error('Site analytics dashboard:', error);
@@ -2409,7 +2486,9 @@ service cloud.firestore {
             });
           }
           const lineupType = data.lineupType || 'rounds_1_2';
-          usersMap.get(userId).lineups[lineupType] = { id: doc.id, ...data };
+          const entry = { id: doc.id, ...data };
+          const userEntry = usersMap.get(userId);
+          userEntry.lineups[lineupType] = this.pickNewerLineup(userEntry.lineups[lineupType], entry);
         });
 
         this.userLineupsCache = Object.fromEntries(usersMap);

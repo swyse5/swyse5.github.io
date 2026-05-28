@@ -77,18 +77,22 @@ const Lineup = {
       let query = firebaseDb.collection('lineups')
         .where('tournamentId', '==', tournamentId)
         .where('userId', '==', userId);
-      
+
       if (lineupType) {
         query = query.where('lineupType', '==', lineupType);
       }
-      
-      const snapshot = await query.limit(1).get();
 
-      if (!snapshot.empty) {
-        const doc = snapshot.docs[0];
-        return { id: doc.id, ...doc.data() };
-      }
-      return null;
+      const snapshot = await query.get();
+      let best = null;
+
+      snapshot.docs.forEach((doc) => {
+        const data = { id: doc.id, ...doc.data() };
+        const type = data.lineupType || 'rounds_1_2';
+        if (lineupType && type !== lineupType) return;
+        best = pickNewerLineup(best, data);
+      });
+
+      return best;
     } catch (error) {
       console.error('Error loading lineup:', error);
       return null;

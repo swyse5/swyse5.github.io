@@ -5,6 +5,8 @@ const App = {
   selectedLeaderboardTournament: null,
   allTournaments: [],
   currentSeason: null,
+  /** Shown in the banner when no tournament is lineup_open / in_progress (config/siteBanner). */
+  bannerConfig: { text: '', subtext: '' },
 
   async init() {
     // Initialize theme
@@ -19,6 +21,7 @@ const App = {
     // Set up navigation
     this.setupNavigation();
     
+    await this.loadBannerConfig();
     // Load active tournament
     await this.loadActiveTournament();
     
@@ -67,6 +70,41 @@ const App = {
     window.history.replaceState({}, '', url);
   },
 
+  /** Firestore Timestamp / seconds / Date → Date. */
+  toTournamentDate(value) {
+    if (value == null) return null;
+    if (typeof value.toDate === 'function') return value.toDate();
+    if (typeof value.seconds === 'number') return new Date(value.seconds * 1000);
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  },
+
+  /**
+   * Calendar day from admin date fields (YYYY-MM-DD stored as UTC midnight).
+   * Uses UTC parts so US timezones do not show the previous day.
+   */
+  tournamentDateParts(value) {
+    const d = this.toTournamentDate(value);
+    if (!d) return null;
+    return {
+      month: d.getUTCMonth() + 1,
+      day: d.getUTCDate(),
+      year: d.getUTCFullYear()
+    };
+  },
+
+  /** e.g. 5/14-5/17 for a Thu–Sun major (calendar dates from admin, no year). */
+  formatTournamentDateRange(tournament) {
+    const start = this.tournamentDateParts(tournament?.startDate);
+    const end = this.tournamentDateParts(tournament?.endDate);
+    if (!start) return '';
+    if (!end) return `${start.month}/${start.day}`;
+    if (start.month === end.month && start.day === end.day) {
+      return `${start.month}/${start.day}`;
+    }
+    return `${start.month}/${start.day}-${end.month}/${end.day}`;
+  },
+
   async loadAllTournaments() {
     try {
       // Get all tournaments, we'll filter by season client-side
@@ -99,6 +137,22 @@ const App = {
   getAvailableSeasons() {
     const seasons = [...new Set(this.allTournaments.map(t => t.season))];
     return seasons.sort((a, b) => b - a); // Most recent first
+  },
+
+  async loadBannerConfig() {
+    try {
+      const doc = await firebaseDb.collection('config').doc('siteBanner').get();
+      if (doc.exists) {
+        const data = doc.data();
+        this.bannerConfig = {
+          text: String(data.text || '').trim(),
+          subtext: String(data.subtext || '').trim()
+        };
+      }
+    } catch (error) {
+      console.warn('Could not load site banner config:', error);
+      this.bannerConfig = { text: '', subtext: '' };
+    }
   },
 
   async loadActiveTournament() {
@@ -157,23 +211,44 @@ const App = {
 
   updateTournamentDisplay() {
     const nameEl = document.getElementById('tournament-name');
+    const subtextEl = document.getElementById('tournament-banner-subtext');
     const statusEl = document.getElementById('tournament-status');
-    
+
     if (this.activeTournament) {
       if (nameEl) nameEl.textContent = this.activeTournament.name;
+      if (subtextEl) {
+        subtextEl.textContent = '';
+        subtextEl.hidden = true;
+      }
       if (statusEl) {
         const statusText = {
-          'upcoming': 'Coming Soon',
-          'lineup_open': 'Lineups Open',
-          'in_progress': 'In Progress',
-          'completed': 'Completed'
+          upcoming: 'Coming Soon',
+          lineup_open: 'Lineups Open',
+          in_progress: 'In Progress',
+          completed: 'Completed'
         };
         statusEl.textContent = statusText[this.activeTournament.status] || this.activeTournament.status;
         statusEl.className = `status-badge status-${this.activeTournament.status}`;
+        statusEl.hidden = false;
       }
-    } else {
-      if (nameEl) nameEl.textContent = 'No Active Tournament';
-      if (statusEl) statusEl.textContent = '';
+      return;
+    }
+
+    const { text, subtext } = this.bannerConfig || { text: '', subtext: '' };
+    if (nameEl) nameEl.textContent = text || 'No Active Tournament';
+    if (subtextEl) {
+      if (subtext) {
+        subtextEl.textContent = subtext;
+        subtextEl.hidden = false;
+      } else {
+        subtextEl.textContent = '';
+        subtextEl.hidden = true;
+      }
+    }
+    if (statusEl) {
+      statusEl.textContent = '';
+      statusEl.className = 'status-badge';
+      statusEl.hidden = true;
     }
   },
 
@@ -973,9 +1048,9 @@ const App = {
     const content = document.getElementById('history-content');
     
     // Filter tournaments by selected season
-    const filteredTournaments = this.historyTournaments.filter(t => {
-      const date = t.startDate?.toDate ? t.startDate.toDate() : new Date(t.startDate.seconds * 1000);
-      return date.getFullYear() === this.historySelectedSeason;
+    const filteredTournaments = this.historyTournaments.filter((t) => {
+      const year = this.tournamentDateParts(t.startDate)?.year;
+      return year === this.historySelectedSeason;
     });
 
     if (filteredTournaments.length === 0) {
@@ -986,14 +1061,14 @@ const App = {
     // Build HTML with loading placeholders
     content.innerHTML = `
       <div class="history-list">
-        ${filteredTournaments.map(t => {
-          const date = t.startDate?.toDate ? t.startDate.toDate() : new Date(t.startDate.seconds * 1000);
+        ${filteredTournaments.map((t) => {
+          const dateLabel = this.formatTournamentDateRange(t);
           return `
             <div class="history-item" data-id="${t.id}">
               <div class="history-header">
                 <div>
                   <h4>${t.name}</h4>
-                  <p class="history-date">${date.toLocaleDateString()}</p>
+                  ${dateLabel ? `<p class="history-date">${dateLabel}</p>` : ''}
                 </div>
               </div>
               <div class="history-standings" id="history-standings-${t.id}">
