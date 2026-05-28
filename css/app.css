@@ -3252,6 +3252,156 @@ body.signed-in .auth-show-signed-in {
   border-color: var(--primary-color);
 }
 
+/* Golfer pick popularity (History) */
+.golfer-picks-title {
+  margin: 0 0 16px;
+}
+
+.picks-season-toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.picks-chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 16px 24px;
+  margin-top: 16px;
+}
+
+.picks-chart-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.picks-chart-control select {
+  min-width: 140px;
+}
+
+.picks-overview-wrap {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.picks-overview-wrap .picks-table-heading:first-child {
+  margin-top: 0;
+}
+
+#golfer-picks-chart-wrap {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
+
+.picks-line-chart {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.picks-chart-grid {
+  stroke: var(--border-color);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.picks-chart-axis-line {
+  stroke: var(--border-color);
+  stroke-width: 1;
+}
+
+.picks-chart-axis {
+  fill: var(--text-secondary);
+  font-size: 11px;
+  font-family: Roboto, sans-serif;
+}
+
+.picks-chart-dot {
+  cursor: default;
+}
+
+.picks-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.picks-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.picks-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.picks-table-heading {
+  font-family: 'Roboto Slab', serif;
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.picks-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.season-standings-table.picks-stats-table {
+  font-size: 13.5px;
+}
+
+.season-standings-table.picks-stats-table th {
+  padding: 11px 11px;
+  font-size: 12.5px;
+  line-height: 1.25;
+}
+
+.season-standings-table.picks-stats-table td {
+  padding: 10px 11px;
+  line-height: 1.3;
+}
+
+.season-standings-table.picks-stats-table.picks-stats-table--collapsed tbody tr:nth-child(n+6) {
+  display: none;
+}
+
+.picks-table-expand-btn {
+  display: block;
+  margin: 12px auto 0;
+}
+
+.picks-stats-table th.picks-total-col,
+.picks-stats-table td.picks-total-col {
+  font-weight: 700;
+  background: rgba(44, 82, 50, 0.06);
+}
+
+[data-theme="dark"] .picks-stats-table td.picks-total-col,
+[data-theme="dark"] .picks-stats-table th.picks-total-col {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .chat-send {
   width: 40px;
   height: 40px;
