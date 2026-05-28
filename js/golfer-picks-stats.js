@@ -204,8 +204,8 @@ const GolferPicksStats = {
       return `<text x="${x}" y="${height - 12}" text-anchor="middle" class="picks-chart-axis">${this.escapeHtml(pt.label)}</text>`;
     }).join('');
 
-    const paths = series.map((s, si) => {
-      const color = this.chartColors[si % this.chartColors.length];
+    const paths = series.map((s) => {
+      const color = s.color || this.chartColors[0];
       const points = s.values.map((v, i) => `${xAt(i)},${yAt(v)}`).join(' ');
       const dots = s.values.map((v, i) => {
         const tip = xAxis[i].title || xAxis[i].label;
@@ -251,12 +251,25 @@ const GolferPicksStats = {
     return grand;
   },
 
-  _seriesForSeasonTotals(golfers, seasonsAsc, bySeason) {
-    return golfers.map((name) => ({
+  _seriesColor(colorIndex) {
+    return this.chartColors[colorIndex % this.chartColors.length];
+  },
+
+  _createSeriesItem(name, values, colorIndex) {
+    return {
       name,
       visible: true,
-      values: seasonsAsc.map((y) => bySeason[y]?.totals?.[name] || 0)
-    }));
+      values,
+      color: this._seriesColor(colorIndex)
+    };
+  },
+
+  _seriesForSeasonTotals(golfers, seasonsAsc, bySeason) {
+    return golfers.map((name, i) => this._createSeriesItem(
+      name,
+      seasonsAsc.map((y) => bySeason[y]?.totals?.[name] || 0),
+      i
+    ));
   },
 
   renderSeasonTotalsTable(container, seasonsAsc, bySeason) {
@@ -344,7 +357,7 @@ const GolferPicksStats = {
 
   renderLegend(container, series, onToggle) {
     container.innerHTML = series.map((s, i) => {
-      const color = this.chartColors[i % this.chartColors.length];
+      const color = s.color || this._seriesColor(i);
       const checked = s.visible !== false ? 'checked' : '';
       return `
         <label class="picks-legend-item">
@@ -536,11 +549,11 @@ const GolferPicksStats = {
   },
 
   _seriesForGolfers(golfers, tournaments, pickCountsByTournamentId) {
-    return golfers.map((name) => ({
+    return golfers.map((name, i) => this._createSeriesItem(
       name,
-      visible: true,
-      values: tournaments.map((t) => pickCountsByTournamentId[t.id]?.[name] || 0)
-    }));
+      tournaments.map((t) => pickCountsByTournamentId[t.id]?.[name] || 0),
+      i
+    ));
   },
 
   _maxInSeries(series) {
@@ -690,11 +703,11 @@ const GolferPicksStats = {
           series.shift();
         }
         chartGolfers.push(name);
-        series.push({
+        series.push(this._createSeriesItem(
           name,
-          visible: true,
-          values: sorted.map((t) => pickCountsByTournamentId[t.id]?.[name] || 0)
-        });
+          sorted.map((t) => pickCountsByTournamentId[t.id]?.[name] || 0),
+          series.length
+        ));
         selectEl.value = '';
         refreshLegend();
         refreshChart();
