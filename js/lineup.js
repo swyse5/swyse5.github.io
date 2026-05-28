@@ -1,5 +1,30 @@
 // Lineup Management Module
 // Supports 2 lineups per tournament: "rounds_1_2" (rounds 1-2) and "rounds_3_4" (rounds 3-4)
+
+/** Firestore timestamp → ms for comparing duplicate lineup docs (no deletes). */
+function lineupUpdatedMillis(lineup) {
+  if (!lineup) return 0;
+  const ts = lineup.updatedAt || lineup.submittedAt;
+  if (!ts) return 0;
+  if (typeof ts.toMillis === 'function') return ts.toMillis();
+  if (typeof ts.seconds === 'number') {
+    return ts.seconds * 1000 + (ts.nanoseconds || 0) / 1e6;
+  }
+  const parsed = Date.parse(ts);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** When multiple docs share tournament + user + lineupType, keep the latest edit. */
+function pickNewerLineup(incumbent, candidate) {
+  if (!candidate) return incumbent || null;
+  if (!incumbent) return candidate;
+  const cMs = lineupUpdatedMillis(candidate);
+  const iMs = lineupUpdatedMillis(incumbent);
+  if (cMs > iMs) return candidate;
+  if (iMs > cMs) return incumbent;
+  return String(candidate.id || '') > String(incumbent.id || '') ? candidate : incumbent;
+}
+
 const Lineup = {
   // Format salary to always show 2 decimal places
   formatSalary(value) {
@@ -52,18 +77,22 @@ const Lineup = {
       let query = firebaseDb.collection('lineups')
         .where('tournamentId', '==', tournamentId)
         .where('userId', '==', userId);
-      
+
       if (lineupType) {
         query = query.where('lineupType', '==', lineupType);
       }
-      
-      const snapshot = await query.limit(1).get();
 
-      if (!snapshot.empty) {
-        const doc = snapshot.docs[0];
-        return { id: doc.id, ...doc.data() };
-      }
-      return null;
+      const snapshot = await query.get();
+      let best = null;
+
+      snapshot.docs.forEach((doc) => {
+        const data = { id: doc.id, ...doc.data() };
+        const type = data.lineupType || 'rounds_1_2';
+        if (lineupType && type !== lineupType) return;
+        best = pickNewerLineup(best, data);
+      });
+
+      return best;
     } catch (error) {
       console.error('Error loading lineup:', error);
       return null;
@@ -85,7 +114,7 @@ const Lineup = {
       snapshot.docs.forEach(doc => {
         const data = { id: doc.id, ...doc.data() };
         const type = data.lineupType || 'rounds_1_2';
-        lineups[type] = data;
+        lineups[type] = pickNewerLineup(lineups[type], data);
       });
 
       return lineups;
@@ -193,7 +222,8 @@ const Lineup = {
           });
         }
         
-        userLineups.get(userId)[lineupType] = data;
+        const slot = userLineups.get(userId);
+        slot[lineupType] = pickNewerLineup(slot[lineupType], data);
       });
 
       // Convert to array and extract golfers for each round
