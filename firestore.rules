@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Fragment only — merge into your deployed Firestore rules.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isListedAdminEmail() {
+      return request.auth != null
+        && request.auth.token.email != ''
+        && exists(/databases/$(database)/documents/config/admins)
+        && request.auth.token.email in get(/databases/$(database)/documents/config/admins).data.emails;
+    }
+
+    /** Public site banner (title + subtext) when no active tournament. */
+    match /config/siteBanner {
+      allow read: if true;
+      allow create, update: if isListedAdminEmail();
+      allow delete: if false;
+    }
+
+    /** Presence heatmap buckets: US Eastern dow (0 Sun–6 Sat) × hour 0–23. Doc IDs e.g. 0_14 */
+    match /sitePresenceBuckets/{bucketId} {
+      allow read: if isListedAdminEmail();
+      allow create, update: if request.auth != null
+        && bucketId.matches('^[0-6]_([01]?[0-9]|2[0-3])$');
+      allow delete: if false;
+    }
+  }
+}

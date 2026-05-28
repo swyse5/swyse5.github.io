@@ -1565,7 +1565,7 @@ const Leaderboard = {
 
   attachSeasonStandingsExpandHandlers(containerEl) {
     if (!containerEl) return;
-    containerEl.querySelectorAll('.season-row').forEach(row => {
+    containerEl.querySelectorAll('table[data-stats-table-kind="season"] .season-row').forEach((row) => {
       row.addEventListener('click', () => {
         row.classList.toggle('expanded');
         const details = row.nextElementSibling;

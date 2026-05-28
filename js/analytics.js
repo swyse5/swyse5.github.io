@@ -2,18 +2,38 @@
  * Signed-in site usage for admin dashboards.
  * Firestore collections:
  *   - siteUsageByUser/{uid} — rollups per user (sessions + visible seconds)
- *   - sitePresenceBuckets/{dow}_{hour} — heatmap pings in **UTC**
- *     (`getUTCDay()` / `getUTCHours()`, 0 = Sunday UTC … 6 = Saturday UTC)
+ *   - sitePresenceBuckets/{dow}_{hour} — heatmap pings in **US Eastern**
+ *     (`America/New_York`, 0 = Sunday … 6 = Saturday) so the same instant shares one cell worldwide.
  */
 const SiteAnalytics = {
+  PRESENCE_TIMEZONE: 'America/New_York',
+
   /** Foreground tick interval; also sets seconds credited per tick (ms / 1000). */
-  HEARTBEAT_MS: 60000,
+  HEARTBEAT_MS: 30000,
   VERSION: '1',
   _intervalId: null,
   _uid: null,
 
   _sessionStorageKey() {
     return `majors_site_usage_sess_v${this.VERSION}`;
+  },
+
+  /** US Eastern weekday (0 Sun–6 Sat) and hour (0–23) for a given instant. */
+  easternDowHour(date = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: this.PRESENCE_TIMEZONE,
+      weekday: 'short',
+      hour: 'numeric',
+      hour12: false
+    }).formatToParts(date);
+    const weekday = parts.find((p) => p.type === 'weekday')?.value || 'Sun';
+    let hour = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '0', 10);
+    if (hour === 24) hour = 0;
+    const DOW = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    return {
+      dow: DOW[weekday] ?? 0,
+      hour: Number.isFinite(hour) ? hour : 0
+    };
   },
 
   start(user) {
@@ -68,9 +88,9 @@ const SiteAnalytics = {
           }
         });
 
-      // Same instant for everyone: bucket by UTC weekday × UTC hour (0=Sun UTC … 6=Sat UTC).
-      const now = new Date();
-      const bucketId = `${now.getUTCDay()}_${now.getUTCHours()}`;
+      // Same instant for everyone: bucket by US Eastern weekday × hour (0=Sun … 6=Sat).
+      const { dow, hour } = this.easternDowHour(new Date());
+      const bucketId = `${dow}_${hour}`;
       firebaseDb
         .collection('sitePresenceBuckets')
         .doc(bucketId)
@@ -113,7 +133,7 @@ const SiteAnalytics = {
   },
 
   /**
-   * @returns {{ [bucketKey: string]: number }} Keys `d_h` — UTC dow (0 Sun) and hour 0–23.
+   * @returns {{ [bucketKey: string]: number }} Keys `d_h` — US Eastern dow (0 Sun) and hour 0–23.
    */
   async fetchPresenceBucketsForDashboard() {
     const snap = await firebaseDb.collection('sitePresenceBuckets').get();
