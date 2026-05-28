@@ -1,5 +1,30 @@
 // Lineup Management Module
 // Supports 2 lineups per tournament: "rounds_1_2" (rounds 1-2) and "rounds_3_4" (rounds 3-4)
+
+/** Firestore timestamp → ms for comparing duplicate lineup docs (no deletes). */
+function lineupUpdatedMillis(lineup) {
+  if (!lineup) return 0;
+  const ts = lineup.updatedAt || lineup.submittedAt;
+  if (!ts) return 0;
+  if (typeof ts.toMillis === 'function') return ts.toMillis();
+  if (typeof ts.seconds === 'number') {
+    return ts.seconds * 1000 + (ts.nanoseconds || 0) / 1e6;
+  }
+  const parsed = Date.parse(ts);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** When multiple docs share tournament + user + lineupType, keep the latest edit. */
+function pickNewerLineup(incumbent, candidate) {
+  if (!candidate) return incumbent || null;
+  if (!incumbent) return candidate;
+  const cMs = lineupUpdatedMillis(candidate);
+  const iMs = lineupUpdatedMillis(incumbent);
+  if (cMs > iMs) return candidate;
+  if (iMs > cMs) return incumbent;
+  return String(candidate.id || '') > String(incumbent.id || '') ? candidate : incumbent;
+}
+
 const Lineup = {
   // Format salary to always show 2 decimal places
   formatSalary(value) {
@@ -85,7 +110,7 @@ const Lineup = {
       snapshot.docs.forEach(doc => {
         const data = { id: doc.id, ...doc.data() };
         const type = data.lineupType || 'rounds_1_2';
-        lineups[type] = data;
+        lineups[type] = pickNewerLineup(lineups[type], data);
       });
 
       return lineups;
@@ -166,6 +191,40 @@ const Lineup = {
     return (currentTotal + golferSalary) <= this.salaryCap;
   },
 
+  /**
+   * One doc per user + lineupType (newest wins). Used for pick-rate stats and scoring loads.
+   * @param {Array<{ id: string, userId: string, lineupType?: string, golfers?: string[] }>} lineupDocs
+   */
+  dedupeLineupDocuments(lineupDocs) {
+    const byKey = new Map();
+    lineupDocs.forEach((raw) => {
+      const data = raw.id ? raw : { id: raw.id, ...raw };
+      if (!data.userId) return;
+      const type = data.lineupType || 'rounds_1_2';
+      const key = `${data.userId}|${type}`;
+      byKey.set(key, pickNewerLineup(byKey.get(key), data));
+    });
+    return [...byKey.values()];
+  },
+
+  /** Golfer names from a lineup doc (supports legacy field names). */
+  lineupGolferNames(lineup) {
+    const list = lineup.golfers || lineup.golferNames || lineup.selectedGolfers || [];
+    return Array.isArray(list) ? list : [];
+  },
+
+  /** Count how many deduped lineup submissions include each golfer (R1-2 and R3-4 count separately). */
+  countGolferPicks(dedupedLineups) {
+    const counts = {};
+    dedupedLineups.forEach((lineup) => {
+      this.lineupGolferNames(lineup).forEach((name) => {
+        if (!name) return;
+        counts[name] = (counts[name] || 0) + 1;
+      });
+    });
+    return counts;
+  },
+
   async getAllLineups(tournamentId) {
     try {
       const snapshot = await firebaseDb.collection('lineups')
@@ -193,7 +252,8 @@ const Lineup = {
           });
         }
         
-        userLineups.get(userId)[lineupType] = data;
+        const slot = userLineups.get(userId);
+        slot[lineupType] = pickNewerLineup(slot[lineupType], data);
       });
 
       // Convert to array and extract golfers for each round

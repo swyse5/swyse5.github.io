@@ -861,11 +861,30 @@ const App = {
         return;
       }
 
-      // Extract unique seasons
-      const seasons = [...new Set(this.historyTournaments.map(t => {
-        const date = t.startDate?.toDate ? t.startDate.toDate() : new Date(t.startDate.seconds * 1000);
-        return date.getFullYear();
-      }))].sort((a, b) => b - a);
+      // Seasons from completed tournaments; also load all tournaments for pick-stats years
+      let allTournamentsForSeasons = [];
+      try {
+        const allSnap = await firebaseDb.collection('tournaments').get();
+        allTournamentsForSeasons = allSnap.docs.map((doc) => {
+          const data = doc.data();
+          const startDate = data.startDate?.toDate
+            ? data.startDate.toDate()
+            : data.startDate?.seconds
+              ? new Date(data.startDate.seconds * 1000)
+              : null;
+          return data.season != null ? Number(data.season) : (startDate ? startDate.getFullYear() : null);
+        }).filter((y) => y != null);
+      } catch (e) {
+        console.warn('Could not load tournaments for season list:', e);
+      }
+
+      const seasons = [...new Set([
+        ...this.historyTournaments.map(t => {
+          const date = t.startDate?.toDate ? t.startDate.toDate() : new Date(t.startDate.seconds * 1000);
+          return date.getFullYear();
+        }),
+        ...allTournamentsForSeasons
+      ])].sort((a, b) => b - a);
 
       // Show season selector if multiple seasons exist
       if (seasons.length > 1) {
@@ -886,8 +905,67 @@ const App = {
       if (selector) selector.value = this.historySelectedSeason;
       
       this.renderHistoryTournaments();
+      this.loadGolferPicksStats();
     } catch (error) {
       console.error('Error loading history:', error);
+    }
+  },
+
+  picksStatsTournaments: null,
+  picksStatsSelectedSeason: null,
+
+  async fetchTournamentsForPickStats() {
+    if (this.picksStatsTournaments) return this.picksStatsTournaments;
+
+    const mapDoc = (doc) => {
+      const data = doc.data();
+      const startDate = data.startDate?.toDate
+        ? data.startDate.toDate()
+        : data.startDate?.seconds
+          ? new Date(data.startDate.seconds * 1000)
+          : data.startDate
+            ? new Date(data.startDate)
+            : null;
+      const season = data.season != null ? Number(data.season) : (startDate ? startDate.getFullYear() : null);
+      return { id: doc.id, ...data, season };
+    };
+
+    try {
+      const snap = await firebaseDb.collection('tournaments').orderBy('startDate', 'asc').get();
+      this.picksStatsTournaments = snap.docs.map(mapDoc);
+    } catch (tournamentErr) {
+      console.warn('Tournaments orderBy failed, loading without sort:', tournamentErr);
+      const snap = await firebaseDb.collection('tournaments').get();
+      this.picksStatsTournaments = snap.docs.map(mapDoc);
+    }
+
+    return this.picksStatsTournaments;
+  },
+
+  async loadGolferPicksStats() {
+    const section = document.getElementById('golfer-picks-section');
+    const body = document.getElementById('golfer-picks-body');
+    if (!section || !body || typeof GolferPicksStats === 'undefined') return;
+
+    body.innerHTML = '<div class="loading">Loading pick stats…</div>';
+
+    try {
+      const tournaments = await this.fetchTournamentsForPickStats();
+      const seasons = GolferPicksStats.availableSeasons(tournaments);
+
+      if (!seasons.length) {
+        body.innerHTML = '<p class="no-stat-data">No completed tournaments available for pick statistics yet.</p>';
+        return;
+      }
+
+      if (!this.picksStatsSelectedSeason || !seasons.includes(this.picksStatsSelectedSeason)) {
+        this.picksStatsSelectedSeason = seasons[0];
+      }
+      await GolferPicksStats.loadDashboard(tournaments, this.picksStatsSelectedSeason);
+    } catch (error) {
+      console.error('Error loading golfer pick stats:', error);
+      const detail = error?.message ? ` (${error.message})` : '';
+      body.innerHTML = `<p class="no-stat-data">Could not load pick statistics.${detail}</p>`;
     }
   },
 
