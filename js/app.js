@@ -988,6 +988,22 @@ const App = {
 
   picksStatsTournaments: null,
   picksStatsSelectedSeason: null,
+  /** null = not loaded; true/false from config/golferPickStats */
+  golferPickStatsEnabled: null,
+
+  async isGolferPickStatsEnabled() {
+    if (this.golferPickStatsEnabled !== null) {
+      return this.golferPickStatsEnabled;
+    }
+    try {
+      const doc = await firebaseDb.collection('config').doc('golferPickStats').get();
+      this.golferPickStatsEnabled = !doc.exists || doc.data().enabled !== false;
+    } catch (error) {
+      console.warn('Could not load golfer pick stats config:', error);
+      this.golferPickStatsEnabled = true;
+    }
+    return this.golferPickStatsEnabled;
+  },
 
   async fetchTournamentsForPickStats() {
     if (this.picksStatsTournaments) return this.picksStatsTournaments;
@@ -1022,6 +1038,13 @@ const App = {
     const body = document.getElementById('golfer-picks-body');
     if (!section || !body || typeof GolferPicksStats === 'undefined') return;
 
+    const enabled = await this.isGolferPickStatsEnabled();
+    if (!enabled) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = '';
     body.innerHTML = '<div class="loading">Loading pick stats…</div>';
 
     try {
