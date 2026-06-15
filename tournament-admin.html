@@ -40,6 +40,18 @@
       margin-bottom: 6px;
       font-weight: 500;
     }
+    .admin-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .admin-checkbox-label input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
     .form-control {
       width: 100%;
       padding: 12px;
@@ -401,6 +413,23 @@
           <input type="text" id="site-banner-subtext" class="form-control" maxlength="200" placeholder="e.g., Lineups open May 12–14">
         </div>
         <button type="button" id="save-site-banner" class="btn btn-primary">Save banner</button>
+      </div>
+
+      <!-- Golfer pick popularity (History page) -->
+      <div class="admin-section">
+        <h2>Golfer pick popularity</h2>
+        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+          Charts and tables on the History page showing how often golfers were selected.
+          When disabled, the main site does not load lineup or tournament data for that feature
+          (reduces Firestore reads during busy periods).
+        </p>
+        <label class="admin-checkbox-label">
+          <input type="checkbox" id="golfer-pick-stats-enabled" checked>
+          Show golfer pick popularity on History
+        </label>
+        <div style="margin-top: 12px;">
+          <button type="button" id="save-golfer-pick-stats" class="btn btn-primary">Save setting</button>
+        </div>
       </div>
 
       <!-- Create Tournament -->
@@ -944,6 +973,7 @@ service cloud.firestore {
           userName.textContent = this.currentUser.displayName || this.currentUser.email;
           this.loadTournaments();
           this.loadSiteBanner();
+          this.loadGolferPickStatsConfig();
           this.loadAdminEmails();
           this.loadHistoricalWinners();
           this.loadManualBogeys();
@@ -994,6 +1024,7 @@ service cloud.firestore {
         document.getElementById('save-admins')?.addEventListener('click', () => this.saveAdmins());
 
         document.getElementById('save-site-banner')?.addEventListener('click', () => this.saveSiteBanner());
+        document.getElementById('save-golfer-pick-stats')?.addEventListener('click', () => this.saveGolferPickStatsConfig());
 
         // Manage golfer field
         document.getElementById('manage-golfer-tournament-select')?.addEventListener('change', (e) => {
@@ -1272,6 +1303,27 @@ service cloud.firestore {
           alert('Site banner saved.');
         } catch (error) {
           alert('Error saving site banner: ' + error.message);
+        }
+      },
+
+      async loadGolferPickStatsConfig() {
+        try {
+          const doc = await firebaseDb.collection('config').doc('golferPickStats').get();
+          const checkbox = document.getElementById('golfer-pick-stats-enabled');
+          if (!checkbox) return;
+          checkbox.checked = !doc.exists || doc.data().enabled !== false;
+        } catch (error) {
+          console.error('Error loading golfer pick stats config:', error);
+        }
+      },
+
+      async saveGolferPickStatsConfig() {
+        const enabled = document.getElementById('golfer-pick-stats-enabled')?.checked ?? true;
+        try {
+          await firebaseDb.collection('config').doc('golferPickStats').set({ enabled }, { merge: true });
+          alert('Golfer pick popularity setting saved.');
+        } catch (error) {
+          alert('Error saving setting: ' + error.message);
         }
       },
 

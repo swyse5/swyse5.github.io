@@ -19,6 +19,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    /** History page golfer pick popularity (enabled flag only; lineup reads skipped when off). */
+    match /config/golferPickStats {
+      allow read: if true;
+      allow create, update: if isListedAdminEmail();
+      allow delete: if false;
+    }
+
     /** Presence heatmap buckets: US Eastern dow (0 Sun–6 Sat) × hour 0–23. Doc IDs e.g. 0_14 */
     match /sitePresenceBuckets/{bucketId} {
       allow read: if isListedAdminEmail();
