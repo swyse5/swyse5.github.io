@@ -72,6 +72,8 @@ const Leaderboard = {
     const lineups = await Lineup.getAllLineups(tournamentId);
     if (!lineups.length) return [];
 
+    await AccountMerges.loadMerges();
+
     // Get current scores (may not exist if tournament hasn't started)
     const scoresDoc = await firebaseDb.collection('scores').doc(tournamentId).get();
     const scoresData = scoresDoc.exists ? scoresDoc.data() : {};
@@ -93,7 +95,7 @@ const Leaderboard = {
     this.round3Started = this.checkRoundStarted(golferScores, 3);
 
     // Calculate best ball for each player
-    const standings = lineups.map(lineup => {
+    let standings = lineups.map(lineup => {
       // Get per-round golfer lineups (with individual round overrides applied)
       const golfersR1 = lineup.golfersRound1 || [];
       const golfersR2 = lineup.golfersRound2 || [];
@@ -225,8 +227,8 @@ const Leaderboard = {
       );
       
       return {
-        userId: lineup.userId,
-        displayName: lineup.userDisplayName,
+        userId: AccountMerges.resolveUserId(lineup.userId),
+        displayName: AccountMerges.getDisplayName(lineup.userId, lineup.userDisplayName) || lineup.userDisplayName,
         golfers: lineup.golfers,
         golfersRounds12: golfersR12,
         golfersRounds34: golfersR34,
@@ -256,6 +258,8 @@ const Leaderboard = {
         bogeys: bogeys
       };
     });
+
+    standings = AccountMerges.consolidateStandings(standings);
 
     // Sort by total to par (lowest first)
     standings.sort((a, b) => a.totalToPar - b.totalToPar);
@@ -819,7 +823,7 @@ const Leaderboard = {
   },
 
   renderLeaderboardRow(player, currentUserId) {
-    const isCurrentUser = player.userId === currentUserId;
+    const isCurrentUser = AccountMerges.isSamePlayer(player.userId, currentUserId);
     const positionDisplay = player.tied ? `T${player.position}` : player.position;
 
     return `
@@ -859,7 +863,7 @@ const Leaderboard = {
     const pars = this.cachedPars || Array(18).fill(null);
     
     // Check if this is the current user viewing their own lineup
-    const isOwnLineup = player.userId === currentUserId;
+    const isOwnLineup = AccountMerges.isSamePlayer(player.userId, currentUserId);
     
     // Check if the round has started (lineups become visible once round begins)
     const roundStarted = isRounds12 ? this.round1Started : this.round3Started;
@@ -1201,6 +1205,8 @@ const Leaderboard = {
 
   // Season Standings Methods
   async calculateSeasonStandings(season = null) {
+    await AccountMerges.loadMerges();
+
     // Get all tournaments
     const tournamentsSnap = await firebaseDb.collection('tournaments')
       .orderBy('startDate', 'asc')
@@ -1275,10 +1281,13 @@ const Leaderboard = {
       const lineups = await Lineup.getAllLineups(tournament.id);
       
       standings.forEach(player => {
-        if (!playersMap.has(player.userId)) {
-          playersMap.set(player.userId, {
-            userId: player.userId,
-            displayName: player.displayName,
+        const userId = AccountMerges.resolveUserId(player.userId);
+        const displayName = AccountMerges.getDisplayName(userId, player.displayName) || player.displayName;
+
+        if (!playersMap.has(userId)) {
+          playersMap.set(userId, {
+            userId,
+            displayName,
             tournamentScores: {},
             totalToPar: 0,
             tournamentsPlayed: 0,
@@ -1292,7 +1301,7 @@ const Leaderboard = {
           });
         }
         
-        const playerData = playersMap.get(player.userId);
+        const playerData = playersMap.get(userId);
         
         // Use real-time eagles/bogeys from calculateStandings (already calculated with proper rules)
         playerData.totalEagles += player.eagles || 0;
@@ -1919,7 +1928,7 @@ const Leaderboard = {
         totalCell = `${tb} ($${(tb * 5).toFixed(0)})`;
       }
 
-      const rowCls = player.userId === currentUserId ? ' current-user' : '';
+      const rowCls = AccountMerges.isSamePlayer(player.userId, currentUserId) ? ' current-user' : '';
       const rankCell =
         kind === 'eagles' ? `<td class="pos">${index + 1}</td>` : '';
       return `
@@ -1961,7 +1970,7 @@ const Leaderboard = {
   },
 
   renderSeasonRow(player, tournaments, currentUserId) {
-    const isCurrentUser = player.userId === currentUserId;
+    const isCurrentUser = AccountMerges.isSamePlayer(player.userId, currentUserId);
     const positionDisplay = player.tied ? `T${player.position}` : player.position;
 
     // Build tournament details

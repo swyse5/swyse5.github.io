@@ -51,10 +51,22 @@ const Auth = {
       if (!doc.exists) {
         await userRef.set({
           email: user.email,
+          emails: user.email ? [user.email.toLowerCase()] : [],
           displayName: user.displayName || user.email.split('@')[0],
           photoURL: user.photoURL || null,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+      } else if (user.email) {
+        const data = doc.data();
+        const normalized = user.email.toLowerCase();
+        const emails = new Set((data.emails || []).map((e) => (e || '').toLowerCase()).filter(Boolean));
+        if (data.email) emails.add(data.email.toLowerCase());
+        emails.add(normalized);
+        await userRef.set({
+          email: user.email,
+          emails: [...emails].sort(),
+          lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
       }
     } catch (e) {
       console.warn('Could not ensure users/{uid} document (analytics still runs separately):', e);

@@ -1,7 +1,5 @@
 rules_version = '2';
 
-// Fragment only — merge into your deployed Firestore rules.
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -12,21 +10,103 @@ service cloud.firestore {
         && request.auth.token.email in get(/databases/$(database)/documents/config/admins).data.emails;
     }
 
-    /** Public site banner (title + subtext) when no active tournament. */
+    /** Secondary login merged into a primary account (see config/accountMerges). */
+    function isMergedInto(canonicalUserId) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.mergedInto == canonicalUserId;
+    }
+
+    function canWriteLineupFor(lineupUserId) {
+      return request.auth != null && (
+        request.auth.uid == lineupUserId
+        || isListedAdminEmail()
+        || isMergedInto(lineupUserId)
+      );
+    }
+
+    // Users — own doc read/write; admins read all and update any (account merges)
+    match /users/{userId} {
+      allow read: if request.auth != null
+        && (request.auth.uid == userId || isListedAdminEmail());
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if isListedAdminEmail()
+        || (request.auth != null && request.auth.uid == userId);
+      allow delete: if false;
+    }
+
+    // Tournaments — public read, admin write
+    match /tournaments/{tournamentId} {
+      allow read: if true;
+      allow write: if isListedAdminEmail();
+    }
+
+    // Lineups — public read; own primary/merged account or admin write
+    match /lineups/{lineupId} {
+      allow read: if true;
+      allow create: if canWriteLineupFor(request.resource.data.userId);
+      allow update: if canWriteLineupFor(resource.data.userId);
+      allow delete: if isListedAdminEmail();
+    }
+
+    // Scores — public read, admin write
+    match /scores/{tournamentId} {
+      allow read: if true;
+      allow write: if isListedAdminEmail();
+    }
+
+    // Config — public read; announcedEagles writable by any signed-in user; rest admin-only
+    match /config/{docId} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+        && (docId == 'announcedEagles' || isListedAdminEmail());
+      allow delete: if isListedAdminEmail();
+    }
+
     match /config/siteBanner {
       allow read: if true;
       allow create, update: if isListedAdminEmail();
       allow delete: if false;
     }
 
-    /** History page golfer pick popularity (enabled flag only; lineup reads skipped when off). */
     match /config/golferPickStats {
       allow read: if true;
       allow create, update: if isListedAdminEmail();
       allow delete: if false;
     }
 
-    /** Presence heatmap buckets: US Eastern dow (0 Sun–6 Sat) × hour 0–23. Doc IDs e.g. 0_14 */
+    match /config/accountMerges {
+      allow read: if true;
+      allow create, update: if isListedAdminEmail();
+      allow delete: if false;
+    }
+
+    // Chat — authenticated read/write; admins delete; system eagle alerts
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && (request.resource.data.userId == request.auth.uid
+          || (request.resource.data.userId == 'system' && request.resource.data.isSystem == true));
+      allow update: if request.auth != null;
+      allow delete: if isListedAdminEmail();
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if isListedAdminEmail();
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // Signed-in usage stats (admin reads; users update own doc only)
+    match /siteUsageByUser/{userId} {
+      allow read: if isListedAdminEmail();
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // Site presence heatmap buckets
     match /sitePresenceBuckets/{bucketId} {
       allow read: if isListedAdminEmail();
       allow create, update: if request.auth != null
