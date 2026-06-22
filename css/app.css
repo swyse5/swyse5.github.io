@@ -1987,7 +1987,7 @@ body.signed-in .auth-show-signed-in {
   padding: 16px;
   text-align: center;
   border-bottom: 1px solid var(--border-color);
-  width: calc((100% - 70px) / 5);
+  width: calc((100% - 76px) / 6);
 }
 
 .hall-of-fame-table th {
@@ -2004,7 +2004,7 @@ body.signed-in .auth-show-signed-in {
 
 .hall-of-fame-table th.year-col,
 .hall-of-fame-table td.year-col {
-  width: 70px;
+  width: 76px;
 }
 
 .hall-of-fame-table th.year-col {
@@ -2015,6 +2015,23 @@ body.signed-in .auth-show-signed-in {
   font-weight: 700;
   font-size: 18px;
   background: var(--background);
+  vertical-align: middle;
+}
+
+.year-value {
+  display: block;
+  line-height: 1.1;
+}
+
+.year-meta {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .hall-of-fame-table tbody tr:hover {
@@ -2033,6 +2050,14 @@ body.signed-in .auth-show-signed-in {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
 }
 
+.winner-cell.rookie-winner {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+[data-theme="dark"] .winner-cell.rookie-winner {
+  background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+}
+
 [data-theme="dark"] .winner-cell.season-champion {
   background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
 }
@@ -2048,6 +2073,18 @@ body.signed-in .auth-show-signed-in {
   font-size: 13px;
   color: var(--text-secondary);
   margin-top: 4px;
+}
+
+.winner-meta {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+.winner-cell.empty .winner-meta {
+  margin-top: 6px;
 }
 
 @media (max-width: 768px) {
@@ -2071,6 +2108,11 @@ body.signed-in .auth-show-signed-in {
   
   .hall-of-fame-table td.year-col {
     font-size: 14px;
+  }
+
+  .year-meta,
+  .winner-meta {
+    font-size: 9px;
   }
 }
 

@@ -443,10 +443,13 @@ const App = {
     // Check round status for locking
     await this.checkRoundStatus(this.activeTournament.id);
 
+    await AccountMerges.loadMerges();
+    const effectiveUserId = AccountMerges.getEffectiveUserId(Auth.currentUser.uid);
+
     // Load existing lineups (always load, even if locked)
     const lineups = await Lineup.loadUserLineups(
       this.activeTournament.id, 
-      Auth.currentUser.uid
+      effectiveUserId
     );
 
     this.selectedGolfersR12 = lineups.rounds_1_2?.golfers || [];
@@ -647,8 +650,8 @@ const App = {
         try {
           await Lineup.saveLineup(
             this.activeTournament.id,
-            Auth.currentUser.uid,
-            Auth.currentUser.displayName || Auth.currentUser.email,
+            AccountMerges.getEffectiveUserId(Auth.currentUser.uid),
+            AccountMerges.getDisplayName(Auth.currentUser.uid, Auth.currentUser.displayName || Auth.currentUser.email),
             currentGolfers,
             this.currentLineupType
           );
@@ -1114,7 +1117,24 @@ const App = {
     pga: 'PGA Championship',
     usopen: 'US Open',
     open: 'The Open',
-    season: 'Season'
+    season: 'Season',
+    rookie: 'Rookie of the Year'
+  },
+
+  hallOfFameTournaments: ['masters', 'pga', 'usopen', 'open', 'season', 'rookie'],
+
+  hallOfFameYears(winners, seasonStats = {}) {
+    return [...new Set([
+      ...winners.map(w => String(w.year)),
+      ...Object.keys(seasonStats)
+    ])].sort((a, b) => Number(b) - Number(a));
+  },
+
+  formatHallOfFameCount(count, singular, plural) {
+    if (count == null || count === '') return null;
+    const n = Number(count);
+    if (Number.isNaN(n)) return null;
+    return `${n} ${n === 1 ? singular : plural}`;
   },
 
   async loadHallOfFame() {
@@ -1123,15 +1143,15 @@ const App = {
     try {
       const doc = await firebaseDb.collection('config').doc('historicalWinners').get();
       const winners = doc.exists ? (doc.data().winners || []) : [];
+      const seasonStats = doc.exists ? (doc.data().seasonStats || {}) : {};
       
-      if (winners.length === 0) {
+      if (winners.length === 0 && Object.keys(seasonStats).length === 0) {
         container.innerHTML = '<div class="no-data">No historical data available yet</div>';
         return;
       }
 
-      // Get unique years and sort descending
-      const years = [...new Set(winners.map(w => w.year))].sort((a, b) => b - a);
-      const tournaments = ['masters', 'pga', 'usopen', 'open', 'season'];
+      const years = this.hallOfFameYears(winners, seasonStats);
+      const tournaments = this.hallOfFameTournaments;
 
       // Build table
       let html = `
@@ -1149,20 +1169,29 @@ const App = {
       `;
 
       for (const year of years) {
+        const stats = seasonStats[year] || {};
+        const playerMeta = this.formatHallOfFameCount(stats.playerCount, 'player', 'players');
         html += `<tr>`;
-        html += `<td class="year-col">${year}</td>`;
+        html += `<td class="year-col">
+          <span class="year-value">${year}</span>
+          ${playerMeta ? `<span class="year-meta">${playerMeta}</span>` : ''}
+        </td>`;
         
         for (const tournament of tournaments) {
-          const winner = winners.find(w => w.year === year && w.tournament === tournament);
+          const winner = winners.find(w => String(w.year) === String(year) && w.tournament === tournament);
+          const rookieMeta = tournament === 'rookie'
+            ? this.formatHallOfFameCount(stats.rookieCount, 'rookie', 'rookies')
+            : null;
           if (winner) {
             html += `
-              <td class="winner-cell ${tournament === 'season' ? 'season-champion' : ''}">
+              <td class="winner-cell ${tournament === 'season' ? 'season-champion' : ''} ${tournament === 'rookie' ? 'rookie-winner' : ''}">
                 <span class="winner-name">${winner.winner}</span>
                 ${winner.score ? `<span class="winner-score">${winner.score}</span>` : ''}
+                ${rookieMeta ? `<span class="winner-meta">${rookieMeta}</span>` : ''}
               </td>
             `;
           } else {
-            html += `<td class="winner-cell empty">—</td>`;
+            html += `<td class="winner-cell empty">—${rookieMeta ? `<span class="winner-meta">${rookieMeta}</span>` : ''}</td>`;
           }
         }
         
