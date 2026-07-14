@@ -1489,8 +1489,35 @@ body.signed-in .auth-show-signed-in {
 
 .stat-breakdown-scroll .season-standings-table {
   margin-bottom: 0;
-  width: max-content;
-  min-width: 100%;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.season-stats-spread-table th,
+.season-stats-spread-table td {
+  padding: 8px 4px;
+}
+
+.season-stats-spread-table th.pos,
+.season-stats-spread-table td.pos {
+  width: 2.25rem;
+  min-width: 0;
+  max-width: none;
+  padding-left: 6px;
+  padding-right: 4px;
+}
+
+.season-stats-spread-table th.player,
+.season-stats-spread-table td.player {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 8px;
+  padding-right: 6px;
 }
 
 .season-stats-spread-table td.num,
@@ -1498,6 +1525,12 @@ body.signed-in .auth-show-signed-in {
   text-align: center;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  width: 2.75rem;
+  min-width: 0;
+  max-width: none;
+  padding-left: 2px;
+  padding-right: 2px;
+  font-size: 12px;
 }
 
 .season-stats-spread-table th.season-total,
@@ -1505,13 +1538,19 @@ body.signed-in .auth-show-signed-in {
   text-align: center;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  width: 3.5rem;
+  min-width: 0;
+  max-width: none;
+  padding-left: 4px;
+  padding-right: 6px;
 }
 
-/* Bogey total: "count ($amount)" on one line */
+/* Bogey total: "count ($amount)" on one line — slightly wider than eagle total */
 .season-stats-spread-table[data-stats-table-kind="bogeys"] th.season-total,
 .season-stats-spread-table[data-stats-table-kind="bogeys"] td.season-total {
-  width: auto;
-  min-width: 6.75rem;
+  width: 4.75rem;
+  min-width: 0;
+  max-width: none;
 }
 
 .sort-col-hint {
@@ -2700,6 +2739,27 @@ body.signed-in .auth-show-signed-in {
     font-size: 10px;
   }
 
+  .season-stats-spread-table th.tournament,
+  .season-stats-spread-table td.num {
+    width: 2.25rem;
+    min-width: 0;
+    max-width: none;
+    font-size: 11px;
+    padding-left: 1px;
+    padding-right: 1px;
+  }
+
+  .season-stats-spread-table th.season-total,
+  .season-stats-spread-table td.season-total {
+    width: 3.25rem;
+    min-width: 0;
+  }
+
+  .season-stats-spread-table[data-stats-table-kind="bogeys"] th.season-total,
+  .season-stats-spread-table[data-stats-table-kind="bogeys"] td.season-total {
+    width: 4.5rem;
+  }
+
   /* Hole-by-hole Scorecard Mobile */
   .hole-scorecard {
     font-size: 10px;
@@ -2947,6 +3007,26 @@ body.signed-in .auth-show-signed-in {
   .season-standings-table th.tournament {
     min-width: 55px;
     max-width: 55px;
+  }
+
+  .season-stats-spread-table th.tournament,
+  .season-stats-spread-table td.num {
+    width: 2rem;
+    min-width: 0;
+    max-width: none;
+    font-size: 10px;
+  }
+
+  .season-stats-spread-table th.player,
+  .season-stats-spread-table td.player {
+    padding-left: 6px;
+    padding-right: 4px;
+  }
+
+  .season-stats-spread-table[data-stats-table-kind="bogeys"] th.season-total,
+  .season-stats-spread-table[data-stats-table-kind="bogeys"] td.season-total {
+    width: 4.25rem;
+    font-size: 11px;
   }
 }
 

@@ -4,18 +4,15 @@ const AccountMerges = {
   aliasToCanonical: new Map(),
   loaded: false,
 
-  invalidateCache() {
-    this.merges = [];
-    this.aliasToCanonical.clear();
-    this.loaded = false;
-  },
-
   async loadMerges(force = false) {
     if (this.loaded && !force) return this.merges;
 
     try {
-      const doc = await firebaseDb.collection('config').doc('accountMerges').get();
-      this.merges = doc.exists ? (doc.data().merges || []) : [];
+      const cached = await FirestoreCache.getDoc('config', 'accountMerges', {
+        force,
+        ttlMs: 30 * 60 * 1000
+      });
+      this.merges = cached.exists ? (cached.data.merges || []) : [];
     } catch (error) {
       console.warn('Could not load account merges:', error);
       this.merges = [];
@@ -32,6 +29,15 @@ const AccountMerges = {
 
     this.loaded = true;
     return this.merges;
+  },
+
+  invalidateCache() {
+    this.merges = [];
+    this.aliasToCanonical.clear();
+    this.loaded = false;
+    if (typeof FirestoreCache !== 'undefined') {
+      FirestoreCache.invalidate('config/accountMerges');
+    }
   },
 
   resolveUserId(userId) {

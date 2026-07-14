@@ -105,7 +105,11 @@ const App = {
     return `${start.month}/${start.day}-${end.month}/${end.day}`;
   },
 
-  async loadAllTournaments() {
+  async loadAllTournaments(force = false) {
+    if (!force && this.allTournaments?.length && this._tournamentsLoadedAt
+      && (Date.now() - this._tournamentsLoadedAt) < 10 * 60 * 1000) {
+      return;
+    }
     try {
       // Get all tournaments, we'll filter by season client-side
       const snapshot = await firebaseDb.collection('tournaments')
@@ -124,6 +128,7 @@ const App = {
           startDateObj: startDate
         };
       });
+      this._tournamentsLoadedAt = Date.now();
     } catch (error) {
       console.error('Error loading tournaments:', error);
       this.allTournaments = [];
@@ -139,11 +144,14 @@ const App = {
     return seasons.sort((a, b) => b - a); // Most recent first
   },
 
-  async loadBannerConfig() {
+  async loadBannerConfig(force = false) {
     try {
-      const doc = await firebaseDb.collection('config').doc('siteBanner').get();
-      if (doc.exists) {
-        const data = doc.data();
+      const cached = await FirestoreCache.getDoc('config', 'siteBanner', {
+        force,
+        ttlMs: 15 * 60 * 1000
+      });
+      if (cached.exists) {
+        const data = cached.data;
         this.bannerConfig = {
           text: String(data.text || '').trim(),
           subtext: String(data.subtext || '').trim()
@@ -357,7 +365,10 @@ const App = {
   savedGolfersR34: [],
   round1Started: false,
   round3Started: false,
-  
+  /** Why R1–2 / R3–4 are locked: null | 'schedule' | 'espn' */
+  rounds12LockReason: null,
+  rounds34LockReason: null,
+
   // Unsaved changes warning
   hasUnsavedChanges() {
     const r12Changed = JSON.stringify(this.selectedGolfersR12.sort()) !== JSON.stringify(this.savedGolfersR12.sort());
@@ -392,25 +403,87 @@ const App = {
     }
   },
 
+  parseTournamentTimestamp(ts) {
+    if (!ts) return null;
+    if (typeof ts.toDate === 'function') return ts.toDate();
+    if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? null : d;
+  },
+
+  isScheduledLockPassed(ts) {
+    const d = this.parseTournamentTimestamp(ts);
+    return !!(d && Date.now() >= d.getTime());
+  },
+
   // Check if a round has started by looking for any golfer with scores
-  async checkRoundStatus(tournamentId) {
+  async checkRoundStatus(tournamentId, options = {}) {
+    this.rounds12LockReason = null;
+    this.rounds34LockReason = null;
+
+    let espnRound1 = false;
+    let espnRound3 = false;
+
     try {
       const scoresDoc = await firebaseDb.collection('scores').doc(tournamentId).get();
-      if (!scoresDoc.exists) {
-        this.round1Started = false;
-        this.round3Started = false;
-        return;
+      if (scoresDoc.exists) {
+        const golferScores = scoresDoc.data().golferScores || {};
+        espnRound1 = this.hasRoundStarted(golferScores, 1);
+        espnRound3 = this.hasRoundStarted(golferScores, 3);
       }
-
-      const golferScores = scoresDoc.data().golferScores || {};
-      
-      this.round1Started = this.hasRoundStarted(golferScores, 1);
-      this.round3Started = this.hasRoundStarted(golferScores, 3);
     } catch (error) {
       console.error('Error checking round status:', error);
-      this.round1Started = false;
-      this.round3Started = false;
     }
+
+    // Prefer active tournament (already loaded); re-fetch when missing lock fields or forced (e.g. on save)
+    let tournament = this.activeTournament?.id === tournamentId ? this.activeTournament : null;
+    const needsLockFields = options.forceTournament
+      || !tournament
+      || !('lineupLockAtRounds12' in tournament)
+      || !('lineupLockAtRounds34' in tournament);
+
+    if (needsLockFields) {
+      try {
+        const doc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
+        if (doc.exists) {
+          const data = doc.data();
+          if (this.activeTournament?.id === tournamentId) {
+            this.activeTournament = {
+              ...this.activeTournament,
+              lineupLockAtRounds12: data.lineupLockAtRounds12 ?? null,
+              lineupLockAtRounds34: data.lineupLockAtRounds34 ?? null
+            };
+            tournament = this.activeTournament;
+          } else {
+            tournament = { id: doc.id, ...data };
+          }
+        }
+      } catch (error) {
+        console.warn('Could not load tournament lock schedule:', error);
+      }
+    }
+
+    const schedule12 = this.isScheduledLockPassed(tournament?.lineupLockAtRounds12);
+    const schedule34 = this.isScheduledLockPassed(tournament?.lineupLockAtRounds34);
+
+    if (schedule12) this.rounds12LockReason = 'schedule';
+    else if (espnRound1) this.rounds12LockReason = 'espn';
+
+    if (schedule34) this.rounds34LockReason = 'schedule';
+    else if (espnRound3) this.rounds34LockReason = 'espn';
+
+    this.round1Started = !!(schedule12 || espnRound1);
+    this.round3Started = !!(schedule34 || espnRound3);
+  },
+
+  lineupLockBannerMessage(lineupType) {
+    const isR12 = lineupType === 'rounds_1_2';
+    const reason = isR12 ? this.rounds12LockReason : this.rounds34LockReason;
+    const roundLabel = isR12 ? '1' : '3';
+    if (reason === 'schedule') {
+      return `Lineups for Rounds ${isR12 ? '1–2' : '3–4'} are locked (scheduled lock time has passed). You can still view this lineup.`;
+    }
+    return `Round ${roundLabel} has started. You can no longer edit this lineup.`;
   },
 
   hasRoundStarted(golferScores, roundNumber) {
@@ -509,7 +582,7 @@ const App = {
         ` : isCurrentLocked ? `
           <div class="lineup-locked-banner">
             <p><strong>🔒 This lineup is locked</strong></p>
-            <p>Round ${this.currentLineupType === 'rounds_1_2' ? '1' : '3'} has started. You can no longer edit this lineup.</p>
+            <p>${this.lineupLockBannerMessage(this.currentLineupType)}</p>
           </div>
         ` : `
           <div class="lineup-info-banner">
@@ -648,6 +721,14 @@ const App = {
           : this.selectedGolfersR34;
 
         try {
+          await this.checkRoundStatus(this.activeTournament.id, { forceTournament: true });
+          const locked = this.currentLineupType === 'rounds_1_2'
+            ? this.round1Started
+            : this.round3Started;
+          if (locked) {
+            throw new Error('This lineup is locked and can no longer be saved.');
+          }
+
           await Lineup.saveLineup(
             this.activeTournament.id,
             AccountMerges.getEffectiveUserId(Auth.currentUser.uid),
@@ -999,8 +1080,10 @@ const App = {
       return this.golferPickStatsEnabled;
     }
     try {
-      const doc = await firebaseDb.collection('config').doc('golferPickStats').get();
-      this.golferPickStatsEnabled = !doc.exists || doc.data().enabled !== false;
+      const cached = await FirestoreCache.getDoc('config', 'golferPickStats', {
+        ttlMs: 15 * 60 * 1000
+      });
+      this.golferPickStatsEnabled = !cached.exists || cached.data.enabled !== false;
     } catch (error) {
       console.warn('Could not load golfer pick stats config:', error);
       this.golferPickStatsEnabled = true;
@@ -1141,9 +1224,11 @@ const App = {
     const container = document.getElementById('hall-of-fame-content');
     
     try {
-      const doc = await firebaseDb.collection('config').doc('historicalWinners').get();
-      const winners = doc.exists ? (doc.data().winners || []) : [];
-      const seasonStats = doc.exists ? (doc.data().seasonStats || {}) : {};
+      const cached = await FirestoreCache.getDoc('config', 'historicalWinners', {
+        ttlMs: 30 * 60 * 1000
+      });
+      const winners = cached.exists ? (cached.data.winners || []) : [];
+      const seasonStats = cached.exists ? (cached.data.seasonStats || {}) : {};
       
       if (winners.length === 0 && Object.keys(seasonStats).length === 0) {
         container.innerHTML = '<div class="no-data">No historical data available yet</div>';
