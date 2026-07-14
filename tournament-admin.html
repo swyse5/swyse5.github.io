@@ -60,6 +60,35 @@
     .admin-tab-panel .admin-section:last-child {
       margin-bottom: 0;
     }
+    .lock-schedule-compact {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 12px;
+      max-width: 520px;
+    }
+    .lock-schedule-row {
+      display: grid;
+      grid-template-columns: 72px 1fr 110px;
+      gap: 8px;
+      align-items: center;
+    }
+    .lock-schedule-row .lock-phase-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .lock-schedule-row .form-control {
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+    @media (max-width: 560px) {
+      .lock-schedule-row {
+        grid-template-columns: 1fr 1fr;
+      }
+      .lock-schedule-row .lock-phase-label {
+        grid-column: 1 / -1;
+      }
+    }
     .admin-section {
       background: var(--surface);
       border-radius: var(--radius-lg);
@@ -486,6 +515,35 @@
         <div id="last-update" style="margin-top: 8px; color: var(--text-secondary); font-size: 14px;"></div>
       </div>
 
+      <!-- Lineup Lock Schedule -->
+      <div class="admin-section">
+        <h2>Lineup Lock Schedule</h2>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 12px;">
+          Optional. Locks at the set time, or when ESPN Round 1 / Round 3 scores appear (whichever is first). Local timezone.
+        </p>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <select id="lock-schedule-tournament" class="form-control" style="max-width: 400px;" aria-label="Tournament">
+            <option value="">Select tournament...</option>
+          </select>
+        </div>
+        <div id="lock-schedule-fields" class="lock-schedule-compact" style="opacity: 0.5; pointer-events: none;">
+          <div class="lock-schedule-row">
+            <span class="lock-phase-label">R1–2</span>
+            <input type="date" id="lock-date-12" class="form-control" aria-label="Rounds 1-2 lock date">
+            <input type="time" id="lock-time-12" class="form-control" aria-label="Rounds 1-2 lock time">
+          </div>
+          <div class="lock-schedule-row">
+            <span class="lock-phase-label">R3–4</span>
+            <input type="date" id="lock-date-34" class="form-control" aria-label="Rounds 3-4 lock date">
+            <input type="time" id="lock-time-34" class="form-control" aria-label="Rounds 3-4 lock time">
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" id="save-lock-schedule" class="btn btn-primary btn-sm" disabled>Save</button>
+          <button type="button" id="clear-lock-schedule" class="btn btn-outline btn-sm" disabled>Clear</button>
+        </div>
+      </div>
+
       <!-- Create Tournament -->
       <div class="admin-section">
         <h2>Create New Tournament</h2>
@@ -609,7 +667,10 @@
           </div>
           
           <div class="form-group">
-            <label>Edit Lineup</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">
+              <label style="margin: 0;">Edit Lineup</label>
+              <input type="text" id="admin-lineup-golfer-search" class="form-control" placeholder="Search golfers..." style="width: 220px; margin: 0;">
+            </div>
             <div id="admin-golfer-pool" class="golfer-preview" style="max-height: 400px;"></div>
           </div>
           <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
@@ -1171,6 +1232,12 @@ service cloud.firestore {
         document.getElementById('stop-scoring')?.addEventListener('click', () => this.stopScoring());
         document.getElementById('manual-update')?.addEventListener('click', () => this.manualUpdate());
 
+        document.getElementById('lock-schedule-tournament')?.addEventListener('change', (e) => {
+          this.loadLockScheduleForTournament(e.target.value);
+        });
+        document.getElementById('save-lock-schedule')?.addEventListener('click', () => this.saveLockSchedule());
+        document.getElementById('clear-lock-schedule')?.addEventListener('click', () => this.clearLockSchedule());
+
         document.getElementById('refresh-site-analytics')?.addEventListener('click', () => {
           this.loadSiteAnalyticsDashboard();
         });
@@ -1203,6 +1270,9 @@ service cloud.firestore {
         });
         document.getElementById('lineup-user-select')?.addEventListener('change', (e) => {
           this.loadUserLineupForAdmin(e.target.value);
+        });
+        document.getElementById('admin-lineup-golfer-search')?.addEventListener('input', () => {
+          this.renderAdminLineupEditor();
         });
         document.getElementById('save-admin-lineup')?.addEventListener('click', () => this.saveAdminLineup());
         document.getElementById('cancel-admin-lineup')?.addEventListener('click', () => this.cancelAdminLineup());
@@ -1307,17 +1377,25 @@ service cloud.firestore {
             .get();
 
           const tournaments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          this.adminTournamentsCache = tournaments;
 
           if (tournaments.length === 0) {
             listDiv.innerHTML = '<p style="color: var(--text-secondary);">No tournaments yet</p>';
             return;
           }
 
-          listDiv.innerHTML = tournaments.map(t => `
+          listDiv.innerHTML = tournaments.map(t => {
+            const lock12 = this.formatLockScheduleSummary(t.lineupLockAtRounds12);
+            const lock34 = this.formatLockScheduleSummary(t.lineupLockAtRounds34);
+            const lockNote = (lock12 || lock34)
+              ? `<p style="margin-top: 4px;">Locks: R1–2 ${lock12 || 'ESPN'} · R3–4 ${lock34 || 'ESPN'}</p>`
+              : '';
+            return `
             <div class="tournament-card ${t.status === 'in_progress' || t.status === 'lineup_open' ? 'active' : ''}">
               <div class="tournament-info">
                 <h4>${t.name}</h4>
                 <p>Status: ${t.status} | Field: ${t.golferField?.length || 0} golfers (${this.selectableGolferCount(t.golferField)} in lineup pool) | Cap: $${this.formatSalary(t.salaryCap)}</p>
+                ${lockNote}
               </div>
               <div class="tournament-actions">
                 <select class="form-control btn-sm" onchange="TournamentAdmin.updateStatus('${t.id}', this.value)" style="width: auto;">
@@ -1329,7 +1407,8 @@ service cloud.firestore {
                 <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.deleteTournament('${t.id}')">Delete</button>
               </div>
             </div>
-          `).join('');
+          `;
+          }).join('');
 
           // Update scoring select
           scoringSelect.innerHTML = '<option value="">Select tournament...</option>' +
@@ -1337,6 +1416,18 @@ service cloud.firestore {
               .filter(t => t.status === 'in_progress' || t.status === 'lineup_open')
               .map(t => `<option value="${t.id}" data-espn="${t.espnEventName}">${t.name}</option>`)
               .join('');
+
+          // Update lock schedule tournament select
+          const lockScheduleSelect = document.getElementById('lock-schedule-tournament');
+          const prevLockId = lockScheduleSelect?.value || '';
+          if (lockScheduleSelect) {
+            lockScheduleSelect.innerHTML = '<option value="">Select tournament...</option>' +
+              tournaments.map(t => `<option value="${t.id}">${t.name} (${t.status})</option>`).join('');
+            if (prevLockId && tournaments.some(t => t.id === prevLockId)) {
+              lockScheduleSelect.value = prevLockId;
+              this.loadLockScheduleForTournament(prevLockId);
+            }
+          }
 
           // Update lineup tournament select (all tournaments)
           lineupTournamentSelect.innerHTML = '<option value="">Select tournament...</option>' +
@@ -1357,6 +1448,142 @@ service cloud.firestore {
 
         } catch (error) {
           listDiv.innerHTML = `<p style="color: var(--danger);">Error loading tournaments: ${error.message}</p>`;
+        }
+      },
+
+      adminTournamentsCache: [],
+
+      setLockPhaseFields(phase, ts) {
+        const dateEl = document.getElementById(`lock-date-${phase}`);
+        const timeEl = document.getElementById(`lock-time-${phase}`);
+        if (!dateEl || !timeEl) return;
+
+        if (!ts) {
+          dateEl.value = '';
+          timeEl.value = '';
+          return;
+        }
+
+        const d = ts.toDate ? ts.toDate() : (ts.seconds != null ? new Date(ts.seconds * 1000) : new Date(ts));
+        if (Number.isNaN(d.getTime())) {
+          dateEl.value = '';
+          timeEl.value = '';
+          return;
+        }
+
+        const pad = (n) => String(n).padStart(2, '0');
+        dateEl.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        timeEl.value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      },
+
+      readLockPhaseTimestamp(phase) {
+        const dateValue = document.getElementById(`lock-date-${phase}`)?.value;
+        const timeValue = document.getElementById(`lock-time-${phase}`)?.value;
+        if (!dateValue || !timeValue) return null;
+
+        const [year, month, day] = dateValue.split('-').map(Number);
+        const [hour, minute] = timeValue.split(':').map(Number);
+        const d = new Date(year, month - 1, day, hour, minute, 0, 0);
+        if (Number.isNaN(d.getTime())) return null;
+        return firebase.firestore.Timestamp.fromDate(d);
+      },
+
+      formatLockScheduleSummary(ts) {
+        if (!ts) return '';
+        const d = ts.toDate ? ts.toDate() : (ts.seconds != null ? new Date(ts.seconds * 1000) : null);
+        if (!d || Number.isNaN(d.getTime())) return '';
+        return d.toLocaleString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      },
+
+      setLockScheduleFieldsEnabled(enabled) {
+        const fields = document.getElementById('lock-schedule-fields');
+        const saveBtn = document.getElementById('save-lock-schedule');
+        const clearBtn = document.getElementById('clear-lock-schedule');
+        if (fields) {
+          fields.style.opacity = enabled ? '1' : '0.5';
+          fields.style.pointerEvents = enabled ? 'auto' : 'none';
+        }
+        if (saveBtn) saveBtn.disabled = !enabled;
+        if (clearBtn) clearBtn.disabled = !enabled;
+      },
+
+      loadLockScheduleForTournament(tournamentId) {
+        if (!tournamentId) {
+          this.setLockScheduleFieldsEnabled(false);
+          this.setLockPhaseFields('12', null);
+          this.setLockPhaseFields('34', null);
+          return;
+        }
+
+        const tournament = this.adminTournamentsCache.find(t => t.id === tournamentId);
+        this.setLockScheduleFieldsEnabled(true);
+        this.setLockPhaseFields('12', tournament?.lineupLockAtRounds12);
+        this.setLockPhaseFields('34', tournament?.lineupLockAtRounds34);
+      },
+
+      async saveLockSchedule() {
+        const tournamentId = document.getElementById('lock-schedule-tournament')?.value;
+        if (!tournamentId) {
+          alert('Select a tournament first');
+          return;
+        }
+
+        const date12 = document.getElementById('lock-date-12')?.value;
+        const time12 = document.getElementById('lock-time-12')?.value;
+        const date34 = document.getElementById('lock-date-34')?.value;
+        const time34 = document.getElementById('lock-time-34')?.value;
+
+        if ((date12 && !time12) || (!date12 && time12)) {
+          alert('Rounds 1–2 needs both a date and a time (or leave both blank)');
+          return;
+        }
+        if ((date34 && !time34) || (!date34 && time34)) {
+          alert('Rounds 3–4 needs both a date and a time (or leave both blank)');
+          return;
+        }
+
+        const lock12 = this.readLockPhaseTimestamp('12');
+        const lock34 = this.readLockPhaseTimestamp('34');
+
+        try {
+          await firebaseDb.collection('tournaments').doc(tournamentId).update({
+            lineupLockAtRounds12: lock12,
+            lineupLockAtRounds34: lock34
+          });
+          alert('Lineup lock schedule saved.');
+          await this.loadTournaments();
+        } catch (error) {
+          alert('Error saving lock schedule: ' + error.message);
+        }
+      },
+
+      async clearLockSchedule() {
+        const tournamentId = document.getElementById('lock-schedule-tournament')?.value;
+        if (!tournamentId) {
+          alert('Select a tournament first');
+          return;
+        }
+        if (!confirm('Clear both scheduled lock times? Lineups will only lock when ESPN scores appear.')) {
+          return;
+        }
+
+        this.setLockPhaseFields('12', null);
+        this.setLockPhaseFields('34', null);
+
+        try {
+          await firebaseDb.collection('tournaments').doc(tournamentId).update({
+            lineupLockAtRounds12: null,
+            lineupLockAtRounds34: null
+          });
+          alert('Lock schedule cleared.');
+          await this.loadTournaments();
+        } catch (error) {
+          alert('Error clearing lock schedule: ' + error.message);
         }
       },
 
@@ -3048,6 +3275,9 @@ service cloud.firestore {
         this.selectedUserForLineup = userId;
         this.adminSelectedRounds = [1];
 
+        const searchInput = document.getElementById('admin-lineup-golfer-search');
+        if (searchInput) searchInput.value = '';
+
         const userSelect = document.getElementById('lineup-user-select');
         const userName = userSelect.options[userSelect.selectedIndex].text;
         document.getElementById('editing-user-name').textContent = `Editing lineup for: ${userName}`;
@@ -3089,9 +3319,21 @@ service cloud.firestore {
 
         // Render golfer pool
         const poolDiv = document.getElementById('admin-golfer-pool');
-        poolDiv.innerHTML = this.tournamentGolferField
+        const search = (document.getElementById('admin-lineup-golfer-search')?.value || '')
+          .trim()
+          .toLowerCase();
+        const filtered = this.tournamentGolferField
           .filter(g => this.isGolferEligibleForLineup(g))
-          .map(g => {
+          .filter(g => !search || g.name.toLowerCase().includes(search));
+
+        if (!filtered.length) {
+          poolDiv.innerHTML = `<p style="color: var(--text-secondary); margin: 0;">${
+            search ? 'No golfers match your search' : 'No golfers available'
+          }</p>`;
+          return;
+        }
+
+        poolDiv.innerHTML = filtered.map(g => {
           const isSelected = this.adminSelectedGolfers.includes(g.name);
           return `
             <div class="golfer-preview-item" style="cursor: pointer; ${isSelected ? 'background: rgba(44, 82, 50, 0.1);' : ''}" 

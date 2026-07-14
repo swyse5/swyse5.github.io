@@ -357,7 +357,10 @@ const App = {
   savedGolfersR34: [],
   round1Started: false,
   round3Started: false,
-  
+  /** Why R1–2 / R3–4 are locked: null | 'schedule' | 'espn' */
+  rounds12LockReason: null,
+  rounds34LockReason: null,
+
   // Unsaved changes warning
   hasUnsavedChanges() {
     const r12Changed = JSON.stringify(this.selectedGolfersR12.sort()) !== JSON.stringify(this.savedGolfersR12.sort());
@@ -392,25 +395,77 @@ const App = {
     }
   },
 
+  parseTournamentTimestamp(ts) {
+    if (!ts) return null;
+    if (typeof ts.toDate === 'function') return ts.toDate();
+    if (typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? null : d;
+  },
+
+  isScheduledLockPassed(ts) {
+    const d = this.parseTournamentTimestamp(ts);
+    return !!(d && Date.now() >= d.getTime());
+  },
+
   // Check if a round has started by looking for any golfer with scores
   async checkRoundStatus(tournamentId) {
+    this.rounds12LockReason = null;
+    this.rounds34LockReason = null;
+
+    let espnRound1 = false;
+    let espnRound3 = false;
+
     try {
       const scoresDoc = await firebaseDb.collection('scores').doc(tournamentId).get();
-      if (!scoresDoc.exists) {
-        this.round1Started = false;
-        this.round3Started = false;
-        return;
+      if (scoresDoc.exists) {
+        const golferScores = scoresDoc.data().golferScores || {};
+        espnRound1 = this.hasRoundStarted(golferScores, 1);
+        espnRound3 = this.hasRoundStarted(golferScores, 3);
       }
-
-      const golferScores = scoresDoc.data().golferScores || {};
-      
-      this.round1Started = this.hasRoundStarted(golferScores, 1);
-      this.round3Started = this.hasRoundStarted(golferScores, 3);
     } catch (error) {
       console.error('Error checking round status:', error);
-      this.round1Started = false;
-      this.round3Started = false;
     }
+
+    let tournament = this.activeTournament?.id === tournamentId ? this.activeTournament : null;
+    try {
+      const doc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
+      if (doc.exists) {
+        const data = doc.data();
+        tournament = { id: doc.id, ...data };
+        if (this.activeTournament?.id === tournamentId) {
+          this.activeTournament = {
+            ...this.activeTournament,
+            lineupLockAtRounds12: data.lineupLockAtRounds12 ?? null,
+            lineupLockAtRounds34: data.lineupLockAtRounds34 ?? null
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('Could not load tournament lock schedule:', error);
+    }
+
+    const schedule12 = this.isScheduledLockPassed(tournament?.lineupLockAtRounds12);
+    const schedule34 = this.isScheduledLockPassed(tournament?.lineupLockAtRounds34);
+
+    if (schedule12) this.rounds12LockReason = 'schedule';
+    else if (espnRound1) this.rounds12LockReason = 'espn';
+
+    if (schedule34) this.rounds34LockReason = 'schedule';
+    else if (espnRound3) this.rounds34LockReason = 'espn';
+
+    this.round1Started = !!(schedule12 || espnRound1);
+    this.round3Started = !!(schedule34 || espnRound3);
+  },
+
+  lineupLockBannerMessage(lineupType) {
+    const isR12 = lineupType === 'rounds_1_2';
+    const reason = isR12 ? this.rounds12LockReason : this.rounds34LockReason;
+    const roundLabel = isR12 ? '1' : '3';
+    if (reason === 'schedule') {
+      return `Lineups for Rounds ${isR12 ? '1–2' : '3–4'} are locked (scheduled lock time has passed). You can still view this lineup.`;
+    }
+    return `Round ${roundLabel} has started. You can no longer edit this lineup.`;
   },
 
   hasRoundStarted(golferScores, roundNumber) {
@@ -509,7 +564,7 @@ const App = {
         ` : isCurrentLocked ? `
           <div class="lineup-locked-banner">
             <p><strong>🔒 This lineup is locked</strong></p>
-            <p>Round ${this.currentLineupType === 'rounds_1_2' ? '1' : '3'} has started. You can no longer edit this lineup.</p>
+            <p>${this.lineupLockBannerMessage(this.currentLineupType)}</p>
           </div>
         ` : `
           <div class="lineup-info-banner">
@@ -648,6 +703,14 @@ const App = {
           : this.selectedGolfersR34;
 
         try {
+          await this.checkRoundStatus(this.activeTournament.id);
+          const locked = this.currentLineupType === 'rounds_1_2'
+            ? this.round1Started
+            : this.round3Started;
+          if (locked) {
+            throw new Error('This lineup is locked and can no longer be saved.');
+          }
+
           await Lineup.saveLineup(
             this.activeTournament.id,
             AccountMerges.getEffectiveUserId(Auth.currentUser.uid),

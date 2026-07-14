@@ -510,8 +510,6 @@ const Leaderboard = {
           });
         }
 
-        const hasAnyScores = golferHoleData.some(g => g.holes.some(h => getHoleToPar(h) !== null));
-
         const nameSortActive = this.fieldSortHoleIndex === null;
         const nameDir = nameSortActive ? (this.fieldSortAsc ? 'sorted-asc' : 'sorted-desc') : '';
         const nameAriaSort = nameSortActive
@@ -521,11 +519,6 @@ const Leaderboard = {
         bodyHtml = `
       <div class="field-scorecard-wrap field-round-body">
         <div class="hole-by-hole-container">
-          ${!hasAnyScores ? `
-            <div class="no-scores-message">
-              <p>Scores will appear once Round ${roundNum} begins.</p>
-            </div>
-          ` : ''}
           <div class="scorecard-scroll">
             <table class="hole-scorecard field-hole-scorecard">
               <thead>
@@ -713,21 +706,8 @@ const Leaderboard = {
       return;
     }
 
-    // Check if any scores exist
-    const hasScores = standings.some(s => s.totalHolesPlayed > 0);
-    
-    let html = '';
-    if (!hasScores) {
-      html = `
-        <div class="no-data" style="margin-bottom: 20px;">
-          <p><strong>Tournament has not started yet</strong></p>
-          <p style="font-size: 14px; margin-top: 8px;">Scores will appear once play begins.</p>
-        </div>
-      `;
-    }
-
     // Round selector
-    html += `
+    let html = `
       <div class="round-selector">
         <span class="round-selector-label">Round:</span>
         <div class="round-buttons">
@@ -932,16 +912,8 @@ const Leaderboard = {
     const frontPars = pars.slice(0, 9);
     const backPars = pars.slice(9, 18);
 
-    // Check if any scores exist
-    const hasAnyScores = golferHoleData.some(g => g.holes.some(h => getHoleToPar(h) !== null));
-
     return `
       <div class="hole-by-hole-container">
-        ${!hasAnyScores ? `
-          <div class="no-scores-message">
-            <p>Scores will appear once Round ${roundNumber} begins.</p>
-          </div>
-        ` : ''}
         <div class="scorecard-scroll">
           <table class="hole-scorecard">
             <thead>
