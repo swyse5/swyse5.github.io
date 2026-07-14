@@ -7,6 +7,8 @@ const Leaderboard = {
   cachedPars: null,
   cachedLastUpdated: null,
   cachedGolferField: [],
+  /** Session cache: tournamentId -> { golferField, status } */
+  tournamentMetaCache: new Map(),
   round1Started: false,
   round3Started: false,
 
@@ -67,7 +69,7 @@ const Leaderboard = {
     return false;
   },
 
-  async calculateStandings(tournamentId) {
+  async calculateStandings(tournamentId, options = {}) {
     // Get all lineups
     const lineups = await Lineup.getAllLineups(tournamentId);
     if (!lineups.length) return [];
@@ -79,10 +81,26 @@ const Leaderboard = {
     const scoresData = scoresDoc.exists ? scoresDoc.data() : {};
     const golferScores = scoresData.golferScores || {};
     const pars = scoresData.pars || null;
-    
-    // Get tournament golfer field for salary info
-    const tournamentDoc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
-    const golferField = tournamentDoc.exists ? (tournamentDoc.data().golferField || []) : [];
+
+    // Tournament meta (golfer field / status) rarely changes — cache for the session
+    // so live leaderboard refreshes and season loops don't re-read every time.
+    let golferField = [];
+    let tournamentStatus = '';
+    const provided = options.tournament;
+    if (provided) {
+      golferField = provided.golferField || [];
+      tournamentStatus = provided.status || '';
+      this.tournamentMetaCache.set(tournamentId, { golferField, status: tournamentStatus });
+    } else if (this.tournamentMetaCache.has(tournamentId) && !options.forceTournamentRefresh) {
+      const meta = this.tournamentMetaCache.get(tournamentId);
+      golferField = meta.golferField || [];
+      tournamentStatus = meta.status || '';
+    } else {
+      const tournamentDoc = await firebaseDb.collection('tournaments').doc(tournamentId).get();
+      golferField = tournamentDoc.exists ? (tournamentDoc.data().golferField || []) : [];
+      tournamentStatus = tournamentDoc.exists ? (tournamentDoc.data().status || '') : '';
+      this.tournamentMetaCache.set(tournamentId, { golferField, status: tournamentStatus });
+    }
     
     // Cache for use in expanded views
     this.cachedGolferScores = golferScores;
@@ -278,7 +296,6 @@ const Leaderboard = {
       position++;
     });
 
-    const tournamentStatus = tournamentDoc.exists ? (tournamentDoc.data().status || '') : '';
     this.applyLeaderboardRoundDefaultsIfNeeded(tournamentId, tournamentStatus, scoresData, golferScores);
 
     return standings;
@@ -1214,7 +1231,8 @@ const Leaderboard = {
         id: doc.id,
         name: data.name,
         abbrev,
-        status: data.status
+        status: data.status,
+        golferField: data.golferField || []
       });
     });
 
@@ -1222,12 +1240,14 @@ const Leaderboard = {
       return { tournaments: [], standings: [], bogeyPot: 0, eagleLeaders: [], bogeyTracker: [] };
     }
 
-    // Load manual bogeys
+    // Load manual bogeys (cached — changes rarely)
     let manualBogeys = [];
     try {
-      const manualBogeysDoc = await firebaseDb.collection('config').doc('manualBogeys').get();
-      if (manualBogeysDoc.exists) {
-        const allBogeys = manualBogeysDoc.data().bogeys || [];
+      const manualBogeysCached = await FirestoreCache.getDoc('config', 'manualBogeys', {
+        ttlMs: 5 * 60 * 1000
+      });
+      if (manualBogeysCached.exists) {
+        const allBogeys = manualBogeysCached.data.bogeys || [];
         // Filter by season if specified
         if (season) {
           manualBogeys = allBogeys.filter(b => b.season === season.toString());
@@ -1243,15 +1263,9 @@ const Leaderboard = {
     const playersMap = new Map();
 
     for (const tournament of tournaments) {
-      const standings = await this.calculateStandings(tournament.id);
-      
-      // Get scores for eagle/bogey calculation
-      const scoresDoc = await firebaseDb.collection('scores').doc(tournament.id).get();
-      const golferScores = scoresDoc.exists ? (scoresDoc.data().golferScores || {}) : {};
-      
-      // Get lineups for this tournament
-      const lineups = await Lineup.getAllLineups(tournament.id);
-      
+      // calculateStandings already loads lineups + scores; pass tournament to skip re-reading it
+      const standings = await this.calculateStandings(tournament.id, { tournament });
+
       standings.forEach(player => {
         const userId = AccountMerges.resolveUserId(player.userId);
         const displayName = AccountMerges.getDisplayName(userId, player.displayName) || player.displayName;

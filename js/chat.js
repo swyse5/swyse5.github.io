@@ -17,10 +17,15 @@ const Chat = {
   async hasNotifiedEagle(tournamentId, golferName, round, hole) {
     const eagleId = `${tournamentId}_${golferName}_R${round}_H${hole}`;
     try {
-      const doc = await firebaseDb.collection('config').doc('announcedEagles').get();
-      if (doc.exists) {
-        const data = doc.data();
-        return data[eagleId] === true;
+      if (this.announcedEaglesCache && this.announcedEaglesCache[eagleId] === true) {
+        return true;
+      }
+      const cached = await FirestoreCache.getDoc('config', 'announcedEagles', {
+        ttlMs: 60 * 1000
+      });
+      if (cached.exists) {
+        this.announcedEaglesCache = { ...(this.announcedEaglesCache || {}), ...cached.data };
+        return cached.data[eagleId] === true;
       }
       return false;
     } catch (e) {
@@ -36,6 +41,9 @@ const Chat = {
       await firebaseDb.collection('config').doc('announcedEagles').set({
         [eagleId]: true
       }, { merge: true });
+      if (!this.announcedEaglesCache) this.announcedEaglesCache = {};
+      this.announcedEaglesCache[eagleId] = true;
+      if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/announcedEagles');
       console.log(`Added eagle to Firebase: ${eagleId}`);
       return true;
     } catch (e) {
@@ -54,9 +62,9 @@ const Chat = {
 
       // Load admin emails if not already loaded
       if (this.adminEmails.length === 0) {
-        const adminDoc = await firebaseDb.collection('config').doc('admins').get();
-        if (adminDoc.exists) {
-          this.adminEmails = adminDoc.data().emails || [];
+        const cached = await FirestoreCache.getDoc('config', 'admins', { ttlMs: 30 * 60 * 1000 });
+        if (cached.exists) {
+          this.adminEmails = cached.data.emails || [];
         }
       }
 

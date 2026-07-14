@@ -1684,6 +1684,7 @@ service cloud.firestore {
         const subtext = document.getElementById('site-banner-subtext')?.value.trim() || '';
         try {
           await firebaseDb.collection('config').doc('siteBanner').set({ text, subtext }, { merge: true });
+          if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/siteBanner');
           alert('Site banner saved.');
         } catch (error) {
           alert('Error saving site banner: ' + error.message);
@@ -1705,6 +1706,7 @@ service cloud.firestore {
         const enabled = document.getElementById('golfer-pick-stats-enabled')?.checked ?? true;
         try {
           await firebaseDb.collection('config').doc('golferPickStats').set({ enabled }, { merge: true });
+          if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/golferPickStats');
           alert('Golfer pick popularity setting saved.');
         } catch (error) {
           alert('Error saving setting: ' + error.message);
@@ -1912,6 +1914,7 @@ service cloud.firestore {
 
         try {
           await firebaseDb.collection('config').doc('admins').set({ emails });
+          if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/admins');
           alert('Admin list saved!');
         } catch (error) {
           alert('Error saving admins: ' + error.message);
@@ -1942,6 +1945,7 @@ service cloud.firestore {
 
       async saveHistoricalWinnersDoc(partial) {
         await firebaseDb.collection('config').doc('historicalWinners').set(partial, { merge: true });
+        if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/historicalWinners');
       },
 
       async loadHistoricalWinners() {
@@ -2253,6 +2257,7 @@ service cloud.firestore {
           await firebaseDb.collection('config').doc('manualBogeys').set({
             bogeys: this.manualBogeys
           });
+          if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/manualBogeys');
 
           this.renderManualBogeysList();
           alert(`Bogey added for ${playerName} on hole ${hole}, round ${round}`);
@@ -2276,6 +2281,7 @@ service cloud.firestore {
           await firebaseDb.collection('config').doc('manualBogeys').set({
             bogeys: this.manualBogeys
           });
+          if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/manualBogeys');
           this.renderManualBogeysList();
         } catch (error) {
           alert('Error removing bogey: ' + error.message);

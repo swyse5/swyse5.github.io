@@ -29,9 +29,9 @@ const Auth = {
 
   async loadAdminEmails() {
     try {
-      const doc = await firebaseDb.collection('config').doc('admins').get();
-      if (doc.exists) {
-        this.adminEmails = doc.data().emails || [];
+      const cached = await FirestoreCache.getDoc('config', 'admins', { ttlMs: 30 * 60 * 1000 });
+      if (cached.exists) {
+        this.adminEmails = cached.data.emails || [];
       }
     } catch (error) {
       console.log('Could not load admin emails:', error);
