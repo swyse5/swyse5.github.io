@@ -1118,26 +1118,31 @@ body.signed-in .auth-show-signed-in {
 }
 
 .field-hole-scorecard th.field-hole-sort,
-.field-hole-scorecard th.field-golfer-sort {
+.field-hole-scorecard th.field-golfer-sort,
+.field-hole-scorecard th.field-birdie-sort {
   cursor: pointer;
   user-select: none;
   position: relative;
 }
 
 .field-hole-scorecard th.field-hole-sort:hover,
-.field-hole-scorecard th.field-golfer-sort:hover {
+.field-hole-scorecard th.field-golfer-sort:hover,
+.field-hole-scorecard th.field-birdie-sort:hover {
   filter: brightness(1.12);
 }
 
 .field-hole-scorecard th.field-hole-sort.sorted-asc,
 .field-hole-scorecard th.field-hole-sort.sorted-desc,
 .field-hole-scorecard th.field-golfer-sort.sorted-asc,
-.field-hole-scorecard th.field-golfer-sort.sorted-desc {
+.field-hole-scorecard th.field-golfer-sort.sorted-desc,
+.field-hole-scorecard th.field-birdie-sort.sorted-asc,
+.field-hole-scorecard th.field-birdie-sort.sorted-desc {
   box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.45);
 }
 
 .field-hole-scorecard th.field-hole-sort.sorted-asc::after,
-.field-hole-scorecard th.field-golfer-sort.sorted-asc::after {
+.field-hole-scorecard th.field-golfer-sort.sorted-asc::after,
+.field-hole-scorecard th.field-birdie-sort.sorted-asc::after {
   content: '▲';
   font-size: 0.55em;
   margin-left: 3px;
@@ -1146,7 +1151,8 @@ body.signed-in .auth-show-signed-in {
 }
 
 .field-hole-scorecard th.field-hole-sort.sorted-desc::after,
-.field-hole-scorecard th.field-golfer-sort.sorted-desc::after {
+.field-hole-scorecard th.field-golfer-sort.sorted-desc::after,
+.field-hole-scorecard th.field-birdie-sort.sorted-desc::after {
   content: '▼';
   font-size: 0.55em;
   margin-left: 3px;
@@ -1442,8 +1448,14 @@ body.signed-in .auth-show-signed-in {
   font-weight: 600;
 }
 
-.hole-scorecard .total-col {
+.hole-scorecard td.total-col {
   background: rgba(0, 0, 0, 0.08);
+  font-weight: 700;
+}
+
+.hole-scorecard th.total-col {
+  background: var(--primary-dark);
+  color: #fff;
   font-weight: 700;
 }
 
