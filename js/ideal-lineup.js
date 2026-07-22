@@ -53,6 +53,16 @@ const IdealLineup = {
     onProgress('Saving…');
     await firebaseDb.collection('scores').doc(tournamentId).set({ idealLineups }, { merge: true });
     onProgress('Done');
+
+    // Attach a plain summary for the admin alert (no Firestore Timestamp sentinel)
+    idealLineups._summary = rounds.map((r) => ({
+      round: r.roundNumber,
+      score: r.totalToPar,
+      tiedLineups: r.lineupCount || r.lineups?.length || (r.golfers?.length ? 1 : 0),
+      stored: r.lineupCountStored || r.lineups?.length || 0,
+      candidates: r.candidateCount || 0
+    }));
+
     return idealLineups;
   },
 

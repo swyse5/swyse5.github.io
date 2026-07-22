@@ -1674,11 +1674,14 @@ service cloud.firestore {
         };
         try {
           setStatus('Computing ideal lineups…');
-          await IdealLineup.computeAndSave(tournamentId, {
+          const result = await IdealLineup.computeAndSave(tournamentId, {
             onProgress: (msg) => setStatus(msg)
           });
+          const lines = (result._summary || []).map((s) =>
+            `R${s.round}: ${s.tiedLineups} ideal lineup(s) at ${s.score == null ? '—' : s.score} (${s.candidates} golfers in pool)`
+          );
           setStatus('Ideal lineups saved.');
-          alert('Ideal lineups computed and saved. They will appear on the History page for this tournament.');
+          alert(`Ideal lineups computed and saved.\n\n${lines.join('\n')}\n\nIf every round shows 1, only one roster hit that optimal score under the cap.`);
         } catch (error) {
           console.error(error);
           setStatus('Ideal lineup compute failed.');
