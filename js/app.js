@@ -1967,6 +1967,7 @@ const App = {
             Show All (${standings.length} players)
           </button>
         ` : ''}
+        <div class="history-ideal-lineups" id="history-ideal-${tournamentId}" hidden></div>
       `;
 
       // Add click handler for expand button
@@ -1974,12 +1975,35 @@ const App = {
       if (expandBtn) {
         expandBtn.addEventListener('click', () => this.toggleHistoryStandings(tournamentId));
       }
+
+      this.loadHistoryIdealLineups(tournamentId);
     } catch (error) {
       console.error(`Error loading standings for ${tournamentId}:`, error);
       const container = document.getElementById(`history-standings-${tournamentId}`);
       if (container) {
         container.innerHTML = '<div class="no-standings">Error loading standings</div>';
       }
+    }
+  },
+
+  async loadHistoryIdealLineups(tournamentId) {
+    const el = document.getElementById(`history-ideal-${tournamentId}`);
+    if (!el || typeof IdealLineup === 'undefined') return;
+    try {
+      const ideal = await IdealLineup.load(tournamentId);
+      const hasLineups = ideal?.rounds?.some((r) => IdealLineup.getRoundLineups(r).length > 0);
+      if (!hasLineups) {
+        el.innerHTML = '';
+        el.hidden = true;
+        return;
+      }
+      el.hidden = false;
+      el.innerHTML = IdealLineup.renderSectionHtml(ideal);
+      IdealLineup.bindCarousel(el);
+    } catch (error) {
+      console.warn('Ideal lineups load failed:', error);
+      el.innerHTML = '';
+      el.hidden = true;
     }
   },
 

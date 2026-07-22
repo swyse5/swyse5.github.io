@@ -1065,6 +1065,7 @@
   <script src="js/firebase-config.js"></script>
   <script src="js/analytics.js"></script>
   <script src="js/scoring.js"></script>
+  <script src="js/ideal-lineup.js"></script>
   <script src="js/lineup.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/account-merges.js"></script>
@@ -1463,6 +1464,7 @@ service cloud.firestore {
                   <option value="completed" ${t.status === 'completed' ? 'selected' : ''}>Completed</option>
                 </select>
                 <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.deleteTournament('${t.id}')">Delete</button>
+                ${t.status === 'completed' ? `<button class="btn btn-outline btn-sm" onclick="TournamentAdmin.computeIdealLineups('${t.id}')">Ideal lineups</button>` : ''}
               </div>
             </div>
           `;
@@ -1651,8 +1653,36 @@ service cloud.firestore {
             status: newStatus
           });
           this.loadTournaments();
+          if (newStatus === 'completed' && typeof IdealLineup !== 'undefined') {
+            if (confirm('Tournament marked complete. Compute ideal lineups now?\n\nThis searches the full field for the best salary-cap lineup per round and may take up to a minute.')) {
+              await this.computeIdealLineups(tournamentId);
+            }
+          }
         } catch (error) {
           alert('Error updating status: ' + error.message);
+        }
+      },
+
+      async computeIdealLineups(tournamentId) {
+        if (typeof IdealLineup === 'undefined') {
+          alert('Ideal lineup module failed to load.');
+          return;
+        }
+        const statusEl = document.getElementById('last-update');
+        const setStatus = (msg) => {
+          if (statusEl) statusEl.textContent = msg;
+        };
+        try {
+          setStatus('Computing ideal lineups…');
+          await IdealLineup.computeAndSave(tournamentId, {
+            onProgress: (msg) => setStatus(msg)
+          });
+          setStatus('Ideal lineups saved.');
+          alert('Ideal lineups computed and saved. They will appear on the History page for this tournament.');
+        } catch (error) {
+          console.error(error);
+          setStatus('Ideal lineup compute failed.');
+          alert('Error computing ideal lineups: ' + error.message);
         }
       },
 

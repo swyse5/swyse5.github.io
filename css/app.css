@@ -2226,6 +2226,150 @@ body.signed-in .auth-show-signed-in {
   color: var(--text-primary);
 }
 
+/* Ideal lineups (History) */
+.history-ideal-lineups {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.ideal-lineups-section h4 {
+  margin: 0 0 6px;
+  font-family: 'Roboto Slab', serif;
+  font-size: 1.05rem;
+}
+
+.ideal-lineups-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 4px;
+}
+
+.ideal-season-total {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ideal-lineups-note {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.ideal-rounds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.ideal-round {
+  background: var(--background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.ideal-round-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  margin-bottom: 10px;
+}
+
+.ideal-round-header h5 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ideal-round-score {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ideal-carousel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ideal-nav-btn {
+  appearance: none;
+  border: 1px solid var(--border-color);
+  background: var(--surface);
+  color: var(--text-primary);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ideal-nav-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.ideal-carousel-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 2.75rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ideal-tie-note {
+  margin: -4px 0 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ideal-round-salary {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.ideal-golfer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ideal-golfer-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ideal-golfer-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ideal-golfer-salary {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ideal-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 /* Hall of Fame */
 .history-section h2 {
   margin-bottom: 20px;
