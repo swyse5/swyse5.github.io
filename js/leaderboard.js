@@ -279,8 +279,11 @@ const Leaderboard = {
 
     standings = AccountMerges.consolidateStandings(standings);
 
-    // Sort by total to par (lowest first)
-    standings.sort((a, b) => a.totalToPar - b.totalToPar);
+    // Sort by total to par (lowest first); name A–Z for stable ties
+    standings.sort((a, b) => {
+      if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
+      return this.compareSeasonStandingsTiebreaker(a, b);
+    });
 
     // Assign positions (handle ties)
     let position = 1;
@@ -295,6 +298,9 @@ const Leaderboard = {
       }
       position++;
     });
+
+    const tiebreakUserId = await this.loadTournamentTiebreakUserId(tournamentId);
+    standings = this.applyFirstPlaceTiebreak(standings, tiebreakUserId);
 
     this.applyLeaderboardRoundDefaultsIfNeeded(tournamentId, tournamentStatus, scoresData, golferScores);
 
@@ -1324,9 +1330,12 @@ const Leaderboard = {
       }
     }
 
-    // Convert to array and sort
-    const standings = Array.from(playersMap.values());
-    standings.sort((a, b) => a.totalToPar - b.totalToPar);
+    // Convert to array and sort (lowest total first; name A–Z breaks score ties for stable UI order)
+    let standings = Array.from(playersMap.values());
+    standings.sort((a, b) => {
+      if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
+      return this.compareSeasonStandingsTiebreaker(a, b);
+    });
 
     // Assign positions
     let position = 1;
@@ -1341,6 +1350,9 @@ const Leaderboard = {
       }
       position++;
     });
+
+    const tiebreakUserId = await this.loadSeasonTiebreakUserId(season);
+    standings = this.applyFirstPlaceTiebreak(standings, tiebreakUserId);
 
     // Calculate bogey pot total ($5 per bogey)
     const totalBogeys = standings.reduce((sum, p) => sum + p.totalBogeys, 0);
@@ -1449,6 +1461,8 @@ const Leaderboard = {
   seasonBogeyTracker: [],
   seasonBogeyPot: 0,
   seasonStandingsSort: { col: 'total', descending: false },
+  /** userId designated as first-place display tiebreak for seasonValue (if any). */
+  seasonTiebreakUserId: null,
   /** Columns: 'player' | 'total' | 'tid:${tournamentId}' */
   seasonStatsSortEagles: { col: 'total', descending: true },
   seasonStatsSortBogeys: { col: 'total', descending: true },
@@ -1585,9 +1599,74 @@ const Leaderboard = {
 
   /** Same row tie-break after primary sort comparison. */
   compareSeasonStandingsTiebreaker(a, b) {
+    if (a.firstPlaceTiebreakWinner && !b.firstPlaceTiebreakWinner) return -1;
+    if (b.firstPlaceTiebreakWinner && !a.firstPlaceTiebreakWinner) return 1;
     return String(a.displayName || '').localeCompare(String(b.displayName || ''), undefined, {
       sensitivity: 'base'
     });
+  },
+
+  async loadStandingsTiebreakConfig() {
+    try {
+      const cached = await FirestoreCache.getDoc('config', 'seasonTiebreakers', {
+        ttlMs: 15 * 60 * 1000
+      });
+      if (!cached.exists) return { bySeason: {}, byTournament: {} };
+      return {
+        bySeason: cached.data.bySeason || {},
+        byTournament: cached.data.byTournament || {}
+      };
+    } catch (error) {
+      console.warn('Could not load standings tiebreakers:', error);
+      return { bySeason: {}, byTournament: {} };
+    }
+  },
+
+  async loadSeasonTiebreakUserId(season) {
+    if (season == null) {
+      this.seasonTiebreakUserId = null;
+      return null;
+    }
+    const cfg = await this.loadStandingsTiebreakConfig();
+    const userId = cfg.bySeason[String(season)]?.userId || null;
+    this.seasonTiebreakUserId = userId;
+    return userId;
+  },
+
+  async loadTournamentTiebreakUserId(tournamentId) {
+    if (!tournamentId) return null;
+    const cfg = await this.loadStandingsTiebreakConfig();
+    return cfg.byTournament[tournamentId]?.userId || null;
+  },
+
+  /**
+   * Among players tied for the best total, put the admin-designated
+   * tiebreak winner first. Does not change scores or T1 labels.
+   */
+  applyFirstPlaceTiebreak(standings, tiebreakUserId) {
+    if (!standings?.length) return standings || [];
+    standings.forEach((p) => { p.firstPlaceTiebreakWinner = false; });
+    if (!tiebreakUserId) return standings;
+
+    const best = standings[0].totalToPar;
+    const firstGroup = standings.filter((p) => p.totalToPar === best);
+    if (firstGroup.length < 2) return standings;
+
+    const winnerIdx = firstGroup.findIndex((p) =>
+      AccountMerges.isSamePlayer(p.userId, tiebreakUserId)
+    );
+    if (winnerIdx < 0) return standings;
+
+    const winner = firstGroup[winnerIdx];
+    winner.firstPlaceTiebreakWinner = true;
+    const othersFirst = firstGroup.filter((p) => p !== winner);
+    const rest = standings.filter((p) => p.totalToPar !== best);
+    return [winner, ...othersFirst, ...rest];
+  },
+
+  /** @deprecated use applyFirstPlaceTiebreak */
+  applySeasonFirstPlaceTiebreak(standings, tiebreakUserId) {
+    return this.applyFirstPlaceTiebreak(standings, tiebreakUserId);
   },
 
   compareSeasonStandingsRows(a, b, cfg) {

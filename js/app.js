@@ -353,8 +353,627 @@ const App = {
     }
   },
 
+  /** Open leaderboard on Season tab after navigating from Home. */
+  pendingLeaderboardSeasonView: false,
+
+  getCompletedTournamentCount(season = this.currentSeason) {
+    return this.getTournamentsForSeason(season).filter((t) => t.status === 'completed').length;
+  },
+
+  getPreviousCompletedTournament(season = this.currentSeason) {
+    return this.getTournamentsForSeason(season)
+      .filter((t) => t.status === 'completed')
+      .sort((a, b) => {
+        const aMs = (a.startDateObj || this.toTournamentDate(a.startDate))?.getTime() || 0;
+        const bMs = (b.startDateObj || this.toTournamentDate(b.startDate))?.getTime() || 0;
+        return bMs - aMs;
+      })[0] || null;
+  },
+
+  getNextTournament(season = this.currentSeason) {
+    const now = Date.now();
+    const candidates = this.getTournamentsForSeason(season)
+      .filter((t) => {
+        if (t.status === 'upcoming') return true;
+        if (t.status === 'completed' || t.status === 'lineup_open' || t.status === 'in_progress') {
+          return false;
+        }
+        const start = t.startDateObj || this.toTournamentDate(t.startDate);
+        return start && start.getTime() > now;
+      })
+      .sort((a, b) => {
+        const aMs = (a.startDateObj || this.toTournamentDate(a.startDate))?.getTime() || 0;
+        const bMs = (b.startDateObj || this.toTournamentDate(b.startDate))?.getTime() || 0;
+        return aMs - bMs;
+      });
+    return candidates[0] || null;
+  },
+
+  getHomePhasePreviewFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const preview = (params.get('previewHome') || '').trim().toLowerCase();
+    const allowed = new Set([
+      'signed_out',
+      'lineup_open',
+      'in_progress',
+      'between_majors',
+      'season_over'
+    ]);
+    return allowed.has(preview) ? preview : null;
+  },
+
+  /** Stand-in major when previewing lineup_open / in_progress with no live tournament. */
+  getHomePreviewTournament(season = this.currentSeason) {
+    if (this.activeTournament) return this.activeTournament;
+    const completed = this.getTournamentsForSeason(season)
+      .filter((t) => t.status === 'completed')
+      .sort((a, b) => {
+        const aMs = (a.startDateObj || this.toTournamentDate(a.startDate))?.getTime() || 0;
+        const bMs = (b.startDateObj || this.toTournamentDate(b.startDate))?.getTime() || 0;
+        return bMs - aMs;
+      });
+    return completed[0] || this.getTournamentsForSeason(season)[0] || null;
+  },
+
+  getHomePhase() {
+    const preview = this.getHomePhasePreviewFromUrl();
+    if (preview) return preview;
+    if (!Auth.currentUser) return 'signed_out';
+    const active = this.activeTournament;
+    if (active?.status === 'lineup_open') return 'lineup_open';
+    if (active?.status === 'in_progress') return 'in_progress';
+    // Four majors per season: once all are completed, wrap the season.
+    if (this.getCompletedTournamentCount(this.currentSeason) >= 4) return 'season_over';
+    return 'between_majors';
+  },
+
+  homePhaseLabel(phase) {
+    return {
+      signed_out: 'League',
+      lineup_open: 'Lineups Open',
+      in_progress: 'In Progress',
+      between_majors: 'Between Majors',
+      season_over: 'Season Complete'
+    }[phase] || '';
+  },
+
+  formatHomeOrdinal(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return '';
+    const mod100 = v % 100;
+    if (mod100 >= 11 && mod100 <= 13) return `${v}th`;
+    switch (v % 10) {
+      case 1: return `${v}st`;
+      case 2: return `${v}nd`;
+      case 3: return `${v}rd`;
+      default: return `${v}th`;
+    }
+  },
+
+  formatHomeLockTime(ts) {
+    const d = this.parseTournamentTimestamp(ts);
+    if (!d) return null;
+    return d.toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  },
+
+  findStandingForUser(standings, userId) {
+    if (!standings?.length || !userId) return null;
+    return standings.find((p) => AccountMerges.isSamePlayer(p.userId, userId)) || null;
+  },
+
+  async getHomeTournamentStandings(tournamentId) {
+    if (
+      Leaderboard.currentTournamentId === tournamentId &&
+      Array.isArray(Leaderboard.currentStandings)
+    ) {
+      const tb = await Leaderboard.loadTournamentTiebreakUserId(tournamentId);
+      Leaderboard.currentStandings = Leaderboard.applyFirstPlaceTiebreak(
+        [...Leaderboard.currentStandings],
+        tb
+      );
+      return Leaderboard.currentStandings;
+    }
+    const tournament =
+      this.activeTournament?.id === tournamentId
+        ? this.activeTournament
+        : this.allTournaments.find((t) => t.id === tournamentId);
+    const standings = await Leaderboard.calculateStandings(tournamentId, {
+      tournament: tournament || undefined
+    });
+    Leaderboard.currentTournamentId = tournamentId;
+    Leaderboard.currentStandings = standings;
+    return standings;
+  },
+
+  async getHomeSeasonSnapshot(season) {
+    if (
+      Leaderboard.seasonValue === season &&
+      Array.isArray(Leaderboard.seasonStandings)
+    ) {
+      const tb = await Leaderboard.loadSeasonTiebreakUserId(season);
+      Leaderboard.seasonStandings = Leaderboard.applyFirstPlaceTiebreak(
+        [...Leaderboard.seasonStandings],
+        tb
+      );
+      return {
+        standings: Leaderboard.seasonStandings,
+        bogeyPot: Leaderboard.seasonBogeyPot || 0
+      };
+    }
+    const result = await Leaderboard.calculateSeasonStandings(season);
+    Leaderboard.seasonValue = season;
+    Leaderboard.seasonStandings = result.standings;
+    Leaderboard.seasonBogeyPot = result.bogeyPot;
+    return { standings: result.standings, bogeyPot: result.bogeyPot };
+  },
+
+  buildHomeStandingsSnapshotHtml(standings, userId, { scoreKey = 'totalToPar', emptyLabel = 'No standings yet', limit = 3 } = {}) {
+    if (!standings?.length) {
+      return `<p class="home-support">${emptyLabel}</p>`;
+    }
+    const top = standings.slice(0, limit);
+    const you = this.findStandingForUser(standings, userId);
+    const rows = [...top];
+    if (you && !top.some((p) => AccountMerges.isSamePlayer(p.userId, you.userId))) {
+      rows.push(you);
+    }
+    const items = rows.map((p) => {
+      const isYou = AccountMerges.isSamePlayer(p.userId, userId);
+      const score = p[scoreKey];
+      const scoreClass = Leaderboard.getScoreClass(score);
+      const posLabel = p.tied ? `T${p.position}` : String(p.position);
+      const name = isYou ? `${p.displayName || 'You'} (you)` : (p.displayName || 'Player');
+      return `<li class="${isYou ? 'is-you' : ''}">
+        <span class="pos">${posLabel}</span>
+        <span class="name">${name}</span>
+        <span class="score ${scoreClass}">${Scoring.formatToPar(score)}</span>
+      </li>`;
+    }).join('');
+    return `<ul class="home-standings-list">${items}</ul>`;
+  },
+
+  openSeasonLeaderboard() {
+    this.pendingLeaderboardSeasonView = true;
+    if (window.location.hash === '#leaderboard') {
+      this.showView('leaderboard');
+    } else {
+      window.location.hash = 'leaderboard';
+    }
+  },
+
+  bindHomeDashboardActions(container) {
+    container.querySelector('#home-sign-in')?.addEventListener('click', () => Auth.signInWithGoogle());
+    container.querySelector('#home-cta-season')?.addEventListener('click', () => this.openSeasonLeaderboard());
+    container.querySelector('#home-cta-season-inline')?.addEventListener('click', () => this.openSeasonLeaderboard());
+    container.querySelector('#home-prev-major-lb')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tournamentId = e.currentTarget.dataset.tournamentId;
+      const tournament = this.allTournaments.find((t) => t.id === tournamentId);
+      if (tournament) {
+        this.selectedLeaderboardTournament = tournament;
+        this.pendingLeaderboardSeasonView = false;
+      }
+      window.location.hash = 'leaderboard';
+    });
+    container.querySelectorAll('[data-nav]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.hash = el.dataset.nav;
+      });
+    });
+
+    const scorecardMount = container.querySelector('#home-scorecard-body');
+    if (scorecardMount) {
+      const labelEl = container.querySelector('.home-scorecard-header .home-snapshot-label');
+      container.querySelectorAll('.home-round-toggle .round-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const round = parseInt(btn.dataset.round, 10);
+          if (!round) return;
+          container.querySelectorAll('.home-round-toggle .round-btn').forEach((b) => {
+            b.classList.toggle('active', b === btn);
+          });
+          if (labelEl) labelEl.textContent = `Your scorecard · Round ${round}`;
+          const player = this._homeScorecardPlayer;
+          const userId = this._homeScorecardUserId;
+          if (!player) return;
+          scorecardMount.innerHTML = Leaderboard.renderHoleByHoleDetails(player, round, userId);
+        });
+      });
+    }
+  },
+
+  buildHomeLiveScorecardHtml(player, userId, roundNumber) {
+    if (!player) return '';
+    this._homeScorecardPlayer = player;
+    this._homeScorecardUserId = userId;
+    const roundBtns = [1, 2, 3, 4].map((r) =>
+      `<button type="button" class="round-btn ${r === roundNumber ? 'active' : ''}" data-round="${r}">R${r}</button>`
+    ).join('');
+    return `
+      <div class="home-scorecard">
+        <div class="home-scorecard-header">
+          <p class="home-snapshot-label">Your scorecard · Round ${roundNumber}</p>
+          <div class="home-round-toggle">${roundBtns}</div>
+        </div>
+        <div id="home-scorecard-body" data-player-id="${player.userId}">
+          ${Leaderboard.renderHoleByHoleDetails(player, roundNumber, userId)}
+        </div>
+      </div>
+    `;
+  },
+
+  async getHomeLineupStatus(tournamentId, userId) {
+    const lineups = userId
+      ? await Lineup.loadUserLineups(tournamentId, userId)
+      : { rounds_1_2: null, rounds_3_4: null };
+    const r12Count = lineups.rounds_1_2?.golfers?.length || 0;
+    const r34Count = lineups.rounds_3_4?.golfers?.length || 0;
+    return {
+      r12Count,
+      r34Count,
+      r12Ready: r12Count >= 4,
+      r34Ready: r34Count >= 4
+    };
+  },
+
+  homeLineupStatusValue(open, ready, count) {
+    if (!open) return '🔒 locked';
+    if (ready) return '✅ saved';
+    if (count) return `⚠️ ${count}/4`;
+    return '⚠️ not set';
+  },
+
+  buildHomeLineupStatusListHtml(status, { r12Open = true, r34Open = true } = {}) {
+    const rows = [
+      {
+        label: 'Rounds 1–2',
+        value: this.homeLineupStatusValue(r12Open, status.r12Ready, status.r12Count)
+      },
+      {
+        label: 'Rounds 3–4',
+        value: this.homeLineupStatusValue(r34Open, status.r34Ready, status.r34Count)
+      }
+    ];
+    return `
+      <ul class="home-lock-list">
+        ${rows.map((row) => `
+          <li>
+            <span class="home-lock-label">${row.label}</span>
+            <span class="home-lock-time">${row.value}</span>
+          </li>
+        `).join('')}
+      </ul>
+    `;
+  },
+
+  buildHomeLocksHtml(tournament, { include12 = true, include34 = true } = {}) {
+    const lock12 = include12 ? this.formatHomeLockTime(tournament?.lineupLockAtRounds12) : null;
+    const lock34 = include34 ? this.formatHomeLockTime(tournament?.lineupLockAtRounds34) : null;
+    if (!lock12 && !lock34) return '';
+    return `
+      <p class="home-snapshot-label">Locks</p>
+      <ul class="home-lock-list">
+        ${lock12 ? `<li><span class="home-lock-label">Rounds 1–2</span><span class="home-lock-time">${lock12}</span></li>` : ''}
+        ${lock34 ? `<li><span class="home-lock-label">Rounds 3–4</span><span class="home-lock-time">${lock34}</span></li>` : ''}
+      </ul>
+    `;
+  },
+
+  buildHomeLineupPanelHtml(tournament, status, { r12Open, r34Open }) {
+    const locksHtml = this.buildHomeLocksHtml(tournament, {
+      include12: r12Open,
+      include34: r34Open
+    });
+    return `
+      <div class="home-lineup-panel">
+        <p class="home-snapshot-label">Lineups</p>
+        ${this.buildHomeLineupStatusListHtml(status, { r12Open, r34Open })}
+        ${locksHtml}
+      </div>
+    `;
+  },
+
+  renderHomeShell({ title, badge, personal, support, ctaHtml, snapshotHtml, scorecardHtml = '', lineupPanelHtml = '', wide = false }) {
+    return `
+      <div class="home-dashboard${wide ? ' has-scorecard' : ''}">
+        <div class="home-status">
+          <h2 class="home-status-title">${title}</h2>
+          ${badge ? `<span class="home-status-badge">${badge}</span>` : ''}
+        </div>
+        ${personal ? `<p class="home-personal">${personal}</p>` : ''}
+        ${support ? `<p class="home-support">${support}</p>` : ''}
+        ${ctaHtml ? `<div class="home-cta">${ctaHtml}</div>` : ''}
+        ${lineupPanelHtml || ''}
+        ${scorecardHtml || ''}
+        ${snapshotHtml ? `<div class="home-snapshot">${snapshotHtml}</div>` : ''}
+      </div>
+    `;
+  },
+
   async loadHomeView() {
-    // Update tournament info is already done
+    const container = document.getElementById('home-dashboard');
+    if (!container) return;
+
+    container.innerHTML = '<div class="loading">Loading...</div>';
+
+    try {
+      await AccountMerges.loadMerges();
+      const phase = this.getHomePhase();
+      let badge = this.homePhaseLabel(phase);
+      const userId = Auth.currentUser
+        ? AccountMerges.getEffectiveUserId(Auth.currentUser.uid)
+        : null;
+      const season = this.currentSeason;
+      const previewing = !!this.getHomePhasePreviewFromUrl();
+      const active = (phase === 'lineup_open' || phase === 'in_progress')
+        ? (this.activeTournament || this.getHomePreviewTournament(season))
+        : this.activeTournament;
+      const next = this.getNextTournament(season);
+
+      let title = 'Majors Best Ball';
+      let personal = '';
+      let support = '';
+      let ctaHtml = '';
+      let snapshotHtml = '';
+      let scorecardHtml = '';
+      let lineupPanelHtml = '';
+      let wide = false;
+
+      if (phase === 'signed_out') {
+        const liveOrNext = active || next;
+        title = 'Majors Best Ball';
+        personal = 'Pick 4 golfers. Best ball on every hole. Lowest score wins the major.';
+        support = liveOrNext
+          ? `${liveOrNext.name}${active?.status === 'in_progress' || phase === 'in_progress' ? ' is live' : active?.status === 'lineup_open' || phase === 'lineup_open' ? ' lineups are open' : ' is next'}. Sign in to play.`
+          : `${season} season — sign in to join the league.`;
+        ctaHtml = `<button type="button" class="btn btn-primary" id="home-sign-in">Sign in with Google</button>`;
+        if (liveOrNext) {
+          const range = this.formatTournamentDateRange(liveOrNext);
+          snapshotHtml = `
+            <p class="home-snapshot-label">${active ? 'Current major' : 'Next major'}</p>
+            <p class="home-next-major"><strong>${liveOrNext.name}</strong>${range ? ` · ${range}` : ''}</p>
+          `;
+        }
+      } else if (phase === 'lineup_open') {
+        if (!active) {
+          container.innerHTML = this.renderHomeShell({
+            title: 'No tournament to preview',
+            badge,
+            personal: 'Add a tournament for this season to preview lineup_open.',
+            support: previewing ? 'Using ?previewHome=lineup_open' : '',
+            ctaHtml: '',
+            snapshotHtml: ''
+          });
+          return;
+        }
+        title = active.name;
+        const status = await this.getHomeLineupStatus(active.id, userId);
+        personal = status.r12Ready && status.r34Ready
+          ? 'Both lineups are ready — you can still edit until lock.'
+          : 'Finish your lineups before they lock.';
+        support = previewing ? 'Preview mode.' : '';
+        const ctaLabel = status.r12Ready && status.r34Ready ? 'Edit lineup' : 'Submit lineup';
+        ctaHtml = `<a href="#lineup" class="btn btn-primary" data-nav="lineup">${ctaLabel}</a>`;
+        const locksHtml = this.buildHomeLocksHtml(active);
+        snapshotHtml = `
+          <p class="home-snapshot-label">Lineups</p>
+          ${this.buildHomeLineupStatusListHtml(status)}
+          ${locksHtml}
+        `;
+      } else if (phase === 'in_progress') {
+        if (!active) {
+          container.innerHTML = this.renderHomeShell({
+            title: 'No tournament to preview',
+            badge,
+            personal: 'Add a tournament for this season to preview in_progress.',
+            support: previewing ? 'Using ?previewHome=in_progress' : '',
+            ctaHtml: '',
+            snapshotHtml: ''
+          });
+          return;
+        }
+        title = active.name;
+        await this.checkRoundStatus(active.id);
+        let r12Open = !this.round1Started;
+        let r34Open = !this.round3Started;
+        // Preview: force the mid-major hybrid (R1–2 locked, R3–4 still open) for UI testing.
+        if (previewing) {
+          r12Open = false;
+          r34Open = true;
+        }
+        const lineupsStillOpen = r12Open || r34Open;
+
+        const standings = await this.getHomeTournamentStandings(active.id);
+        const you = this.findStandingForUser(standings, userId);
+        if (you) {
+          const place = you.tied
+            ? `T-${this.formatHomeOrdinal(you.position)}`
+            : this.formatHomeOrdinal(you.position);
+          personal = `You’re ${place} (${Scoring.formatToPar(you.totalToPar)})`;
+        } else {
+          personal = 'No lineup submitted';
+        }
+
+        const lastUpdated = Leaderboard.cachedLastUpdated
+          ? Leaderboard.formatLastUpdated(Leaderboard.cachedLastUpdated)
+          : '';
+        const openNote = lineupsStillOpen
+          ? (r34Open && !r12Open
+            ? 'Rounds 3–4 lineups still open'
+            : r12Open && r34Open
+              ? 'Lineups still open'
+              : 'Rounds 1–2 lineups still open')
+          : '';
+        support = [lastUpdated, openNote, previewing ? 'Preview mode' : '']
+          .filter(Boolean)
+          .join(' · ');
+
+        if (lineupsStillOpen) {
+          badge = 'Live · Lineups Open';
+          const status = await this.getHomeLineupStatus(active.id, userId);
+          const openReady = (!r12Open || status.r12Ready) && (!r34Open || status.r34Ready);
+          const lineupCta = openReady ? 'Edit lineup' : (r34Open && !r12Open ? 'Submit R3–4 lineup' : 'Submit lineup');
+          ctaHtml = `
+            <a href="#lineup" class="btn btn-primary" data-nav="lineup">${lineupCta}</a>
+            <a href="#leaderboard" class="btn btn-outline" data-nav="leaderboard" style="margin-left:8px">View Leaderboard</a>
+          `;
+          lineupPanelHtml = this.buildHomeLineupPanelHtml(active, status, { r12Open, r34Open });
+        } else {
+          ctaHtml = `<a href="#leaderboard" class="btn btn-primary" data-nav="leaderboard">View Leaderboard</a>`;
+        }
+
+        if (you) {
+          const roundNumber = Leaderboard.selectedRound || 1;
+          scorecardHtml = this.buildHomeLiveScorecardHtml(you, userId, roundNumber);
+          wide = true;
+        }
+        snapshotHtml = `
+          <p class="home-snapshot-label">Live top 10</p>
+          ${this.buildHomeStandingsSnapshotHtml(standings, userId, { limit: 10, emptyLabel: 'Scores will appear as play continues.' })}
+        `;
+      } else if (phase === 'between_majors') {
+        title = `${season} Season`;
+        const { standings } = await this.getHomeSeasonSnapshot(season);
+        const previous = this.getPreviousCompletedTournament(season);
+        let previousStandings = [];
+        if (previous) {
+          previousStandings = await this.getHomeTournamentStandings(previous.id);
+        }
+        const you = this.findStandingForUser(standings, userId);
+        if (you) {
+          const place = you.tied
+            ? `T-${this.formatHomeOrdinal(you.position)}`
+            : this.formatHomeOrdinal(you.position);
+          personal = `You’re ${place} for the season (${Scoring.formatToPar(you.totalToPar)})`;
+        } else {
+          personal = 'No season results yet';
+        }
+        const range = next ? this.formatTournamentDateRange(next) : '';
+        support = next
+          ? `Next up: ${next.name}${range ? ` · ${range}` : ''}`
+          : '';
+        ctaHtml = `<button type="button" class="btn btn-primary" id="home-cta-season">View Season Standings</button>`;
+        wide = true;
+        const previousLabel = previous ? `${previous.name}` : 'Previous major';
+        snapshotHtml = `
+          <div class="home-dual-standings">
+            <div class="home-dual-panel">
+              <div class="home-dual-panel-header">
+                <p class="home-snapshot-label">Season top 10</p>
+                <button type="button" class="home-panel-link" id="home-cta-season-inline">Full season standings</button>
+              </div>
+              ${this.buildHomeStandingsSnapshotHtml(standings, userId, { limit: 10, emptyLabel: 'Season standings will appear after the first major.' })}
+            </div>
+            <div class="home-dual-panel">
+              <div class="home-dual-panel-header">
+                <p class="home-snapshot-label">${previousLabel} top 10</p>
+                ${previous
+                  ? `<a href="#leaderboard" class="home-panel-link" id="home-prev-major-lb" data-tournament-id="${previous.id}">View leaderboard</a>`
+                  : ''}
+              </div>
+              ${previous
+                ? this.buildHomeStandingsSnapshotHtml(previousStandings, userId, { limit: 10, emptyLabel: 'No standings for the previous major.' })
+                : '<p class="home-support">No completed major yet this season.</p>'}
+            </div>
+          </div>
+          ${next ? `<p class="home-meta home-next-major" style="margin-top:16px"><strong>${next.name}</strong>${range ? ` · ${range}` : ''}</p>` : ''}
+        `;
+      } else {
+        // season_over
+        title = `${season} Season`;
+        const { standings } = await this.getHomeSeasonSnapshot(season);
+        const champ = standings.find((p) => p.firstPlaceTiebreakWinner) || standings[0] || null;
+        const you = this.findStandingForUser(standings, userId);
+        if (champ) {
+          const champScore = Scoring.formatToPar(champ.totalToPar);
+          const tiedForFirst = !!champ.tied && champ.position === 1 && !champ.firstPlaceTiebreakWinner;
+          const coLeaders = standings.filter((p) => p.position === 1);
+          const champIsYou = you && AccountMerges.isSamePlayer(champ.userId, you.userId);
+          const youTiedFirst = you && you.position === 1 && you.tied && !champ.firstPlaceTiebreakWinner;
+
+          if (champ.firstPlaceTiebreakWinner) {
+            personal = champIsYou
+              ? `You (${champScore}) won the season`
+              : `${champ.displayName} (${champScore}) won the season`;
+            support = you && !champIsYou
+              ? `You finished ${you.tied ? `T-${this.formatHomeOrdinal(you.position)}` : this.formatHomeOrdinal(you.position)} (${Scoring.formatToPar(you.totalToPar)})`
+              : 'Season wrap — see full standings and past winners.';
+          } else if (tiedForFirst) {
+            if (youTiedFirst) {
+              personal = `You’re tied for 1st (${champScore})`;
+            } else {
+              const names = coLeaders.map((p) => p.displayName).filter(Boolean);
+              personal = names.length
+                ? `${names.join(' & ')} tied for 1st (${champScore})`
+                : `Tied for 1st (${champScore})`;
+            }
+            support = you && !youTiedFirst
+              ? `You finished ${you.tied ? `T-${this.formatHomeOrdinal(you.position)}` : this.formatHomeOrdinal(you.position)} (${Scoring.formatToPar(you.totalToPar)})`
+              : 'Season wrap — see full standings and past winners.';
+          } else if (champIsYou) {
+            personal = `You (${champScore}) won the season`;
+            support = 'Season wrap — see full standings and past winners.';
+          } else {
+            personal = `${champ.displayName} (${champScore}) won the season`;
+            if (you) {
+              const place = you.tied
+                ? `T-${this.formatHomeOrdinal(you.position)}`
+                : this.formatHomeOrdinal(you.position);
+              support = `You finished ${place} (${Scoring.formatToPar(you.totalToPar)})`;
+            } else {
+              support = 'Season wrap — see full standings and past winners.';
+            }
+          }
+        } else {
+          personal = `${season} season is complete`;
+          support = 'Check History for previous winners.';
+        }
+        ctaHtml = `
+          <button type="button" class="btn btn-primary" id="home-cta-season">View Season Standings</button>
+          <a href="#history" class="btn btn-outline" data-nav="history" style="margin-left:8px">History</a>
+        `;
+        let winnersTease = '';
+        try {
+          const cached = await FirestoreCache.getDoc('config', 'historicalWinners', {
+            ttlMs: 30 * 60 * 1000
+          });
+          const winners = cached.exists ? (cached.data.winners || []) : [];
+          const seasonWinner = winners.find(
+            (w) => String(w.year) === String(season) && w.tournament === 'season'
+          );
+          if (seasonWinner?.name) {
+            winnersTease = `<p class="home-meta">Hall of Fame: ${seasonWinner.name} (${season} season)</p>`;
+          }
+        } catch (_) { /* ignore */ }
+        snapshotHtml = `
+          <p class="home-snapshot-label">Final top 10</p>
+          ${this.buildHomeStandingsSnapshotHtml(standings, userId, { limit: 10, emptyLabel: 'No season standings available.' })}
+          ${winnersTease}
+        `;
+      }
+
+      container.innerHTML = this.renderHomeShell({
+        title,
+        badge,
+        personal,
+        support,
+        ctaHtml,
+        lineupPanelHtml,
+        scorecardHtml,
+        snapshotHtml,
+        wide
+      });
+      this.bindHomeDashboardActions(container);
+    } catch (error) {
+      console.error('Error loading home dashboard:', error);
+      container.innerHTML = '<div class="no-data">Could not load home dashboard</div>';
+    }
   },
 
   // Track current lineup state
@@ -810,6 +1429,26 @@ const App = {
     this.setupLeaderboardTournamentSubviewToggle();
     this.setupTournamentSelector();
     this.setupSeasonSelector();
+
+    if (this.pendingLeaderboardSeasonView) {
+      this.pendingLeaderboardSeasonView = false;
+      const tournamentBtn = document.getElementById('btn-tournament-view');
+      const seasonBtn = document.getElementById('btn-season-view');
+      const tournamentView = document.getElementById('leaderboard-tournament');
+      const seasonView = document.getElementById('leaderboard-season');
+      if (seasonBtn && tournamentBtn && seasonView && tournamentView) {
+        seasonBtn.classList.add('active');
+        tournamentBtn.classList.remove('active');
+        seasonView.classList.add('active');
+        tournamentView.classList.remove('active');
+        await Leaderboard.renderSeasonStandings(
+          'season-leaderboard-content',
+          Auth.currentUser?.uid,
+          this.currentSeason
+        );
+        return;
+      }
+    }
     
     // Load tournament leaderboard
     const tournamentToLoad = this.selectedLeaderboardTournament || this.activeTournament;
