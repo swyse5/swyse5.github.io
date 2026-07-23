@@ -354,6 +354,10 @@ const Scoring = {
     // Check for eagles and send alerts to chat
     if (typeof Chat !== 'undefined' && Chat.checkForEagles) {
       try {
+        // League chat is always the "general" room (same as the main app)
+        if (!Chat.currentTournamentId) {
+          Chat.currentTournamentId = 'general';
+        }
         const lineups = await Lineup.getAllLineups(tournamentId);
         await Chat.checkForEagles(tournamentId, golferScores, lineups);
       } catch (error) {

@@ -812,6 +812,56 @@
         </div>
       </div>
 
+      <!-- First-place tiebreaks (season or tournament) -->
+      <div class="admin-section">
+        <h2>First-place tiebreaks</h2>
+        <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+          Optional. When two or more players are tied for the best score, pick who should appear first
+          on standings and Home. Scores stay tied (T1); this only sets display order / champion callout.
+        </p>
+        <div class="form-group">
+          <label for="tb-scope">Apply to</label>
+          <select id="tb-scope" class="form-control" style="max-width: 280px;">
+            <option value="season">Season standings</option>
+            <option value="tournament">Tournament standings</option>
+          </select>
+        </div>
+        <div id="tb-season-fields" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label for="season-tb-year">Season</label>
+            <select id="season-tb-year" class="form-control">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+              <option value="2023">2023</option>
+            </select>
+          </div>
+        </div>
+        <div id="tb-tournament-fields" style="display: none; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label for="tb-tournament">Tournament</label>
+            <select id="tb-tournament" class="form-control">
+              <option value="">Loading tournaments...</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="season-tb-user">Tiebreak winner</label>
+          <select id="season-tb-user" class="form-control">
+            <option value="">Loading users...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="season-tb-note">Note (optional)</label>
+          <input type="text" id="season-tb-note" class="form-control" maxlength="200" placeholder="e.g., won 2 majors, countback, etc.">
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+          <button type="button" id="save-season-tb" class="btn btn-primary">Save tiebreak</button>
+          <button type="button" id="clear-season-tb" class="btn btn-outline">Clear</button>
+          <span id="season-tb-status" style="color: var(--text-secondary); font-size: 13px;"></span>
+        </div>
+      </div>
+
       <!-- Previous Winners -->
       <div class="admin-section">
         <h2>Previous Winners</h2>
@@ -1015,6 +1065,9 @@
   <script src="js/firebase-config.js"></script>
   <script src="js/analytics.js"></script>
   <script src="js/scoring.js"></script>
+  <script src="js/ideal-lineup.js"></script>
+  <script src="js/lineup.js"></script>
+  <script src="js/chat.js"></script>
   <script src="js/account-merges.js"></script>
   
   <script>
@@ -1186,6 +1239,7 @@ service cloud.firestore {
           this.loadGolferPickStatsConfig();
           this.loadAdminEmails();
           this.loadHistoricalWinners();
+          this.loadSeasonTiebreakAdmin();
           this.loadManualBogeys();
           this.setupBogeyDropdowns();
           this.loadAccountMergeAdmin();
@@ -1247,6 +1301,11 @@ service cloud.firestore {
 
         document.getElementById('save-site-banner')?.addEventListener('click', () => this.saveSiteBanner());
         document.getElementById('save-golfer-pick-stats')?.addEventListener('click', () => this.saveGolferPickStatsConfig());
+        document.getElementById('save-season-tb')?.addEventListener('click', () => this.saveStandingsTiebreak());
+        document.getElementById('clear-season-tb')?.addEventListener('click', () => this.clearStandingsTiebreak());
+        document.getElementById('season-tb-year')?.addEventListener('change', () => this.populateStandingsTiebreakForm());
+        document.getElementById('tb-tournament')?.addEventListener('change', () => this.populateStandingsTiebreakForm());
+        document.getElementById('tb-scope')?.addEventListener('change', () => this.onTiebreakScopeChange());
 
         // Manage golfer field
         document.getElementById('manage-golfer-tournament-select')?.addEventListener('change', (e) => {
@@ -1405,6 +1464,7 @@ service cloud.firestore {
                   <option value="completed" ${t.status === 'completed' ? 'selected' : ''}>Completed</option>
                 </select>
                 <button class="btn btn-outline btn-sm" onclick="TournamentAdmin.deleteTournament('${t.id}')">Delete</button>
+                ${t.status === 'completed' ? `<button class="btn btn-outline btn-sm" onclick="TournamentAdmin.computeIdealLineups('${t.id}')">Ideal lineups</button>` : ''}
               </div>
             </div>
           `;
@@ -1593,8 +1653,39 @@ service cloud.firestore {
             status: newStatus
           });
           this.loadTournaments();
+          if (newStatus === 'completed' && typeof IdealLineup !== 'undefined') {
+            if (confirm('Tournament marked complete. Compute ideal lineups now?\n\nThis searches the full field for the best salary-cap lineup per round and may take up to a minute.')) {
+              await this.computeIdealLineups(tournamentId);
+            }
+          }
         } catch (error) {
           alert('Error updating status: ' + error.message);
+        }
+      },
+
+      async computeIdealLineups(tournamentId) {
+        if (typeof IdealLineup === 'undefined') {
+          alert('Ideal lineup module failed to load.');
+          return;
+        }
+        const statusEl = document.getElementById('last-update');
+        const setStatus = (msg) => {
+          if (statusEl) statusEl.textContent = msg;
+        };
+        try {
+          setStatus('Computing ideal lineups…');
+          const result = await IdealLineup.computeAndSave(tournamentId, {
+            onProgress: (msg) => setStatus(msg)
+          });
+          const lines = (result._summary || []).map((s) =>
+            `R${s.round}: ${s.tiedLineups} ideal lineup(s) at ${s.score == null ? '—' : s.score} (${s.candidates} golfers in pool)`
+          );
+          setStatus('Ideal lineups saved.');
+          alert(`Ideal lineups computed and saved.\n\n${lines.join('\n')}\n\nIf every round shows 1, only one roster hit that optimal score under the cap.`);
+        } catch (error) {
+          console.error(error);
+          setStatus('Ideal lineup compute failed.');
+          alert('Error computing ideal lineups: ' + error.message);
         }
       },
 
@@ -1918,6 +2009,190 @@ service cloud.firestore {
           alert('Admin list saved!');
         } catch (error) {
           alert('Error saving admins: ' + error.message);
+        }
+      },
+
+      // First-place tiebreaks (season and/or tournament display order)
+      seasonTiebreakers: {},
+      tournamentTiebreakers: {},
+
+      async loadSeasonTiebreakAdmin() {
+        try {
+          await this.loadAccountMergeCandidates();
+          const userSelect = document.getElementById('season-tb-user');
+          if (userSelect) {
+            const users = (this.accountMergeCandidates || [])
+              .slice()
+              .sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', undefined, { sensitivity: 'base' }));
+            userSelect.innerHTML = '<option value="">— None —</option>' +
+              users.map((u) =>
+                `<option value="${u.userId}">${this.escapeAdminHtml(u.displayName || u.userId)}</option>`
+              ).join('');
+          }
+
+          await this.populateTiebreakTournamentSelect();
+
+          const doc = await firebaseDb.collection('config').doc('seasonTiebreakers').get();
+          const data = doc.exists ? doc.data() : {};
+          this.seasonTiebreakers = data.bySeason || {};
+          this.tournamentTiebreakers = data.byTournament || {};
+          this.onTiebreakScopeChange();
+        } catch (error) {
+          console.error('Error loading standings tiebreakers:', error);
+          const status = document.getElementById('season-tb-status');
+          if (status) status.textContent = 'Could not load tiebreak settings.';
+        }
+      },
+
+      async populateTiebreakTournamentSelect() {
+        const select = document.getElementById('tb-tournament');
+        if (!select) return;
+        let list = this.adminTournamentsCache || this.tournaments || [];
+        if (!list.length) {
+          try {
+            const snap = await firebaseDb.collection('tournaments').orderBy('startDate', 'desc').get();
+            list = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+            this.adminTournamentsCache = list;
+          } catch (error) {
+            console.warn('Could not load tournaments for tiebreak admin:', error);
+            list = [];
+          }
+        }
+        this.tournaments = list;
+        const sorted = list.slice().sort((a, b) => {
+          const aMs = a.startDate?.toMillis?.() || a.startDate?.seconds * 1000 || 0;
+          const bMs = b.startDate?.toMillis?.() || b.startDate?.seconds * 1000 || 0;
+          return bMs - aMs;
+        });
+        select.innerHTML = '<option value="">Select tournament...</option>' +
+          sorted.map((t) => {
+            const start = t.startDate?.toDate ? t.startDate.toDate() : (t.startDate?.seconds ? new Date(t.startDate.seconds * 1000) : null);
+            const year = start && !Number.isNaN(start.getTime()) ? start.getUTCFullYear() : '';
+            const label = `${t.name || t.id}${year ? ` (${year})` : ''}`;
+            return `<option value="${t.id}">${this.escapeAdminHtml(label)}</option>`;
+          }).join('');
+      },
+
+      onTiebreakScopeChange() {
+        const scope = document.getElementById('tb-scope')?.value || 'season';
+        const seasonFields = document.getElementById('tb-season-fields');
+        const tournamentFields = document.getElementById('tb-tournament-fields');
+        if (seasonFields) seasonFields.style.display = scope === 'season' ? 'grid' : 'none';
+        if (tournamentFields) tournamentFields.style.display = scope === 'tournament' ? 'grid' : 'none';
+        this.populateStandingsTiebreakForm();
+      },
+
+      populateStandingsTiebreakForm() {
+        const scope = document.getElementById('tb-scope')?.value || 'season';
+        const userSelect = document.getElementById('season-tb-user');
+        const noteInput = document.getElementById('season-tb-note');
+        const status = document.getElementById('season-tb-status');
+        let entry = null;
+        let contextLabel = '';
+
+        if (scope === 'tournament') {
+          const tournamentId = document.getElementById('tb-tournament')?.value;
+          entry = tournamentId ? this.tournamentTiebreakers[tournamentId] : null;
+          const t = (this.tournaments || []).find((x) => x.id === tournamentId);
+          contextLabel = t?.name || tournamentId || 'this tournament';
+        } else {
+          const year = document.getElementById('season-tb-year')?.value;
+          entry = year ? this.seasonTiebreakers[String(year)] : null;
+          contextLabel = year ? `${year} season` : 'this season';
+        }
+
+        if (userSelect) userSelect.value = entry?.userId || '';
+        if (noteInput) noteInput.value = entry?.note || '';
+        if (status) {
+          status.textContent = entry?.userId
+            ? `Current: ${entry.displayName || entry.userId} (${contextLabel})`
+            : `No tiebreak set for ${contextLabel}.`;
+        }
+      },
+
+      async saveStandingsTiebreak() {
+        const scope = document.getElementById('tb-scope')?.value || 'season';
+        const userId = document.getElementById('season-tb-user')?.value;
+        const note = document.getElementById('season-tb-note')?.value?.trim() || '';
+        const status = document.getElementById('season-tb-status');
+        if (!userId) {
+          alert('Select a user, or use Clear to remove the tiebreak.');
+          return;
+        }
+        const user = (this.accountMergeCandidates || []).find((u) => u.userId === userId);
+        const displayName = user?.displayName || userId;
+        const entry = {
+          userId,
+          displayName,
+          note: note || null,
+          updatedAt: firebase.firestore.Timestamp.now()
+        };
+
+        try {
+          if (scope === 'tournament') {
+            const tournamentId = document.getElementById('tb-tournament')?.value;
+            if (!tournamentId) {
+              alert('Select a tournament.');
+              return;
+            }
+            const byTournament = { ...(this.tournamentTiebreakers || {}) };
+            byTournament[tournamentId] = entry;
+            await firebaseDb.collection('config').doc('seasonTiebreakers').set({ byTournament }, { merge: true });
+            this.tournamentTiebreakers = byTournament;
+            const t = (this.tournaments || []).find((x) => x.id === tournamentId);
+            if (status) status.textContent = `Saved: ${displayName} for ${t?.name || tournamentId}`;
+            alert(`Tournament tiebreak winner set to ${displayName}.`);
+          } else {
+            const year = document.getElementById('season-tb-year')?.value;
+            if (!year) return;
+            const bySeason = { ...(this.seasonTiebreakers || {}) };
+            bySeason[String(year)] = entry;
+            await firebaseDb.collection('config').doc('seasonTiebreakers').set({ bySeason }, { merge: true });
+            this.seasonTiebreakers = bySeason;
+            if (status) status.textContent = `Saved: ${displayName} for ${year}`;
+            alert(`Season ${year} tiebreak winner set to ${displayName}.`);
+          }
+          if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/seasonTiebreakers');
+        } catch (error) {
+          alert('Error saving tiebreak: ' + error.message);
+        }
+      },
+
+      async clearStandingsTiebreak() {
+        const scope = document.getElementById('tb-scope')?.value || 'season';
+        try {
+          if (scope === 'tournament') {
+            const tournamentId = document.getElementById('tb-tournament')?.value;
+            if (!tournamentId) {
+              alert('Select a tournament.');
+              return;
+            }
+            const t = (this.tournaments || []).find((x) => x.id === tournamentId);
+            if (!confirm(`Clear first-place tiebreak for ${t?.name || tournamentId}?`)) return;
+            const byTournament = { ...(this.tournamentTiebreakers || {}) };
+            delete byTournament[tournamentId];
+            await firebaseDb.collection('config').doc('seasonTiebreakers').set({
+              bySeason: this.seasonTiebreakers || {},
+              byTournament
+            });
+            this.tournamentTiebreakers = byTournament;
+          } else {
+            const year = document.getElementById('season-tb-year')?.value;
+            if (!year) return;
+            if (!confirm(`Clear first-place tiebreak for ${year}?`)) return;
+            const bySeason = { ...(this.seasonTiebreakers || {}) };
+            delete bySeason[String(year)];
+            await firebaseDb.collection('config').doc('seasonTiebreakers').set({
+              bySeason,
+              byTournament: this.tournamentTiebreakers || {}
+            });
+            this.seasonTiebreakers = bySeason;
+          }
+          if (typeof FirestoreCache !== 'undefined') FirestoreCache.invalidate('config/seasonTiebreakers');
+          this.populateStandingsTiebreakForm();
+          alert('Tiebreak cleared.');
+        } catch (error) {
+          alert('Error clearing tiebreak: ' + error.message);
         }
       },
 

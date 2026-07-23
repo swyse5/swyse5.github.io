@@ -279,8 +279,11 @@ const Leaderboard = {
 
     standings = AccountMerges.consolidateStandings(standings);
 
-    // Sort by total to par (lowest first)
-    standings.sort((a, b) => a.totalToPar - b.totalToPar);
+    // Sort by total to par (lowest first); name A–Z for stable ties
+    standings.sort((a, b) => {
+      if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
+      return this.compareSeasonStandingsTiebreaker(a, b);
+    });
 
     // Assign positions (handle ties)
     let position = 1;
@@ -295,6 +298,9 @@ const Leaderboard = {
       }
       position++;
     });
+
+    const tiebreakUserId = await this.loadTournamentTiebreakUserId(tournamentId);
+    standings = this.applyFirstPlaceTiebreak(standings, tiebreakUserId);
 
     this.applyLeaderboardRoundDefaultsIfNeeded(tournamentId, tournamentStatus, scoresData, golferScores);
 
@@ -407,10 +413,20 @@ const Leaderboard = {
     this.selectedRound = r;
     this.fieldSelectedRound = r;
   },
-  // null = sort by golfer name; 0–17 = sort by that hole’s toPar
+  // null = sort by golfer name; 0–17 = hole toPar; 'birdieOrBetter' = birdie+ count
   fieldSortHoleIndex: null,
   fieldSortAsc: true,
   currentStandings: [],
+
+  countBirdieOrBetter(holes) {
+    if (!holes?.length) return 0;
+    let n = 0;
+    for (const hole of holes) {
+      if (!hole || hole.toPar === null || hole.toPar === undefined) continue;
+      if (hole.toPar <= -1) n += 1;
+    }
+    return n;
+  },
 
   getGolfersForRoundFromStandings(player, roundNumber) {
     const roundKey = `golfersRound${roundNumber}`;
@@ -487,11 +503,13 @@ const Leaderboard = {
           const normalized = Scoring.normalizeName(name);
           const golfer = this.cachedGolferScores[normalized];
           const roundData = golfer?.rounds?.[roundIndex];
+          const holes = roundData?.holes || Array(18).fill(null);
           return {
             name,
-            holes: roundData?.holes || Array(18).fill(null),
+            holes,
             totalToPar: roundData?.totalToPar ?? null,
-            pickCount: pickCounts.get(name) || 0
+            pickCount: pickCounts.get(name) || 0,
+            birdieOrBetter: this.countBirdieOrBetter(holes)
           };
         });
 
@@ -507,7 +525,15 @@ const Leaderboard = {
         }
 
         const sortedGolfers = [...golferHoleData];
-        if (this.fieldSortHoleIndex !== null && this.fieldSortHoleIndex >= 0 && this.fieldSortHoleIndex < 18) {
+        if (this.fieldSortHoleIndex === 'birdieOrBetter') {
+          sortedGolfers.sort((a, b) => {
+            // Asc = better first (more birdie-or-better holes)
+            let cmp = b.birdieOrBetter - a.birdieOrBetter;
+            if (!this.fieldSortAsc) cmp = -cmp;
+            if (cmp !== 0) return cmp;
+            return a.name.localeCompare(b.name);
+          });
+        } else if (this.fieldSortHoleIndex !== null && this.fieldSortHoleIndex >= 0 && this.fieldSortHoleIndex < 18) {
           const hi = this.fieldSortHoleIndex;
           sortedGolfers.sort((a, b) => {
             const aPar = getHoleToPar(a.holes[hi]);
@@ -530,6 +556,11 @@ const Leaderboard = {
         const nameSortActive = this.fieldSortHoleIndex === null;
         const nameDir = nameSortActive ? (this.fieldSortAsc ? 'sorted-asc' : 'sorted-desc') : '';
         const nameAriaSort = nameSortActive
+          ? (this.fieldSortAsc ? ' aria-sort="ascending"' : ' aria-sort="descending"')
+          : '';
+        const birdieSortActive = this.fieldSortHoleIndex === 'birdieOrBetter';
+        const birdieDir = birdieSortActive ? (this.fieldSortAsc ? 'sorted-asc' : 'sorted-desc') : '';
+        const birdieAriaSort = birdieSortActive
           ? (this.fieldSortAsc ? ' aria-sort="ascending"' : ' aria-sort="descending"')
           : '';
 
@@ -558,7 +589,8 @@ const Leaderboard = {
                       : '';
                     return `<th class="hole-col field-hole-sort ${dir}" data-hole-index="${idx}" scope="col" title="Sort by hole ${h} (best scores first)" tabindex="0"${ariaSort}>${h}</th>`;
                   }).join('')}
-                  <th class="total-col" scope="col">Tot</th>
+                  <th class="total-col" scope="col" title="Round total to par">Tot</th>
+                  <th class="total-col field-birdie-sort ${birdieDir}" scope="col" title="Birdie or better — holes scored birdie, eagle, or better. Click to sort (most first)." tabindex="0"${birdieAriaSort}>B+</th>
                 </tr>
               </thead>
               <tbody>
@@ -567,6 +599,7 @@ const Leaderboard = {
                   ${pars.slice(0, 9).map(p => `<td class="hole-col">${p || '-'}</td>`).join('')}
                   ${pars.slice(9, 18).map(p => `<td class="hole-col">${p || '-'}</td>`).join('')}
                   <td class="total-col">${pars.reduce((s, p) => s + (p || 0), 0) || '-'}</td>
+                  <td class="total-col">—</td>
                 </tr>
                 ${sortedGolfers.map((g) => {
                   const gFront = g.holes.slice(0, 9);
@@ -591,6 +624,7 @@ const Leaderboard = {
                     return `<td class="hole-col ${this.getScoreClass(toPar)}${loneClass}">${toPar !== null ? Scoring.formatToPar(toPar) : '-'}</td>`;
                   }).join('')}
                   <td class="total-col ${this.getScoreClass(g.totalToPar)}">${g.totalToPar !== null ? Scoring.formatToPar(g.totalToPar) : '-'}</td>
+                  <td class="total-col field-birdie-count">${g.birdieOrBetter}</td>
                 </tr>`;
                 }).join('')}
               </tbody>
@@ -633,6 +667,16 @@ const Leaderboard = {
       this.renderFieldView(containerId, tournamentId, currentUserId, this.currentStandings);
     };
 
+    const activateBirdieSort = () => {
+      if (this.fieldSortHoleIndex === 'birdieOrBetter') {
+        this.fieldSortAsc = !this.fieldSortAsc;
+      } else {
+        this.fieldSortHoleIndex = 'birdieOrBetter';
+        this.fieldSortAsc = true; // better (more) first
+      }
+      this.renderFieldView(containerId, tournamentId, currentUserId, this.currentStandings);
+    };
+
     container.querySelectorAll('th.field-hole-sort').forEach(th => {
       th.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -648,6 +692,19 @@ const Leaderboard = {
         activateHoleSort(hi);
       });
     });
+
+    const birdieSortTh = container.querySelector('th.field-birdie-sort');
+    if (birdieSortTh) {
+      birdieSortTh.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activateBirdieSort();
+      });
+      birdieSortTh.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        activateBirdieSort();
+      });
+    }
 
     const golferSortTh = container.querySelector('th.field-golfer-sort');
     if (golferSortTh) {
@@ -1324,9 +1381,12 @@ const Leaderboard = {
       }
     }
 
-    // Convert to array and sort
-    const standings = Array.from(playersMap.values());
-    standings.sort((a, b) => a.totalToPar - b.totalToPar);
+    // Convert to array and sort (lowest total first; name A–Z breaks score ties for stable UI order)
+    let standings = Array.from(playersMap.values());
+    standings.sort((a, b) => {
+      if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
+      return this.compareSeasonStandingsTiebreaker(a, b);
+    });
 
     // Assign positions
     let position = 1;
@@ -1341,6 +1401,9 @@ const Leaderboard = {
       }
       position++;
     });
+
+    const tiebreakUserId = await this.loadSeasonTiebreakUserId(season);
+    standings = this.applyFirstPlaceTiebreak(standings, tiebreakUserId);
 
     // Calculate bogey pot total ($5 per bogey)
     const totalBogeys = standings.reduce((sum, p) => sum + p.totalBogeys, 0);
@@ -1449,6 +1512,8 @@ const Leaderboard = {
   seasonBogeyTracker: [],
   seasonBogeyPot: 0,
   seasonStandingsSort: { col: 'total', descending: false },
+  /** userId designated as first-place display tiebreak for seasonValue (if any). */
+  seasonTiebreakUserId: null,
   /** Columns: 'player' | 'total' | 'tid:${tournamentId}' */
   seasonStatsSortEagles: { col: 'total', descending: true },
   seasonStatsSortBogeys: { col: 'total', descending: true },
@@ -1585,9 +1650,74 @@ const Leaderboard = {
 
   /** Same row tie-break after primary sort comparison. */
   compareSeasonStandingsTiebreaker(a, b) {
+    if (a.firstPlaceTiebreakWinner && !b.firstPlaceTiebreakWinner) return -1;
+    if (b.firstPlaceTiebreakWinner && !a.firstPlaceTiebreakWinner) return 1;
     return String(a.displayName || '').localeCompare(String(b.displayName || ''), undefined, {
       sensitivity: 'base'
     });
+  },
+
+  async loadStandingsTiebreakConfig() {
+    try {
+      const cached = await FirestoreCache.getDoc('config', 'seasonTiebreakers', {
+        ttlMs: 15 * 60 * 1000
+      });
+      if (!cached.exists) return { bySeason: {}, byTournament: {} };
+      return {
+        bySeason: cached.data.bySeason || {},
+        byTournament: cached.data.byTournament || {}
+      };
+    } catch (error) {
+      console.warn('Could not load standings tiebreakers:', error);
+      return { bySeason: {}, byTournament: {} };
+    }
+  },
+
+  async loadSeasonTiebreakUserId(season) {
+    if (season == null) {
+      this.seasonTiebreakUserId = null;
+      return null;
+    }
+    const cfg = await this.loadStandingsTiebreakConfig();
+    const userId = cfg.bySeason[String(season)]?.userId || null;
+    this.seasonTiebreakUserId = userId;
+    return userId;
+  },
+
+  async loadTournamentTiebreakUserId(tournamentId) {
+    if (!tournamentId) return null;
+    const cfg = await this.loadStandingsTiebreakConfig();
+    return cfg.byTournament[tournamentId]?.userId || null;
+  },
+
+  /**
+   * Among players tied for the best total, put the admin-designated
+   * tiebreak winner first. Does not change scores or T1 labels.
+   */
+  applyFirstPlaceTiebreak(standings, tiebreakUserId) {
+    if (!standings?.length) return standings || [];
+    standings.forEach((p) => { p.firstPlaceTiebreakWinner = false; });
+    if (!tiebreakUserId) return standings;
+
+    const best = standings[0].totalToPar;
+    const firstGroup = standings.filter((p) => p.totalToPar === best);
+    if (firstGroup.length < 2) return standings;
+
+    const winnerIdx = firstGroup.findIndex((p) =>
+      AccountMerges.isSamePlayer(p.userId, tiebreakUserId)
+    );
+    if (winnerIdx < 0) return standings;
+
+    const winner = firstGroup[winnerIdx];
+    winner.firstPlaceTiebreakWinner = true;
+    const othersFirst = firstGroup.filter((p) => p !== winner);
+    const rest = standings.filter((p) => p.totalToPar !== best);
+    return [winner, ...othersFirst, ...rest];
+  },
+
+  /** @deprecated use applyFirstPlaceTiebreak */
+  applySeasonFirstPlaceTiebreak(standings, tiebreakUserId) {
+    return this.applyFirstPlaceTiebreak(standings, tiebreakUserId);
   },
 
   compareSeasonStandingsRows(a, b, cfg) {

@@ -300,9 +300,11 @@ const Chat = {
       return;
     }
 
+    const chatId = this.currentTournamentId || 'general';
+
     try {
       await firebaseDb.collection('chats')
-        .doc(this.currentTournamentId)
+        .doc(chatId)
         .collection('messages')
         .add({
           text,
